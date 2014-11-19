@@ -79,6 +79,7 @@ static void setup_data()
     }
 }
 
+/*
 double toneFrequency[116] = {
                      16.35,
                      17.32,
@@ -197,6 +198,7 @@ double toneFrequency[116] = {
                      11839.82,
                      12543.85
                      };
+ */
 
 
 void convertInput(int x, int y)
@@ -251,10 +253,27 @@ static void quitGame( int code )
     printf("quit game");
 }
 
-static double sineWaveIndexInc = 7.001;
-static int playingFreq = 20;
+//static double sineWaveIndexInc = 7.001;
 
-static void handle_key_down( SDL_Keysym* keysym )
+struct Voice {
+    Sint8 *waveform;
+    Uint32 waveformLength;
+    double volume;        // multiplied
+    //double pan;           // 0 to 1: all the way left to all the way right
+    double frequency;     // Hz
+    Uint32 tone;     // tone
+    double phase;         // 0 to 1
+    int active;
+    
+    double sineWaveIndexDouble;
+    double sineWaveIndexInc;
+    int sineWaveIndex;
+};
+
+struct Voice **voices = NULL;
+int MAX_VOICES = 8;
+
+void handle_key_down( SDL_Keysym* keysym )
 {
     switch( keysym->sym ) {
         case SDLK_ESCAPE:
@@ -263,15 +282,42 @@ static void handle_key_down( SDL_Keysym* keysym )
         case SDLK_SPACE:
             break;
         case SDLK_LEFT:
-            playingFreq -= 1;
-            printf("%i\n", playingFreq);
+            for(int i = 0; i < MAX_VOICES; i++) {
+                if(voices[i] != NULL) {
+                    voices[i]->tone-=1;
+                    
+                }
+            }
             break;
         case SDLK_RIGHT:
-            playingFreq += 1;
-            if(playingFreq > 115) {
-                playingFreq = 115;
+            for(int i = 0; i < MAX_VOICES; i++) {
+                if(voices[i] != NULL) {
+                    voices[i]->tone+=1;
+                    
+                }
             }
-            printf("%i\n", playingFreq);
+            break;
+        case SDLK_1:
+            if(voices[0] != NULL) {
+                if(voices[0]->active == 0) {
+                    voices[0]->active = 1;
+                    printf("voice 0 active");
+                } else {
+                    voices[0]->active = 0;
+                    printf("voice 0 inactive");
+                }
+            }
+            break;
+        case SDLK_2:
+            if(voices[1] != NULL) {
+                if(voices[1]->active == 0) {
+                    voices[1]->active = 1;
+                    printf("voice 1 active");
+                } else {
+                    voices[1]->active = 0;
+                    printf("voice 1 inactive");
+                }
+            }
             break;
         default:
             break;
@@ -384,12 +430,12 @@ Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
 
-Uint32 audioBufferLength = 48000;// must be a multiple of samplesPerFrame (auto adjusted upwards if not)
-float *audioBuffer;
+Uint32 audioBufferLength = 2940;// must be a multiple of samplesPerFrame (auto adjusted upwards if not)
+Sint8 *audioBuffer;
 
 SDL_atomic_t audioCallbackLeftOff;
 Sint32 audioMainLeftOff;
-Uint8 audioMainAccumulator;
+Sint8 audioMainAccumulator;
 
 SDL_AudioDeviceID AudioDevice;
 SDL_AudioSpec audioSpec;
@@ -397,47 +443,16 @@ SDL_AudioSpec audioSpec;
 SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
-//Uint8 *sineWave = NULL;
 Uint32 sineWaveLength = 2048;
 Uint32 sineWaveIndex = 0;
 double sineWaveIndexDouble = 0;
 
-struct Voice {
-    Uint8 *waveform;
-    Uint32 waveformLength;
-    double volume;        // multiplied
-    //double pan;           // 0 to 1: all the way left to all the way right
-    double frequency;     // Hz
-    Uint32 tone;     // tone
-    double phase;         // 0 to 1
-};
 
-struct Voice *voices = NULL;
-int MAX_VOICES = 8;
 
 /********************/
-/*
-Uint8 sineWave [256] = {
-    128,131,134,137,140,143,146,149,152,156,159,162,165,168,171,174,
-    176,179,182,185,188,191,193,196,199,201,204,206,209,211,213,216,
-    218,220,222,224,226,228,230,232,234,236,237,239,240,242,243,245,
-    246,247,248,249,250,251,252,252,253,254,254,255,255,255,255,255,
-    255,255,255,255,255,255,254,254,253,252,252,251,250,249,248,247,
-    246,245,243,242,240,239,237,236,234,232,230,228,226,224,222,220,
-    218,216,213,211,209,206,204,201,199,196,193,191,188,185,182,179,
-    176,174,171,168,165,162,159,156,152,149,146,143,140,137,134,131,
-    128,124,121,118,115,112,109,106,103,99, 96, 93, 90, 87, 84, 81,
-    79, 76, 73, 70, 67, 64, 62, 59, 56, 54, 51, 49, 46, 44, 42, 39,
-    37, 35, 33, 31, 29, 27, 25, 23, 21, 19, 18, 16, 15, 13, 12, 10,
-    9,  8,  7,  6,  5,  4,  3,  3,  2,  1,  1,  0,  0,  0,  0,  0,
-    0,  0,  0,  0,  0,  0,  1,  1,  2,  3,  3,  4,  5,  6,  7,  8,
-    9,  10, 12, 13, 15, 16, 18, 19, 21, 23, 25, 27, 29, 31, 33, 35,
-    37, 39, 42, 44, 46, 49, 51, 54, 56, 59, 62, 64, 67, 70, 73, 76,
-    79, 81, 84, 87, 90, 93, 96, 99, 103,106,109,112,115,118,121,124
-};
-*/
 
-Uint8 *sineWave;
+
+Sint8 *sineWave;
 
 /*
 void speak(voice *v) {
@@ -472,7 +487,7 @@ int getWaveformLength(double pitch) {
     return sampleRate / getFrequency(pitch)+0.5f;
 }
 
-void buildSineWave(Uint8 *data, Uint32 length) {
+void buildSineWave(Sint8 *data, Uint32 length) {
     /*
     Uint32 i;
     for (i=0; i < length; i++) {
@@ -481,9 +496,10 @@ void buildSineWave(Uint8 *data, Uint32 length) {
     }*/
     for (int i = 0; i < sineWaveLength; ++i)
     {
-        Uint8 sample = (Uint8)roundf(255 * sinf(2.0f * M_PI * (float)i / sineWaveLength));
-        data[i] = sample;
-        printf("data %i:%i\n", i, data[i]);
+        Uint8 sample = (Uint8)roundf(255 * sinf(1.0f * M_PI * (float)i / sineWaveLength));
+        int i_s = sample;
+        data[i] = i_s-128;
+        printf("data %i:%i i_s:%i\n", i, data[i], i_s);
     }
 }
 
@@ -497,8 +513,10 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
     printf("\n\n");
 }
 
+static void incPhase(struct Voice *v, double inc);
+
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
-    
+    /*
     double delta_phi = (double) toneFrequency[playingFreq] / sampleRate * sineWaveLength;
     sineWaveIndexInc = delta_phi;
     
@@ -519,7 +537,73 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
         
     }
     
-    SDL_AtomicSet(&audioCallbackLeftOff, localAudioCallbackLeftOff);
+    SDL_AtomicSet(&audioCallbackLeftOff, localAudioCallbackLeftOff);*/
+    for (int i=0; i<byteStreamLength; i++) {
+        byteStream[i] = 0;
+    }
+    
+    Sint8 *s_byteStream = (Sint8*)byteStream;
+    
+    /*
+    for (int i=0; i<byteStreamLength; i++) {
+        
+        if(i < audioBufferLength) {
+            s_byteStream[i] = audioBuffer[i];
+        } else {
+            s_byteStream[i] = 0;
+            printf("audiobufferlength exceeded");
+        }
+        
+    }*/
+
+    /*
+    for(int i = 0; i < MAX_VOICES; i++) {
+        struct Voice *v = voices[i];
+        if(v != NULL && v->active == 1) {
+            Uint32 i;
+            double delta_phi = (double) toneFrequency[v->tone] / sampleRate * v->waveformLength;
+            sineWaveIndexInc = delta_phi;
+            //sineWaveIndex = 0;
+            //sineWaveIndexDouble = 0;
+            
+            for (i=0; i<byteStreamLength; i++) {
+                
+                //byteStream[i] += sineWave[sineWaveIndex]/4;
+                s_byteStream[i] += v->waveform[sineWaveIndex]/8;
+                sineWaveIndexDouble += sineWaveIndexInc;
+                sineWaveIndex = (Uint32)sineWaveIndexDouble;
+                if(sineWaveIndex >= sineWaveLength) {
+                    sineWaveIndex = 0;
+                    sineWaveIndexDouble = 0;
+                }
+            }
+        }
+    }*/
+    
+    
+    
+    for(int i = 0; i < MAX_VOICES; i++) {
+        struct Voice *v = voices[i];
+        if(v != NULL && v->active == 1) {
+            Uint32 i;
+            double d_sampleRate = sampleRate;
+            double d_waveformLength = v->waveformLength;
+            double delta_phi = (double) (getFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
+            for (i = 0; i < byteStreamLength; i++) {
+                incPhase(v, delta_phi);
+                s_byteStream[i] += v->waveform[v->sineWaveIndex]/4;
+            }
+        }
+    }
+}
+
+static void incPhase(struct Voice *v, double inc) {
+    v->sineWaveIndexDouble += inc;
+    v->sineWaveIndex = (Uint32)v->sineWaveIndexDouble;
+    if(v->sineWaveIndex >= v->waveformLength) {
+        v->sineWaveIndex = 0;
+        v->sineWaveIndexDouble = 0;
+    }
 }
 
 
@@ -585,7 +669,7 @@ int main(int argc, char ** argv)
                 
                 
                 want.freq = sampleRate;
-                want.format = AUDIO_U8;
+                want.format = AUDIO_S8;
                 want.channels = 1;
                 want.samples = floatStreamLength;
                 want.callback = audioCallback;
@@ -610,25 +694,59 @@ int main(int argc, char ** argv)
                 audioMainLeftOff = samplesPerFrame*8;
                 SDL_AtomicSet(&audioCallbackLeftOff, 0);
                 
+                /*
                 if (audioBufferLength % samplesPerFrame) {
                     audioBufferLength += samplesPerFrame-(audioBufferLength % samplesPerFrame);
                 }
-                audioBuffer = malloc( sizeof(float)*audioBufferLength );
+                */
+                
+                audioBuffer = malloc( sizeof(Sint8)*audioBufferLength );
                 
                 
-                sineWave = malloc( sizeof(Uint8)*sineWaveLength );
+                sineWave = malloc( sizeof(Sint8)*sineWaveLength );
                 buildSineWave(sineWave, sineWaveLength);
                 
-                /*
+                
                 voices = malloc(sizeof(struct Voice*)*MAX_VOICES);
+                for(int i = 0; i < MAX_VOICES; i++) {
+                    voices[i] = NULL;
+                }
                 
-                struct Voice *voice = malloc(sizeof(struct Voice*));
-                voice->tone = 40;
-                voice->waveform = sineWave;
-                voice->waveformLength = sineWaveLength;
-                voice->phase = 0;
-                 */
+                struct Voice *v = malloc(sizeof(struct Voice));
+                v->tone = 54;
+                v->waveform = sineWave;
+                v->waveformLength = sineWaveLength;
+                v->phase = 0;
+                v->active = 1;
+                voices[0] = v;
                 
+                
+                
+                v = malloc(sizeof(struct Voice));
+                v->tone = 58;
+                v->waveform = sineWave;
+                v->waveformLength = sineWaveLength;
+                v->phase = 0;
+                v->active = 1;
+                voices[1] = v;
+                
+                v = malloc(sizeof(struct Voice));
+                v->tone = 62;
+                v->waveform = sineWave;
+                v->waveformLength = sineWaveLength;
+                v->phase = 0;
+                v->active = 1;
+                voices[2] = v;
+                
+                 
+/*
+                v = malloc(sizeof(struct Voice));
+                v->tone = 62;
+                v->waveform = sineWave;
+                v->waveformLength = sineWaveLength;
+                v->phase = 0;
+                voices[2] = v;
+                */
                 //voices[0]
                 
                 SDL_Delay(42);// let the tubes warm up
@@ -640,7 +758,35 @@ int main(int argc, char ** argv)
                     while (!quit) {
                         //printf("checkSDLEvents\n");
                         
+                        /*
+                        for (int i=0; i<audioBufferLength; i++) {
+                            
+                            audioBuffer[i] = 0;
+                        }
                         
+                        for(int i = 0; i < MAX_VOICES; i++) {
+                            struct Voice *v = voices[i];
+                            if(v != NULL && v->active == 1) {
+                                Uint32 i;
+                                double delta_phi = (double) toneFrequency[v->tone] / sampleRate * v->waveformLength;
+                                sineWaveIndexInc = delta_phi;
+                                //sineWaveIndex = 0;
+                                //sineWaveIndexDouble = 0;
+                                
+                                for (i=0; i<audioBufferLength; i++) {
+                                    
+                                    //byteStream[i] += sineWave[sineWaveIndex]/4;
+                                    audioBuffer[i] += v->waveform[sineWaveIndex]/4;
+                                    sineWaveIndexDouble += sineWaveIndexInc;
+                                    sineWaveIndex = (Uint32)sineWaveIndexDouble;
+                                    if(sineWaveIndex >= sineWaveLength) {
+                                        sineWaveIndex = 0;
+                                        sineWaveIndexDouble = 0;
+                                    }
+                                }
+                            }
+                        }
+                        */
                         
           
                         
