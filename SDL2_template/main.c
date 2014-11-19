@@ -79,6 +79,124 @@ static void setup_data()
     }
 }
 
+double toneFrequency[116] = {
+                     16.35,
+                     17.32,
+                     18.35,
+                     19.45,
+                     20.60,
+                     21.83,
+                     23.12,
+                     24.50,
+                     25.96,
+                     27.50,
+                     29.14,
+                     30.87,
+                     32.70,
+                     34.65,
+                     36.71,
+                     38.89,
+                     41.20,
+                     43.65,
+                     46.25,
+                     49.00,
+                     51.91,
+                     55.00,
+                     58.27,
+                     61.74,
+                     65.41,
+                     69.30,
+                     73.42,
+                     77.78,
+                     82.41,
+                     87.31,
+                     92.50,
+                     98.00,
+                     103.83,
+                     110.00,
+                     116.54,
+                     123.47,
+                     130.81,
+                     138.59,
+                     146.83,
+                     155.56,
+                     164.81,
+                     174.61,
+                     185.00,
+                     196.00,
+                     207.65,
+                     220.00,
+                     233.08,
+                     246.94,
+                     261.63,
+                     277.18,
+                     293.66,
+                     311.13,
+                     329.63,
+                     349.23,
+                     369.99,
+                     392.00,
+                     415.30,
+                     440.00,
+                     466.16,
+                     493.88,
+                     523.25,
+                     554.37,
+                     587.33,
+                     622.25,
+                     659.26,
+                     698.46,
+                     739.99,
+                     783.99,
+                     830.61,
+                     880.00,
+                     932.33,
+                     987.77,
+                     1046.50,
+                     1108.73,
+                     1174.66,
+                     1244.51,
+                     1318.51,
+                     1396.91,
+                     1479.98,
+                     1567.98,
+                     1661.22,
+                     1760.00,
+                     1864.66,
+                     1975.53,
+                     2093.00,
+                     2217.46,
+                     2349.32,
+                     2489.02,
+                     2637.02,
+                     2793.83,
+                     2959.96,
+                     3135.96,
+                     3322.44,
+                     3520.00,
+                     3729.31,
+                     3951.07,
+                     4186.01,
+                     4434.92,
+                     4698.64,
+                     4978.03,
+                     5274.04,
+                     5587.65,
+                     5919.91,
+                     6271.93,
+                     6644.88,
+                     7040.00,
+                     7458.62,
+                     7902.13,
+                     8372.01,
+                     8869.84,
+                     9397.27,
+                     9956.06,
+                     10548.08,
+                     11175.30,
+                     11839.82,
+                     12543.85
+                     };
 
 
 void convertInput(int x, int y)
@@ -133,6 +251,9 @@ static void quitGame( int code )
     printf("quit game");
 }
 
+static double sineWaveIndexInc = 7.001;
+static int playingFreq = 20;
+
 static void handle_key_down( SDL_Keysym* keysym )
 {
     switch( keysym->sym ) {
@@ -140,6 +261,17 @@ static void handle_key_down( SDL_Keysym* keysym )
             quit = 1;
             break;
         case SDLK_SPACE:
+            break;
+        case SDLK_LEFT:
+            playingFreq -= 1;
+            printf("%i\n", playingFreq);
+            break;
+        case SDLK_RIGHT:
+            playingFreq += 1;
+            if(playingFreq > 115) {
+                playingFreq = 115;
+            }
+            printf("%i\n", playingFreq);
             break;
         default:
             break;
@@ -245,7 +377,7 @@ static int getDelta() {
 const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
-Uint32 sampleRate = 48000;
+Uint32 sampleRate = 22050;
 Uint32  frameRate =    60;
 Uint32 floatStreamLength = 8;// must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
@@ -265,18 +397,49 @@ SDL_AudioSpec audioSpec;
 SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
-typedef struct {
-    float *waveform;
+//Uint8 *sineWave = NULL;
+Uint32 sineWaveLength = 2048;
+Uint32 sineWaveIndex = 0;
+double sineWaveIndexDouble = 0;
+
+struct Voice {
+    Uint8 *waveform;
     Uint32 waveformLength;
     double volume;        // multiplied
-    double pan;           // 0 to 1: all the way left to all the way right
+    //double pan;           // 0 to 1: all the way left to all the way right
     double frequency;     // Hz
+    Uint32 tone;     // tone
     double phase;         // 0 to 1
-} voice;
+};
+
+struct Voice *voices = NULL;
+int MAX_VOICES = 8;
 
 /********************/
+/*
+Uint8 sineWave [256] = {
+    128,131,134,137,140,143,146,149,152,156,159,162,165,168,171,174,
+    176,179,182,185,188,191,193,196,199,201,204,206,209,211,213,216,
+    218,220,222,224,226,228,230,232,234,236,237,239,240,242,243,245,
+    246,247,248,249,250,251,252,252,253,254,254,255,255,255,255,255,
+    255,255,255,255,255,255,254,254,253,252,252,251,250,249,248,247,
+    246,245,243,242,240,239,237,236,234,232,230,228,226,224,222,220,
+    218,216,213,211,209,206,204,201,199,196,193,191,188,185,182,179,
+    176,174,171,168,165,162,159,156,152,149,146,143,140,137,134,131,
+    128,124,121,118,115,112,109,106,103,99, 96, 93, 90, 87, 84, 81,
+    79, 76, 73, 70, 67, 64, 62, 59, 56, 54, 51, 49, 46, 44, 42, 39,
+    37, 35, 33, 31, 29, 27, 25, 23, 21, 19, 18, 16, 15, 13, 12, 10,
+    9,  8,  7,  6,  5,  4,  3,  3,  2,  1,  1,  0,  0,  0,  0,  0,
+    0,  0,  0,  0,  0,  0,  1,  1,  2,  3,  3,  4,  5,  6,  7,  8,
+    9,  10, 12, 13, 15, 16, 18, 19, 21, 23, 25, 27, 29, 31, 33, 35,
+    37, 39, 42, 44, 46, 49, 51, 54, 56, 59, 62, 64, 67, 70, 73, 76,
+    79, 81, 84, 87, 90, 93, 96, 99, 103,106,109,112,115,118,121,124
+};
+*/
 
+Uint8 *sineWave;
 
+/*
 void speak(voice *v) {
     float sample;
     Uint32 sourceIndex;
@@ -300,7 +463,7 @@ void speak(voice *v) {
             audioBuffer[audioMainLeftOff+i] = 0;
     }
     audioMainAccumulator++;
-}
+}*/
 
 double getFrequency(double pitch) {
     return pow(ChromaticRatio, pitch-57)*440;
@@ -309,43 +472,22 @@ int getWaveformLength(double pitch) {
     return sampleRate / getFrequency(pitch)+0.5f;
 }
 
-void buildSineWave(float *data, Uint32 length) {
+void buildSineWave(Uint8 *data, Uint32 length) {
+    /*
     Uint32 i;
-    for (i=0; i < length; i++)
-        data[i] = sin( i*(Tao/length) );
+    for (i=0; i < length; i++) {
+        data[i] = sin( i*(Tao/length) )*256;
+        printf("%i\n", data[i]);
+    }*/
+    for (int i = 0; i < sineWaveLength; ++i)
+    {
+        Uint8 sample = (Uint8)roundf(255 * sinf(2.0f * M_PI * (float)i / sineWaveLength));
+        data[i] = sample;
+        printf("data %i:%i\n", i, data[i]);
+    }
 }
 
-void logSpec(SDL_AudioSpec *as) {
-    printf(
-           " freq______%5d\n"
-           " format____%5d\n"
-           " channels__%5d\n"
-           " silence___%5d\n"
-           " samples___%5d\n"
-           " size______%5d\n\n",
-           (int) as->freq,
-           (int) as->format,
-           (int) as->channels,
-           (int) as->silence,
-           (int) as->samples,
-           (int) as->size
-           );
-}
 
-void logVoice(voice *v) {
-    printf(
-           " waveformLength__%d\n"
-           " volume__________%f\n"
-           " pan_____________%f\n"
-           " frequency_______%f\n"
-           " phase___________%f\n",
-           v->waveformLength,
-           v->volume,
-           v->pan,
-           v->frequency,
-           v->phase
-           );
-}
 
 void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     printf("\n\nwaveform data:\n\n");
@@ -356,20 +498,26 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
 }
 
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
-    float* floatStream = (float*) byteStream;
+    
+    double delta_phi = (double) toneFrequency[playingFreq] / sampleRate * sineWaveLength;
+    sineWaveIndexInc = delta_phi;
+    
+    // phase increment
     
     Sint32 localAudioCallbackLeftOff = SDL_AtomicGet(&audioCallbackLeftOff);
     
     Uint32 i;
-    for (i=0; i<floatStreamLength; i++) {
+    for (i=0; i<byteStreamLength; i++) {
         
-        floatStream[i] = audioBuffer[localAudioCallbackLeftOff];
+        byteStream[i] = sineWave[sineWaveIndex]/4;
+        sineWaveIndexDouble += sineWaveIndexInc;
+        sineWaveIndex = (Uint32)sineWaveIndexDouble;
+        if(sineWaveIndex >= sineWaveLength) {
+            sineWaveIndex = 0;
+            sineWaveIndexDouble = 0;
+        }
         
-        localAudioCallbackLeftOff++;
-        if ( localAudioCallbackLeftOff == audioBufferLength )
-            localAudioCallbackLeftOff = 0;
     }
-    //printf("localAudioCallbackLeftOff__%5d\n", localAudioCallbackLeftOff);
     
     SDL_AtomicSet(&audioCallbackLeftOff, localAudioCallbackLeftOff);
 }
@@ -429,38 +577,6 @@ int main(int argc, char ** argv)
                 free(raw_sheet);
                 
                 
-                /*** audio init **/
-                float  syncCompensationFactor = 0.0016;// decrease to reduce risk of collision, increase to lower latency
-                Sint32 mainAudioLead;
-                Uint32 i;
-                
-                voice testVoiceA;
-                voice testVoiceB;
-                voice testVoiceC;
-                testVoiceA.volume = 0.5;
-                testVoiceB.volume = 0.5;
-                testVoiceC.volume = 0.5;
-                testVoiceA.pan = 0.5;
-                testVoiceB.pan = 0;
-                testVoiceC.pan = 1;
-                testVoiceA.phase = 0;
-                testVoiceB.phase = 0;
-                testVoiceC.phase = 0;
-                testVoiceA.frequency = getFrequency(48);// A3
-                testVoiceB.frequency = getFrequency(52);// C#4
-                testVoiceC.frequency = getFrequency(55);// E4
-                Uint16 C0waveformLength = getWaveformLength(0);
-                testVoiceA.waveformLength = C0waveformLength;
-                testVoiceB.waveformLength = C0waveformLength;
-                testVoiceC.waveformLength = C0waveformLength;
-                float sineWave[C0waveformLength];
-                buildSineWave(sineWave, C0waveformLength);
-                testVoiceA.waveform = sineWave;
-                testVoiceB.waveform = sineWave;
-                testVoiceC.waveform = sineWave;
-                
-                logVoice(&testVoiceA);
-                logWavedata(testVoiceA.waveform, testVoiceA.waveformLength, 10);
                 
                 //if ( init() ) return 1;
                 SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
@@ -469,8 +585,8 @@ int main(int argc, char ** argv)
                 
                 
                 want.freq = sampleRate;
-                want.format = AUDIO_F32;
-                want.channels = 2;
+                want.format = AUDIO_U8;
+                want.channels = 1;
                 want.samples = floatStreamLength;
                 want.callback = audioCallback;
                 
@@ -481,10 +597,6 @@ int main(int argc, char ** argv)
                     return 1;
                 }
                 
-                printf("want:\n");
-                logSpec(&want);
-                printf("audioSpec:\n");
-                logSpec(&audioSpec);
                 
                 if (audioSpec.format != want.format) {
                     printf("\nCouldn't get Float32 audio format.\n");
@@ -504,8 +616,20 @@ int main(int argc, char ** argv)
                 audioBuffer = malloc( sizeof(float)*audioBufferLength );
                 
                 
+                sineWave = malloc( sizeof(Uint8)*sineWaveLength );
+                buildSineWave(sineWave, sineWaveLength);
                 
+                /*
+                voices = malloc(sizeof(struct Voice*)*MAX_VOICES);
                 
+                struct Voice *voice = malloc(sizeof(struct Voice*));
+                voice->tone = 40;
+                voice->waveform = sineWave;
+                voice->waveformLength = sineWaveLength;
+                voice->phase = 0;
+                 */
+                
+                //voices[0]
                 
                 SDL_Delay(42);// let the tubes warm up
                 
@@ -518,47 +642,7 @@ int main(int argc, char ** argv)
                         
                         
                         
-                        /**** audio update ****/
-                        
-                        for (int i=0; i<samplesPerFrame; i++) {
-                            audioBuffer[audioMainLeftOff+i] = 0;
-                        }
-                        
-                        
-                        //printf("audioMainLeftOff___________%5d\n", audioMainLeftOff);
-                        
-                        speak(&testVoiceA);
-                        speak(&testVoiceB);
-                        speak(&testVoiceC);
-                        
-                        if (audioMainAccumulator > 1) {
-                            for (i=0; i<samplesPerFrame; i++) {
-                                audioBuffer[audioMainLeftOff+i] /= audioMainAccumulator;
-                            }
-                        }
-                        audioMainAccumulator = 0;
-                        
-                        audioMainLeftOff += samplesPerFrame;
-                        if (audioMainLeftOff == audioBufferLength) {
-                            audioMainLeftOff = 0;
-                        }
-                        
-                        mainAudioLead = audioMainLeftOff - SDL_AtomicGet(&audioCallbackLeftOff);
-                        
-                        if (mainAudioLead < 0) {
-                            mainAudioLead += audioBufferLength;
-                        }
-                        
-                        //printf("mainAudioLead:%5d\n", mainAudioLead);
-                        if (mainAudioLead < floatStreamLength) {
-                            printf("An audio collision may have occured!\n");
-                        }
-                        
-                        // SDL_Delay( mainAudioLead*syncCompensationFactor );
-                        
-                        /*********/
-                        
-                        
+          
                         
                         
                         
