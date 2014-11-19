@@ -20,10 +20,10 @@ unsigned int *raster = NULL;
 unsigned int **raster2d = NULL;
 unsigned int **sheet = NULL;
 unsigned int *raw_sheet = NULL;
-int width = 144*4;
-int height = 256*4;
-int s_width = 144;
-int s_height = 256;
+int width = 256*4;
+int height = 144*4;
+int s_width = 256*4;
+int s_height = 144*4;
 
 static void setup_data()
 {
@@ -205,33 +205,6 @@ void convertInput(int x, int y)
 {
     input->mouse_x = x/4;
     input->mouse_y = y/4;
-    
-    //magic number
-    /*
-     int offset_compensation = 6;
-     
-     float h_ = screen_width*0.5625f;
-     int h = (int)h_;
-     double f_screen_width = screen_width;
-     double f_screen_height = screen_height;
-     double f_v_screen_height = h;
-     double offset = ((f_screen_height-h)/2)*(s_height/f_screen_height);
-     double factor_x = x / f_screen_width;
-     double factor_y = y / f_v_screen_height;
-     double d_r_x = factor_x * s_width;
-     double d_r_y = factor_y * s_height;
-     int r_x = (int)d_r_x;
-     int r_y = (int)d_r_y-offset-offset_compensation;
-     int index = r_x+r_y*s_width;
-     
-     
-     if(index < (s_width*s_height) && index > -1)
-     {
-     raster[r_x+r_y*s_width] = 0xffff00ff;
-     input->mouse_x = r_x;
-     input->mouse_y = r_y;
-     }
-     */
 }
 
 
@@ -272,6 +245,7 @@ struct Voice {
 
 struct Voice **voices = NULL;
 int MAX_VOICES = 8;
+int sine_scroll = 0;
 
 void handle_key_down( SDL_Keysym* keysym )
 {
@@ -288,6 +262,10 @@ void handle_key_down( SDL_Keysym* keysym )
                     
                 }
             }
+            sine_scroll-=50;
+            if(sine_scroll < 0) {
+                sine_scroll = 0;
+            }
             break;
         case SDLK_RIGHT:
             for(int i = 0; i < MAX_VOICES; i++) {
@@ -295,6 +273,10 @@ void handle_key_down( SDL_Keysym* keysym )
                     voices[i]->tone+=1;
                     
                 }
+            }
+            sine_scroll+=50;
+            if(sine_scroll < 0) {
+                sine_scroll = 0;
             }
             break;
         case SDLK_1:
@@ -315,6 +297,28 @@ void handle_key_down( SDL_Keysym* keysym )
                     printf("voice 1 active");
                 } else {
                     voices[1]->active = 0;
+                    printf("voice 1 inactive");
+                }
+            }
+            break;
+        case SDLK_3:
+            if(voices[2] != NULL) {
+                if(voices[2]->active == 0) {
+                    voices[2]->active = 1;
+                    printf("voice 1 active");
+                } else {
+                    voices[2]->active = 0;
+                    printf("voice 1 inactive");
+                }
+            }
+            break;
+        case SDLK_4:
+            if(voices[3] != NULL) {
+                if(voices[3]->active == 0) {
+                    voices[3]->active = 1;
+                    printf("voice 1 active");
+                } else {
+                    voices[3]->active = 0;
                     printf("voice 1 inactive");
                 }
             }
@@ -424,7 +428,7 @@ const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
 Uint32 sampleRate = 22050;
-Uint32  frameRate =    60;
+Uint32 frameRate =    60;
 Uint32 floatStreamLength = 8;// must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
@@ -443,9 +447,9 @@ SDL_AudioSpec audioSpec;
 SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
-Uint32 sineWaveLength = 2048;
-Uint32 sineWaveIndex = 0;
-double sineWaveIndexDouble = 0;
+Uint32 waveLength = 256;
+//Uint32 sineWaveIndex = 0;
+//double sineWaveIndexDouble = 0;
 
 
 
@@ -453,6 +457,10 @@ double sineWaveIndexDouble = 0;
 
 
 Sint8 *sineWave;
+Sint8 *sawtoothWave;
+Sint8 *squareWave;
+Sint8 *triangleWave;
+Sint8 *noise;
 
 /*
 void speak(voice *v) {
@@ -488,22 +496,70 @@ int getWaveformLength(double pitch) {
 }
 
 void buildSineWave(Sint8 *data, Uint32 length) {
-    /*
-    Uint32 i;
-    for (i=0; i < length; i++) {
-        data[i] = sin( i*(Tao/length) )*256;
-        printf("%i\n", data[i]);
-    }*/
-    for (int i = 0; i < sineWaveLength; ++i)
-    {
-        Uint8 sample = (Uint8)roundf(255 * sinf(1.0f * M_PI * (float)i / sineWaveLength));
+
+    float phaseIncrement = (2.0f * M_PI)/(float)waveLength;
+    float currentPhase = 0.0;
+    for (int i = 0; i < waveLength; i++) {
+        int sample = (int)(sin(currentPhase)*128);
+        data[i] = sample;
+        currentPhase += phaseIncrement;
+        printf("data %i:%i\n", i, data[i]);
+    }
+    
+}
+
+void buildSawtoothWave(Sint8 *data, Uint32 length) {
+    float phaseIncrement = 256/(float)waveLength;
+    float currentPhase = 0.0;
+    for (int i = 0; i < waveLength; i++) {
+        Uint8 sample = 127-(int)currentPhase;
         int i_s = sample;
-        data[i] = i_s-128;
+        data[i] = i_s;
+        currentPhase += phaseIncrement;
         printf("data %i:%i i_s:%i\n", i, data[i], i_s);
     }
 }
 
+void buildSquareWave(Sint8 *data, Uint32 length) {
+    for (int i = 0; i < waveLength; i++) {
+        Sint8 sample = 127;
+        if(i > waveLength/2) {
+            sample = -127;
+        }
+        int i_s = sample;
+        data[i] = i_s;
+        printf("data %i:%i i_s:%i\n", i, data[i], i_s);
+    }
+}
 
+void buildTriangleWave(Sint8 *data, Uint32 length) {
+    
+    float phaseIncrement = (256/(float)waveLength);
+    float currentPhase = 0.0;
+    
+    for (int i = 0; i < waveLength; i++) {
+        Sint8 sample = (int)currentPhase;
+        if(currentPhase > 127) {
+            sample = 127;
+        }
+        int i_s = sample;
+        data[i] = i_s;
+        if(i < waveLength/2) {
+            currentPhase += phaseIncrement;
+        } else {
+            currentPhase -= phaseIncrement;
+        }
+        printf("triangle data %i:%i i_s:%i\n", i, data[i], i_s);
+    }
+}
+
+void buildNoise(Sint8 *data, Uint32 length) {
+    for (int i = 0; i < waveLength; i++) {
+        int sample = (rand()%255)-127;
+        data[i] = sample;
+        printf("data %i:%i\n", i, data[i]);
+    }
+}
 
 void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     printf("\n\nwaveform data:\n\n");
@@ -516,71 +572,13 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
 static void incPhase(struct Voice *v, double inc);
 
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
-    /*
-    double delta_phi = (double) toneFrequency[playingFreq] / sampleRate * sineWaveLength;
-    sineWaveIndexInc = delta_phi;
+   
     
-    // phase increment
-    
-    Sint32 localAudioCallbackLeftOff = SDL_AtomicGet(&audioCallbackLeftOff);
-    
-    Uint32 i;
-    for (i=0; i<byteStreamLength; i++) {
-        
-        byteStream[i] = sineWave[sineWaveIndex]/4;
-        sineWaveIndexDouble += sineWaveIndexInc;
-        sineWaveIndex = (Uint32)sineWaveIndexDouble;
-        if(sineWaveIndex >= sineWaveLength) {
-            sineWaveIndex = 0;
-            sineWaveIndexDouble = 0;
-        }
-        
-    }
-    
-    SDL_AtomicSet(&audioCallbackLeftOff, localAudioCallbackLeftOff);*/
     for (int i=0; i<byteStreamLength; i++) {
         byteStream[i] = 0;
     }
     
     Sint8 *s_byteStream = (Sint8*)byteStream;
-    
-    /*
-    for (int i=0; i<byteStreamLength; i++) {
-        
-        if(i < audioBufferLength) {
-            s_byteStream[i] = audioBuffer[i];
-        } else {
-            s_byteStream[i] = 0;
-            printf("audiobufferlength exceeded");
-        }
-        
-    }*/
-
-    /*
-    for(int i = 0; i < MAX_VOICES; i++) {
-        struct Voice *v = voices[i];
-        if(v != NULL && v->active == 1) {
-            Uint32 i;
-            double delta_phi = (double) toneFrequency[v->tone] / sampleRate * v->waveformLength;
-            sineWaveIndexInc = delta_phi;
-            //sineWaveIndex = 0;
-            //sineWaveIndexDouble = 0;
-            
-            for (i=0; i<byteStreamLength; i++) {
-                
-                //byteStream[i] += sineWave[sineWaveIndex]/4;
-                s_byteStream[i] += v->waveform[sineWaveIndex]/8;
-                sineWaveIndexDouble += sineWaveIndexInc;
-                sineWaveIndex = (Uint32)sineWaveIndexDouble;
-                if(sineWaveIndex >= sineWaveLength) {
-                    sineWaveIndex = 0;
-                    sineWaveIndexDouble = 0;
-                }
-            }
-        }
-    }*/
-    
-    
     
     for(int i = 0; i < MAX_VOICES; i++) {
         struct Voice *v = voices[i];
@@ -591,7 +589,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double delta_phi = (double) (getFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
             for (i = 0; i < byteStreamLength; i++) {
                 incPhase(v, delta_phi);
-                s_byteStream[i] += v->waveform[v->sineWaveIndex]/4;
+                s_byteStream[i] += v->waveform[v->sineWaveIndex]*0.2;
             }
         }
     }
@@ -644,8 +642,8 @@ int main(int argc, char ** argv)
                 
                 
                 struct CEngineContext *c = cEngineContextNew();
-                c->width = 144;
-                c->height = 256;
+                c->width = 256;
+                c->height = 144;
                 c->sprite_size = 16;
                 c->sheet_size = 1024;
                 c->max_touches = 8;
@@ -703,8 +701,17 @@ int main(int argc, char ** argv)
                 audioBuffer = malloc( sizeof(Sint8)*audioBufferLength );
                 
                 
-                sineWave = malloc( sizeof(Sint8)*sineWaveLength );
-                buildSineWave(sineWave, sineWaveLength);
+                sineWave = malloc( sizeof(Sint8)*waveLength );
+                buildSineWave(sineWave, waveLength);
+                
+                sawtoothWave = malloc( sizeof(Sint8)*waveLength );
+                buildSawtoothWave(sawtoothWave, waveLength);
+                
+                squareWave = malloc( sizeof(Sint8)*waveLength );
+                buildSquareWave(squareWave, waveLength);
+                
+                triangleWave = malloc( sizeof(Sint8)*waveLength );
+                buildTriangleWave(triangleWave, waveLength);
                 
                 
                 voices = malloc(sizeof(struct Voice*)*MAX_VOICES);
@@ -713,32 +720,38 @@ int main(int argc, char ** argv)
                 }
                 
                 struct Voice *v = malloc(sizeof(struct Voice));
-                v->tone = 54;
-                v->waveform = sineWave;
-                v->waveformLength = sineWaveLength;
+                v->tone = 57;
+                v->waveform = sawtoothWave;
+                v->waveformLength = waveLength;
                 v->phase = 0;
                 v->active = 1;
                 voices[0] = v;
                 
                 
-                
                 v = malloc(sizeof(struct Voice));
-                v->tone = 58;
+                v->tone = 57;
                 v->waveform = sineWave;
-                v->waveformLength = sineWaveLength;
+                v->waveformLength = waveLength;
                 v->phase = 0;
                 v->active = 1;
                 voices[1] = v;
                 
                 v = malloc(sizeof(struct Voice));
-                v->tone = 62;
-                v->waveform = sineWave;
-                v->waveformLength = sineWaveLength;
+                v->tone = 57;
+                v->waveform = squareWave;
+                v->waveformLength = waveLength;
                 v->phase = 0;
                 v->active = 1;
                 voices[2] = v;
                 
-                 
+                v = malloc(sizeof(struct Voice));
+                v->tone = 57;
+                v->waveform = triangleWave;
+                v->waveformLength = waveLength;
+                v->phase = 0;
+                v->active = 1;
+                voices[3] = v;
+                
 /*
                 v = malloc(sizeof(struct Voice));
                 v->tone = 62;
@@ -801,6 +814,45 @@ int main(int argc, char ** argv)
                         }
                         
                         cEngineGameloop(getDelta(), raster2d, input);
+                        //renderStuff
+                        
+                        for(int x = 0; x < s_width; x++) {
+                            for(int y = 0; y < s_height; y++) {
+                                raster2d[x][y] = 0;
+                            }
+                        }
+                        
+                        for(int i = sine_scroll; i < waveLength; i++) {
+                            int pos = sineWave[i]+150;
+                            if(pos > -1 && pos < s_height
+                               && i-sine_scroll < s_width) {
+                                raster2d[i-sine_scroll][pos] = 0xffffffff;
+                            }
+                        }
+                        
+                        for(int i = sine_scroll; i < waveLength; i++) {
+                            int pos = squareWave[i]+150;
+                            if(pos > -1 && pos < s_height
+                               && i-sine_scroll < s_width) {
+                                raster2d[i-sine_scroll][pos] = 0xff00ffff;
+                            }
+                        }
+                        
+                        for(int i = sine_scroll; i < waveLength; i++) {
+                            int pos = triangleWave[i]+150;
+                            if(pos > -1 && pos < s_height
+                               && i-sine_scroll < s_width) {
+                                raster2d[i-sine_scroll][pos] = 0xffff00ff;
+                            }
+                        }
+                        
+                        for(int i = sine_scroll; i < waveLength; i++) {
+                            int pos = sawtoothWave[i]+150;
+                            if(pos > -1 && pos < s_height
+                               && i-sine_scroll < s_width) {
+                                raster2d[i-sine_scroll][pos] = 0xffffff00;
+                            }
+                        }
                         
                         SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
                         SDL_RenderClear(renderer);
