@@ -505,7 +505,6 @@ void buildSineWave(Sint8 *data, Uint32 length) {
         currentPhase += phaseIncrement;
         printf("data %i:%i\n", i, data[i]);
     }
-    
 }
 
 void buildSawtoothWave(Sint8 *data, Uint32 length) {
@@ -534,8 +533,8 @@ void buildSquareWave(Sint8 *data, Uint32 length) {
 
 void buildTriangleWave(Sint8 *data, Uint32 length) {
     
-    float phaseIncrement = (256/(float)waveLength);
-    float currentPhase = 0.0;
+    float phaseIncrement = (256/(float)waveLength)*2;
+    float currentPhase = -127.0;
     
     for (int i = 0; i < waveLength; i++) {
         Sint8 sample = (int)currentPhase;
@@ -571,10 +570,12 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
 
 static void incPhase(struct Voice *v, double inc);
 
+int testSchedule = 0;
+int testScheduleSwitch = 0;
+
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
    
-    
-    for (int i=0; i<byteStreamLength; i++) {
+    for (int i = 0; i < byteStreamLength; i++) {
         byteStream[i] = 0;
     }
     
@@ -592,6 +593,21 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                 s_byteStream[i] += v->waveform[v->sineWaveIndex]*0.2;
             }
         }
+    }
+    
+    int count = 1400;
+    testSchedule += byteStreamLength;
+    //printf("testSchedule:%i\n", testSchedule);
+    if(testSchedule > count && testScheduleSwitch == 0) {
+        printf("testSchedule inactive:%i\n", testSchedule);
+        voices[0]->active = 0;
+        testSchedule = 0;
+        testScheduleSwitch = 1;
+    } else if(testSchedule > count && testScheduleSwitch == 1) {
+        printf("testSchedule active:%i\n", testSchedule);
+        voices[0]->active = 1;
+        testSchedule = 0;
+        testScheduleSwitch = 0;
     }
 }
 
@@ -727,7 +743,7 @@ int main(int argc, char ** argv)
                 v->active = 1;
                 voices[0] = v;
                 
-                
+                /*
                 v = malloc(sizeof(struct Voice));
                 v->tone = 57;
                 v->waveform = sineWave;
@@ -751,6 +767,8 @@ int main(int argc, char ** argv)
                 v->phase = 0;
                 v->active = 1;
                 voices[3] = v;
+                 */
+                 
                 
 /*
                 v = malloc(sizeof(struct Voice));
@@ -771,9 +789,10 @@ int main(int argc, char ** argv)
                     while (!quit) {
                         //printf("checkSDLEvents\n");
                         
+
+                        
                         /*
-                        for (int i=0; i<audioBufferLength; i++) {
-                            
+                        for (int i = 0; i < audioBufferLength; i++) {
                             audioBuffer[i] = 0;
                         }
                         
@@ -781,27 +800,18 @@ int main(int argc, char ** argv)
                             struct Voice *v = voices[i];
                             if(v != NULL && v->active == 1) {
                                 Uint32 i;
-                                double delta_phi = (double) toneFrequency[v->tone] / sampleRate * v->waveformLength;
-                                sineWaveIndexInc = delta_phi;
-                                //sineWaveIndex = 0;
-                                //sineWaveIndexDouble = 0;
-                                
-                                for (i=0; i<audioBufferLength; i++) {
-                                    
-                                    //byteStream[i] += sineWave[sineWaveIndex]/4;
-                                    audioBuffer[i] += v->waveform[sineWaveIndex]/4;
-                                    sineWaveIndexDouble += sineWaveIndexInc;
-                                    sineWaveIndex = (Uint32)sineWaveIndexDouble;
-                                    if(sineWaveIndex >= sineWaveLength) {
-                                        sineWaveIndex = 0;
-                                        sineWaveIndexDouble = 0;
-                                    }
+                                double d_sampleRate = sampleRate;
+                                double d_waveformLength = v->waveformLength;
+                                double delta_phi = (double) (getFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
+                                for (i = 0; i < audioBufferLength; i++) {
+                                    incPhase(v, delta_phi);
+                                    audioBuffer[i] += v->waveform[v->sineWaveIndex]*0.2;
+                                    printf("%i\n", audioBuffer[i]);
                                 }
                             }
                         }
-                        */
+                         */
                         
-          
                         
                         
                         
