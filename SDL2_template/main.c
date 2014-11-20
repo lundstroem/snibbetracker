@@ -228,13 +228,19 @@ static void quitGame( int code )
 
 //static double sineWaveIndexInc = 7.001;
 
+struct Instrument {
+    Sint8 *amplitude;
+    Uint32 amplitudeLength;
+    
+};
+
 struct Voice {
-    Sint8 *waveform;
-    Uint32 waveformLength;
+    char *waveform;
+    int waveformLength;
     double volume;        // multiplied
     //double pan;           // 0 to 1: all the way left to all the way right
     double frequency;     // Hz
-    Uint32 tone;     // tone
+    int tone;     // tone
     double phase;         // 0 to 1
     int active;
     
@@ -456,11 +462,11 @@ Uint32 waveLength = 256;
 /********************/
 
 
-Sint8 *sineWave;
-Sint8 *sawtoothWave;
-Sint8 *squareWave;
-Sint8 *triangleWave;
-Sint8 *noise;
+char *sineWave;
+char *sawtoothWave;
+char *squareWave;
+char *triangleWave;
+char *noise;
 
 /*
 void speak(voice *v) {
@@ -495,7 +501,7 @@ int getWaveformLength(double pitch) {
     return sampleRate / getFrequency(pitch)+0.5f;
 }
 
-void buildSineWave(Sint8 *data, Uint32 length) {
+void buildSineWave(char *data, Uint32 length) {
 
     float phaseIncrement = (2.0f * M_PI)/(float)waveLength;
     float currentPhase = 0.0;
@@ -507,19 +513,19 @@ void buildSineWave(Sint8 *data, Uint32 length) {
     }
 }
 
-void buildSawtoothWave(Sint8 *data, Uint32 length) {
+void buildSawtoothWave(char *data, Uint32 length) {
     float phaseIncrement = 256/(float)waveLength;
     float currentPhase = 0.0;
     for (int i = 0; i < waveLength; i++) {
-        Uint8 sample = 127-(int)currentPhase;
+        Sint8 sample = 127-(int)currentPhase;
         int i_s = sample;
         data[i] = i_s;
         currentPhase += phaseIncrement;
-        printf("data %i:%i i_s:%i\n", i, data[i], i_s);
+        printf("sawtooth data %i:%i i_s:%i\n", i, data[i], i_s);
     }
 }
 
-void buildSquareWave(Sint8 *data, Uint32 length) {
+void buildSquareWave(char *data, Uint32 length) {
     for (int i = 0; i < waveLength; i++) {
         Sint8 sample = 127;
         if(i > waveLength/2) {
@@ -531,7 +537,7 @@ void buildSquareWave(Sint8 *data, Uint32 length) {
     }
 }
 
-void buildTriangleWave(Sint8 *data, Uint32 length) {
+void buildTriangleWave(char *data, Uint32 length) {
     
     float phaseIncrement = (256/(float)waveLength)*2;
     float currentPhase = -127.0;
@@ -552,7 +558,7 @@ void buildTriangleWave(Sint8 *data, Uint32 length) {
     }
 }
 
-void buildNoise(Sint8 *data, Uint32 length) {
+void buildNoise(char *data, Uint32 length) {
     for (int i = 0; i < waveLength; i++) {
         int sample = (rand()%255)-127;
         data[i] = sample;
@@ -615,8 +621,9 @@ static void incPhase(struct Voice *v, double inc) {
     v->sineWaveIndexDouble += inc;
     v->sineWaveIndex = (Uint32)v->sineWaveIndexDouble;
     if(v->sineWaveIndex >= v->waveformLength) {
-        v->sineWaveIndex = 0;
-        v->sineWaveIndexDouble = 0;
+        int diff = v->sineWaveIndex - v->waveformLength;
+        v->sineWaveIndex = diff;
+        v->sineWaveIndexDouble = diff;
     }
 }
 
@@ -717,16 +724,16 @@ int main(int argc, char ** argv)
                 audioBuffer = malloc( sizeof(Sint8)*audioBufferLength );
                 
                 
-                sineWave = malloc( sizeof(Sint8)*waveLength );
+                sineWave = malloc( sizeof(char)*waveLength );
                 buildSineWave(sineWave, waveLength);
                 
-                sawtoothWave = malloc( sizeof(Sint8)*waveLength );
+                sawtoothWave = malloc( sizeof(char)*waveLength );
                 buildSawtoothWave(sawtoothWave, waveLength);
                 
-                squareWave = malloc( sizeof(Sint8)*waveLength );
+                squareWave = malloc( sizeof(char)*waveLength );
                 buildSquareWave(squareWave, waveLength);
                 
-                triangleWave = malloc( sizeof(Sint8)*waveLength );
+                triangleWave = malloc( sizeof(char)*waveLength );
                 buildTriangleWave(triangleWave, waveLength);
                 
                 
@@ -743,7 +750,7 @@ int main(int argc, char ** argv)
                 v->active = 1;
                 voices[0] = v;
                 
-                /*
+                
                 v = malloc(sizeof(struct Voice));
                 v->tone = 57;
                 v->waveform = sineWave;
@@ -767,7 +774,7 @@ int main(int argc, char ** argv)
                 v->phase = 0;
                 v->active = 1;
                 voices[3] = v;
-                 */
+                
                  
                 
 /*

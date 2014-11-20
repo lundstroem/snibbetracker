@@ -17,6 +17,7 @@
 		03420CE81A077D3500B4EF5D /* CListQueue.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CDB1A077D3500B4EF5D /* CListQueue.c */; };
 		03420CE91A077D3500B4EF5D /* CTimer.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CDD1A077D3500B4EF5D /* CTimer.c */; };
 		03420CEA1A077D3500B4EF5D /* CTouch.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CDF1A077D3500B4EF5D /* CTouch.c */; };
+		037D46EC1A1DE73300EA2179 /* CSynth.c in Sources */ = {isa = PBXBuildFile; fileRef = 037D46EA1A1DE73300EA2179 /* CSynth.c */; };
 		038D21961A08D11100CD39F5 /* CInput.c in Sources */ = {isa = PBXBuildFile; fileRef = 038D21941A08D11100CD39F5 /* CInput.c */; };
 		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
 		0399B2F717F35C1D005ACCBE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0399B2F617F35C1D005ACCBE /* main.c */; };
@@ -63,6 +64,8 @@
 		03420CDE1A077D3500B4EF5D /* CTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTimer.h; sourceTree = "<group>"; };
 		03420CDF1A077D3500B4EF5D /* CTouch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTouch.c; sourceTree = "<group>"; };
 		03420CE01A077D3500B4EF5D /* CTouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTouch.h; sourceTree = "<group>"; };
+		037D46EA1A1DE73300EA2179 /* CSynth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CSynth.c; sourceTree = "<group>"; };
+		037D46EB1A1DE73300EA2179 /* CSynth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSynth.h; sourceTree = "<group>"; };
 		038D21941A08D11100CD39F5 /* CInput.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CInput.c; sourceTree = "<group>"; };
 		038D21951A08D11100CD39F5 /* CInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CInput.h; sourceTree = "<group>"; };
 		0399B2E717F35C1D005ACCBE /* synth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = synth.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -117,6 +120,8 @@
 				03420CDE1A077D3500B4EF5D /* CTimer.h */,
 				03420CDF1A077D3500B4EF5D /* CTouch.c */,
 				03420CE01A077D3500B4EF5D /* CTouch.h */,
+				037D46EA1A1DE73300EA2179 /* CSynth.c */,
+				037D46EB1A1DE73300EA2179 /* CSynth.h */,
 			);
 			name = cengine;
 			path = ../cengine;
@@ -257,6 +262,7 @@
 				03420CE21A077D3500B4EF5D /* CAnimation.c in Sources */,
 				03420CEA1A077D3500B4EF5D /* CTouch.c in Sources */,
 				038D21961A08D11100CD39F5 /* CInput.c in Sources */,
+				037D46EC1A1DE73300EA2179 /* CSynth.c in Sources */,
 				03420CE91A077D3500B4EF5D /* CTimer.c in Sources */,
 				03420CE71A077D3500B4EF5D /* CLabel.c in Sources */,
 				03420CE41A077D3500B4EF5D /* CButton.c in Sources */,
