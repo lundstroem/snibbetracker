@@ -3,6 +3,7 @@
 #include "Game.h"
 #include "CInput.h"
 #include "CTouch.h"
+#include "CSynth.h"
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -15,6 +16,7 @@ int old_time = 0;
 #define fullscreen 0
 
 struct CInput *input = NULL;
+
 
 unsigned int *raster = NULL;
 unsigned int **raster2d = NULL;
@@ -228,6 +230,7 @@ static void quitGame( int code )
 
 //static double sineWaveIndexInc = 7.001;
 
+/*
 struct Instrument {
     Sint8 *amplitude;
     Uint32 amplitudeLength;
@@ -247,24 +250,27 @@ struct Voice {
     double sineWaveIndexDouble;
     double sineWaveIndexInc;
     int sineWaveIndex;
-};
+};*/
 
-struct Voice **voices = NULL;
-int MAX_VOICES = 8;
+//struct Voice **voices = NULL;
+//int MAX_VOICES = 8;
+
 int sine_scroll = 0;
 
 void handle_key_down( SDL_Keysym* keysym )
 {
+    struct CSynthContext *synth = cSynthGetContext();
     switch( keysym->sym ) {
         case SDLK_ESCAPE:
             quit = 1;
             break;
         case SDLK_SPACE:
             break;
+            
         case SDLK_LEFT:
-            for(int i = 0; i < MAX_VOICES; i++) {
-                if(voices[i] != NULL) {
-                    voices[i]->tone-=1;
+            for(int i = 0; i < synth->max_voices; i++) {
+                if(synth->voices[i] != NULL) {
+                    synth->voices[i]->tone-=1;
                     
                 }
             }
@@ -274,9 +280,9 @@ void handle_key_down( SDL_Keysym* keysym )
             }
             break;
         case SDLK_RIGHT:
-            for(int i = 0; i < MAX_VOICES; i++) {
-                if(voices[i] != NULL) {
-                    voices[i]->tone+=1;
+            for(int i = 0; i < synth->max_voices; i++) {
+                if(synth->voices[i] != NULL) {
+                    synth->voices[i]->tone+=1;
                     
                 }
             }
@@ -286,49 +292,50 @@ void handle_key_down( SDL_Keysym* keysym )
             }
             break;
         case SDLK_1:
-            if(voices[0] != NULL) {
-                if(voices[0]->active == 0) {
-                    voices[0]->active = 1;
+            if(synth->voices[0] != NULL) {
+                if(synth->voices[0]->active == 0) {
+                    synth->voices[0]->active = 1;
                     printf("voice 0 active");
                 } else {
-                    voices[0]->active = 0;
+                    synth->voices[0]->active = 0;
                     printf("voice 0 inactive");
                 }
             }
             break;
         case SDLK_2:
-            if(voices[1] != NULL) {
-                if(voices[1]->active == 0) {
-                    voices[1]->active = 1;
+            if(synth->voices[1] != NULL) {
+                if(synth->voices[1]->active == 0) {
+                    synth->voices[1]->active = 1;
                     printf("voice 1 active");
                 } else {
-                    voices[1]->active = 0;
+                    synth->voices[1]->active = 0;
                     printf("voice 1 inactive");
                 }
             }
             break;
         case SDLK_3:
-            if(voices[2] != NULL) {
-                if(voices[2]->active == 0) {
-                    voices[2]->active = 1;
+            if(synth->voices[2] != NULL) {
+                if(synth->voices[2]->active == 0) {
+                    synth->voices[2]->active = 1;
                     printf("voice 1 active");
                 } else {
-                    voices[2]->active = 0;
+                    synth->voices[2]->active = 0;
                     printf("voice 1 inactive");
                 }
             }
             break;
         case SDLK_4:
-            if(voices[3] != NULL) {
-                if(voices[3]->active == 0) {
-                    voices[3]->active = 1;
+            if(synth->voices[3] != NULL) {
+                if(synth->voices[3]->active == 0) {
+                    synth->voices[3]->active = 1;
                     printf("voice 1 active");
                 } else {
-                    voices[3]->active = 0;
+                    synth->voices[3]->active = 0;
                     printf("voice 1 inactive");
                 }
             }
             break;
+            
         default:
             break;
     }
@@ -430,17 +437,19 @@ static int getDelta() {
 }
 
 /*** synth stuff */
-const double ChromaticRatio = 1.059463094359295264562;
+//const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
-Uint32 sampleRate = 22050;
-Uint32 frameRate =    60;
+//Uint32 sampleRate = 22050;
+//Uint32 frameRate =    60;
+
 Uint32 floatStreamLength = 8;// must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
 
 Uint32 audioBufferLength = 2940;// must be a multiple of samplesPerFrame (auto adjusted upwards if not)
+
 Sint8 *audioBuffer;
 
 SDL_atomic_t audioCallbackLeftOff;
@@ -453,7 +462,7 @@ SDL_AudioSpec audioSpec;
 SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
-Uint32 waveLength = 256;
+//Uint32 waveLength = 256;
 //Uint32 sineWaveIndex = 0;
 //double sineWaveIndexDouble = 0;
 
@@ -461,12 +470,13 @@ Uint32 waveLength = 256;
 
 /********************/
 
-
+/*
 char *sineWave;
 char *sawtoothWave;
 char *squareWave;
 char *triangleWave;
 char *noise;
+ */
 
 /*
 void speak(voice *v) {
@@ -494,77 +504,79 @@ void speak(voice *v) {
     audioMainAccumulator++;
 }*/
 
+/*
 double getFrequency(double pitch) {
     return pow(ChromaticRatio, pitch-57)*440;
 }
 int getWaveformLength(double pitch) {
     return sampleRate / getFrequency(pitch)+0.5f;
 }
-
-void buildSineWave(char *data, Uint32 length) {
-
-    float phaseIncrement = (2.0f * M_PI)/(float)waveLength;
-    float currentPhase = 0.0;
-    for (int i = 0; i < waveLength; i++) {
-        int sample = (int)(sin(currentPhase)*128);
-        data[i] = sample;
-        currentPhase += phaseIncrement;
-        printf("data %i:%i\n", i, data[i]);
-    }
-}
-
-void buildSawtoothWave(char *data, Uint32 length) {
-    float phaseIncrement = 256/(float)waveLength;
-    float currentPhase = 0.0;
-    for (int i = 0; i < waveLength; i++) {
-        Sint8 sample = 127-(int)currentPhase;
-        int i_s = sample;
-        data[i] = i_s;
-        currentPhase += phaseIncrement;
-        printf("sawtooth data %i:%i i_s:%i\n", i, data[i], i_s);
-    }
-}
-
-void buildSquareWave(char *data, Uint32 length) {
-    for (int i = 0; i < waveLength; i++) {
-        Sint8 sample = 127;
-        if(i > waveLength/2) {
-            sample = -127;
-        }
-        int i_s = sample;
-        data[i] = i_s;
-        printf("data %i:%i i_s:%i\n", i, data[i], i_s);
-    }
-}
-
-void buildTriangleWave(char *data, Uint32 length) {
-    
-    float phaseIncrement = (256/(float)waveLength)*2;
-    float currentPhase = -127.0;
-    
-    for (int i = 0; i < waveLength; i++) {
-        Sint8 sample = (int)currentPhase;
-        if(currentPhase > 127) {
-            sample = 127;
-        }
-        int i_s = sample;
-        data[i] = i_s;
-        if(i < waveLength/2) {
-            currentPhase += phaseIncrement;
-        } else {
-            currentPhase -= phaseIncrement;
-        }
-        printf("triangle data %i:%i i_s:%i\n", i, data[i], i_s);
-    }
-}
-
-void buildNoise(char *data, Uint32 length) {
-    for (int i = 0; i < waveLength; i++) {
-        int sample = (rand()%255)-127;
-        data[i] = sample;
-        printf("data %i:%i\n", i, data[i]);
-    }
-}
+*/
+ 
+//void buildSineWave(char *data, Uint32 length) {
+//
+//    float phaseIncrement = (2.0f * M_PI)/(float)waveLength;
+//    float currentPhase = 0.0;
+//    for (int i = 0; i < waveLength; i++) {
+//        int sample = (int)(sin(currentPhase)*128);
+//        data[i] = sample;
+//        currentPhase += phaseIncrement;
+//        printf("data %i:%i\n", i, data[i]);
+//    }
+//}
+//
+//void buildSawtoothWave(char *data, Uint32 length) {
+//    float phaseIncrement = 256/(float)waveLength;
+//    float currentPhase = 0.0;
+//    for (int i = 0; i < waveLength; i++) {
+//        Sint8 sample = 127-(int)currentPhase;
+//        int i_s = sample;
+//        data[i] = i_s;
+//        currentPhase += phaseIncrement;
+//        printf("sawtooth data %i:%i i_s:%i\n", i, data[i], i_s);
+//    }
+//}
+//
+//void buildSquareWave(char *data, Uint32 length) {
+//    for (int i = 0; i < waveLength; i++) {
+//        Sint8 sample = 127;
+//        if(i > waveLength/2) {
+//            sample = -127;
+//        }
+//        int i_s = sample;
+//        data[i] = i_s;
+//        printf("data %i:%i i_s:%i\n", i, data[i], i_s);
+//    }
+//}
+//
+//void buildTriangleWave(char *data, Uint32 length) {
+//    
+//    float phaseIncrement = (256/(float)waveLength)*2;
+//    float currentPhase = -127.0;
+//    
+//    for (int i = 0; i < waveLength; i++) {
+//        Sint8 sample = (int)currentPhase;
+//        if(currentPhase > 127) {
+//            sample = 127;
+//        }
+//        int i_s = sample;
+//        data[i] = i_s;
+//        if(i < waveLength/2) {
+//            currentPhase += phaseIncrement;
+//        } else {
+//            currentPhase -= phaseIncrement;
+//        }
+//        printf("triangle data %i:%i i_s:%i\n", i, data[i], i_s);
+//    }
+//}
+//
+//void buildNoise(char *data, Uint32 length) {
+//    for (int i = 0; i < waveLength; i++) {
+//        int sample = (rand()%255)-127;
+//        data[i] = sample;
+//        printf("data %i:%i\n", i, data[i]);
+//    }
+//}
 
 void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     printf("\n\nwaveform data:\n\n");
@@ -574,7 +586,7 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
     printf("\n\n");
 }
 
-static void incPhase(struct Voice *v, double inc);
+//static void incPhase(struct Voice *v, double inc);
 
 int testSchedule = 0;
 int testScheduleSwitch = 0;
@@ -587,16 +599,18 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     Sint8 *s_byteStream = (Sint8*)byteStream;
     
-    for(int i = 0; i < MAX_VOICES; i++) {
-        struct Voice *v = voices[i];
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    for(int i = 0; i < synth->max_voices; i++) {
+        struct CVoice *v = synth->voices[i];
         if(v != NULL && v->active == 1) {
             Uint32 i;
-            double d_sampleRate = sampleRate;
+            double d_sampleRate = synth->sample_rate;
             double d_waveformLength = v->waveformLength;
-            double delta_phi = (double) (getFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
+            double delta_phi = (double) (cSynthGetFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
             for (i = 0; i < byteStreamLength; i++) {
-                incPhase(v, delta_phi);
-                s_byteStream[i] += v->waveform[v->sineWaveIndex]*0.2;
+                cSynthIncPhase(v, delta_phi);
+                s_byteStream[i] += v->waveform[v->phase_int]*0.2;
             }
         }
     }
@@ -605,18 +619,19 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     testSchedule += byteStreamLength;
     //printf("testSchedule:%i\n", testSchedule);
     if(testSchedule > count && testScheduleSwitch == 0) {
-        printf("testSchedule inactive:%i\n", testSchedule);
-        voices[0]->active = 0;
+        //printf("testSchedule inactive:%i\n", testSchedule);
+        synth->voices[0]->active = 0;
         testSchedule = 0;
         testScheduleSwitch = 1;
     } else if(testSchedule > count && testScheduleSwitch == 1) {
-        printf("testSchedule active:%i\n", testSchedule);
-        voices[0]->active = 1;
+        //printf("testSchedule active:%i\n", testSchedule);
+        synth->voices[0]->active = 1;
         testSchedule = 0;
         testScheduleSwitch = 0;
     }
 }
 
+/*
 static void incPhase(struct Voice *v, double inc) {
     v->sineWaveIndexDouble += inc;
     v->sineWaveIndex = (Uint32)v->sineWaveIndexDouble;
@@ -625,7 +640,7 @@ static void incPhase(struct Voice *v, double inc) {
         v->sineWaveIndex = diff;
         v->sineWaveIndexDouble = diff;
     }
-}
+}*/
 
 
 int onExit() {
@@ -681,7 +696,8 @@ int main(int argc, char ** argv)
                 cEngineWritePixelData(raw_sheet);
                 free(raw_sheet);
                 
-                
+                struct CSynthContext *synth = cSynthContextNew();
+                cSynthInit(synth);
                 
                 //if ( init() ) return 1;
                 SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
@@ -689,7 +705,7 @@ int main(int argc, char ** argv)
                 SDL_zero(want);// btw, I have no idea what this is...
                 
                 
-                want.freq = sampleRate;
+                want.freq = synth->sample_rate;
                 want.format = AUDIO_S8;
                 want.channels = 1;
                 want.samples = floatStreamLength;
@@ -708,6 +724,9 @@ int main(int argc, char ** argv)
                     return 2;
                 }
                 
+                int sampleRate = synth->sample_rate;
+                int frameRate = synth->frame_rate;
+                
                 sampleRate = audioSpec.freq;
                 floatStreamLength = audioSpec.size/4;
                 samplesPerFrame = sampleRate/frameRate;
@@ -724,69 +743,6 @@ int main(int argc, char ** argv)
                 audioBuffer = malloc( sizeof(Sint8)*audioBufferLength );
                 
                 
-                sineWave = malloc( sizeof(char)*waveLength );
-                buildSineWave(sineWave, waveLength);
-                
-                sawtoothWave = malloc( sizeof(char)*waveLength );
-                buildSawtoothWave(sawtoothWave, waveLength);
-                
-                squareWave = malloc( sizeof(char)*waveLength );
-                buildSquareWave(squareWave, waveLength);
-                
-                triangleWave = malloc( sizeof(char)*waveLength );
-                buildTriangleWave(triangleWave, waveLength);
-                
-                
-                voices = malloc(sizeof(struct Voice*)*MAX_VOICES);
-                for(int i = 0; i < MAX_VOICES; i++) {
-                    voices[i] = NULL;
-                }
-                
-                struct Voice *v = malloc(sizeof(struct Voice));
-                v->tone = 57;
-                v->waveform = sawtoothWave;
-                v->waveformLength = waveLength;
-                v->phase = 0;
-                v->active = 1;
-                voices[0] = v;
-                
-                
-                v = malloc(sizeof(struct Voice));
-                v->tone = 57;
-                v->waveform = sineWave;
-                v->waveformLength = waveLength;
-                v->phase = 0;
-                v->active = 1;
-                voices[1] = v;
-                
-                v = malloc(sizeof(struct Voice));
-                v->tone = 57;
-                v->waveform = squareWave;
-                v->waveformLength = waveLength;
-                v->phase = 0;
-                v->active = 1;
-                voices[2] = v;
-                
-                v = malloc(sizeof(struct Voice));
-                v->tone = 57;
-                v->waveform = triangleWave;
-                v->waveformLength = waveLength;
-                v->phase = 0;
-                v->active = 1;
-                voices[3] = v;
-                
-                 
-                
-/*
-                v = malloc(sizeof(struct Voice));
-                v->tone = 62;
-                v->waveform = sineWave;
-                v->waveformLength = sineWaveLength;
-                v->phase = 0;
-                voices[2] = v;
-                */
-                //voices[0]
-                
                 SDL_Delay(42);// let the tubes warm up
                 
                 SDL_PauseAudioDevice(AudioDevice, 0);// unpause audio.
@@ -794,33 +750,6 @@ int main(int argc, char ** argv)
                 
                 if (texture != NULL) {
                     while (!quit) {
-                        //printf("checkSDLEvents\n");
-                        
-
-                        
-                        /*
-                        for (int i = 0; i < audioBufferLength; i++) {
-                            audioBuffer[i] = 0;
-                        }
-                        
-                        for(int i = 0; i < MAX_VOICES; i++) {
-                            struct Voice *v = voices[i];
-                            if(v != NULL && v->active == 1) {
-                                Uint32 i;
-                                double d_sampleRate = sampleRate;
-                                double d_waveformLength = v->waveformLength;
-                                double delta_phi = (double) (getFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
-                                for (i = 0; i < audioBufferLength; i++) {
-                                    incPhase(v, delta_phi);
-                                    audioBuffer[i] += v->waveform[v->sineWaveIndex]*0.2;
-                                    printf("%i\n", audioBuffer[i]);
-                                }
-                            }
-                        }
-                         */
-                        
-                        
-                        
                         
                         checkSDLEvents(event);
                         
@@ -839,6 +768,7 @@ int main(int argc, char ** argv)
                             }
                         }
                         
+                        /*
                         for(int i = sine_scroll; i < waveLength; i++) {
                             int pos = sineWave[i]+150;
                             if(pos > -1 && pos < s_height
@@ -869,7 +799,7 @@ int main(int argc, char ** argv)
                                && i-sine_scroll < s_width) {
                                 raster2d[i-sine_scroll][pos] = 0xffffff00;
                             }
-                        }
+                        }*/
                         
                         SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
                         SDL_RenderClear(renderer);
