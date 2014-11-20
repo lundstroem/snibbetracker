@@ -81,128 +81,6 @@ static void setup_data()
     }
 }
 
-/*
-double toneFrequency[116] = {
-                     16.35,
-                     17.32,
-                     18.35,
-                     19.45,
-                     20.60,
-                     21.83,
-                     23.12,
-                     24.50,
-                     25.96,
-                     27.50,
-                     29.14,
-                     30.87,
-                     32.70,
-                     34.65,
-                     36.71,
-                     38.89,
-                     41.20,
-                     43.65,
-                     46.25,
-                     49.00,
-                     51.91,
-                     55.00,
-                     58.27,
-                     61.74,
-                     65.41,
-                     69.30,
-                     73.42,
-                     77.78,
-                     82.41,
-                     87.31,
-                     92.50,
-                     98.00,
-                     103.83,
-                     110.00,
-                     116.54,
-                     123.47,
-                     130.81,
-                     138.59,
-                     146.83,
-                     155.56,
-                     164.81,
-                     174.61,
-                     185.00,
-                     196.00,
-                     207.65,
-                     220.00,
-                     233.08,
-                     246.94,
-                     261.63,
-                     277.18,
-                     293.66,
-                     311.13,
-                     329.63,
-                     349.23,
-                     369.99,
-                     392.00,
-                     415.30,
-                     440.00,
-                     466.16,
-                     493.88,
-                     523.25,
-                     554.37,
-                     587.33,
-                     622.25,
-                     659.26,
-                     698.46,
-                     739.99,
-                     783.99,
-                     830.61,
-                     880.00,
-                     932.33,
-                     987.77,
-                     1046.50,
-                     1108.73,
-                     1174.66,
-                     1244.51,
-                     1318.51,
-                     1396.91,
-                     1479.98,
-                     1567.98,
-                     1661.22,
-                     1760.00,
-                     1864.66,
-                     1975.53,
-                     2093.00,
-                     2217.46,
-                     2349.32,
-                     2489.02,
-                     2637.02,
-                     2793.83,
-                     2959.96,
-                     3135.96,
-                     3322.44,
-                     3520.00,
-                     3729.31,
-                     3951.07,
-                     4186.01,
-                     4434.92,
-                     4698.64,
-                     4978.03,
-                     5274.04,
-                     5587.65,
-                     5919.91,
-                     6271.93,
-                     6644.88,
-                     7040.00,
-                     7458.62,
-                     7902.13,
-                     8372.01,
-                     8869.84,
-                     9397.27,
-                     9956.06,
-                     10548.08,
-                     11175.30,
-                     11839.82,
-                     12543.85
-                     };
- */
-
-
 void convertInput(int x, int y)
 {
     input->mouse_x = x/4;
@@ -228,32 +106,6 @@ static void quitGame( int code )
     printf("quit game");
 }
 
-//static double sineWaveIndexInc = 7.001;
-
-/*
-struct Instrument {
-    Sint8 *amplitude;
-    Uint32 amplitudeLength;
-    
-};
-
-struct Voice {
-    char *waveform;
-    int waveformLength;
-    double volume;        // multiplied
-    //double pan;           // 0 to 1: all the way left to all the way right
-    double frequency;     // Hz
-    int tone;     // tone
-    double phase;         // 0 to 1
-    int active;
-    
-    double sineWaveIndexDouble;
-    double sineWaveIndexInc;
-    int sineWaveIndex;
-};*/
-
-//struct Voice **voices = NULL;
-//int MAX_VOICES = 8;
 
 int sine_scroll = 0;
 
@@ -268,9 +120,9 @@ void handle_key_down( SDL_Keysym* keysym )
             break;
             
         case SDLK_LEFT:
-            for(int i = 0; i < synth->max_voices; i++) {
-                if(synth->voices[i] != NULL) {
-                    synth->voices[i]->tone-=1;
+            for(int i = 0; i < synth->max_instruments; i++) {
+                if(synth->instruments[i] != NULL) {
+                    synth->instruments[i]->tone -= 1;
                     
                 }
             }
@@ -280,9 +132,9 @@ void handle_key_down( SDL_Keysym* keysym )
             }
             break;
         case SDLK_RIGHT:
-            for(int i = 0; i < synth->max_voices; i++) {
-                if(synth->voices[i] != NULL) {
-                    synth->voices[i]->tone+=1;
+            for(int i = 0; i < synth->max_instruments; i++) {
+                if(synth->instruments[i] != NULL) {
+                    synth->instruments[i]->tone += 1;
                     
                 }
             }
@@ -333,6 +185,20 @@ void handle_key_down( SDL_Keysym* keysym )
                     synth->voices[3]->active = 0;
                     printf("voice 1 inactive");
                 }
+            }
+            break;
+        case SDLK_a:
+            if(synth->instruments[0] != NULL) {
+                /*
+                if(synth->instruments[0]->note_on == 0) {
+                    synth->instruments[0]->note_on = 1;
+                    printf("ins 1 note_on 1");
+                } else {
+                    synth->instruments[0]->note_on = 0;
+                    printf("ins 1 note_on 0");
+                }
+                 */
+                cSynthInstrumentNoteOn(synth->instruments[0]);
             }
             break;
             
@@ -601,46 +467,32 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     struct CSynthContext *synth = cSynthGetContext();
     
-    for(int i = 0; i < synth->max_voices; i++) {
-        struct CVoice *v = synth->voices[i];
-        if(v != NULL && v->active == 1) {
+    for(int ins_i = 0; ins_i < synth->max_instruments; ins_i++) {
+        struct CInstrument *ins = synth->instruments[ins_i];
+        if(ins != NULL && ins->note_on == 1 && ins->voice != NULL) {
             Uint32 i;
             double d_sampleRate = synth->sample_rate;
-            double d_waveformLength = v->waveformLength;
-            double delta_phi = (double) (cSynthGetFrequency((double)v->tone) / d_sampleRate * (double)d_waveformLength);
+            double d_waveformLength = ins->voice->waveform_length;
+            double delta_phi = (double) (cSynthGetFrequency((double)ins->tone) / d_sampleRate * (double)d_waveformLength);
             for (i = 0; i < byteStreamLength; i++) {
-                cSynthIncPhase(v, delta_phi);
-                s_byteStream[i] += v->waveform[v->phase_int]*0.2;
+                cSynthIncPhase(ins->voice, delta_phi);
+                
+                s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*((double)ins->amplitude[ins->amplitude_index]/256.0)*0.2;
+                //s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*0.6;
+                
+                //ins->voice->volume;
+                ins->amplitude_index_double += (double)byteStreamLength*0.001;
+                ins->amplitude_index = (int) ins->amplitude_index_double;
+                if(ins->amplitude_index >= ins->amplitude_length) {
+                    ins->amplitude_index = 0;
+                    ins->amplitude_index_double = 0;
+                    ins->note_on = 0;
+                }
             }
-        }
-    }
-    
-    int count = 1400;
-    testSchedule += byteStreamLength;
-    //printf("testSchedule:%i\n", testSchedule);
-    if(testSchedule > count && testScheduleSwitch == 0) {
-        //printf("testSchedule inactive:%i\n", testSchedule);
-        synth->voices[0]->active = 0;
-        testSchedule = 0;
-        testScheduleSwitch = 1;
-    } else if(testSchedule > count && testScheduleSwitch == 1) {
-        //printf("testSchedule active:%i\n", testSchedule);
-        synth->voices[0]->active = 1;
-        testSchedule = 0;
-        testScheduleSwitch = 0;
+        } 
     }
 }
 
-/*
-static void incPhase(struct Voice *v, double inc) {
-    v->sineWaveIndexDouble += inc;
-    v->sineWaveIndex = (Uint32)v->sineWaveIndexDouble;
-    if(v->sineWaveIndex >= v->waveformLength) {
-        int diff = v->sineWaveIndex - v->waveformLength;
-        v->sineWaveIndex = diff;
-        v->sineWaveIndexDouble = diff;
-    }
-}*/
 
 
 int onExit() {
@@ -649,9 +501,6 @@ int onExit() {
     //SDL_Quit();
     return 0;
 }
-
-
-
 
 
 int main(int argc, char ** argv)
