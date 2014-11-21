@@ -24,8 +24,10 @@ unsigned int **sheet = NULL;
 unsigned int *raw_sheet = NULL;
 int width = 256*4;
 int height = 144*4;
-int s_width = 256*4;
-int s_height = 144*4;
+int s_width = 256*2;
+int s_height = 144*2;
+
+int playing = 1;
 
 static void setup_data()
 {
@@ -117,91 +119,32 @@ void handle_key_down( SDL_Keysym* keysym )
             quit = 1;
             break;
         case SDLK_SPACE:
+            if(playing == 0) {
+                playing = 1;
+                cSynthResetTrackProgress();
+            } else {
+                playing = 0;
+            }
             break;
             
         case SDLK_LEFT:
-            for(int i = 0; i < synth->max_instruments; i++) {
-                if(synth->instruments[i] != NULL) {
-                    synth->instruments[i]->tone -= 1;
-                    
-                }
-            }
-            sine_scroll-=50;
-            if(sine_scroll < 0) {
-                sine_scroll = 0;
-            }
+            cSynthUpdateTrackCursor(synth->track_cursor_x-1, synth->track_cursor_y);
             break;
         case SDLK_RIGHT:
-            for(int i = 0; i < synth->max_instruments; i++) {
-                if(synth->instruments[i] != NULL) {
-                    synth->instruments[i]->tone += 1;
-                    
-                }
-            }
-            sine_scroll+=50;
-            if(sine_scroll < 0) {
-                sine_scroll = 0;
-            }
+            cSynthUpdateTrackCursor(synth->track_cursor_x+1, synth->track_cursor_y);
             break;
-        case SDLK_1:
-            if(synth->voices[0] != NULL) {
-                if(synth->voices[0]->active == 0) {
-                    synth->voices[0]->active = 1;
-                    printf("voice 0 active");
-                } else {
-                    synth->voices[0]->active = 0;
-                    printf("voice 0 inactive");
-                }
-            }
+        case SDLK_UP:
+            cSynthUpdateTrackCursor(synth->track_cursor_x, synth->track_cursor_y-1);
             break;
-        case SDLK_2:
-            if(synth->voices[1] != NULL) {
-                if(synth->voices[1]->active == 0) {
-                    synth->voices[1]->active = 1;
-                    printf("voice 1 active");
-                } else {
-                    synth->voices[1]->active = 0;
-                    printf("voice 1 inactive");
-                }
-            }
-            break;
-        case SDLK_3:
-            if(synth->voices[2] != NULL) {
-                if(synth->voices[2]->active == 0) {
-                    synth->voices[2]->active = 1;
-                    printf("voice 1 active");
-                } else {
-                    synth->voices[2]->active = 0;
-                    printf("voice 1 inactive");
-                }
-            }
-            break;
-        case SDLK_4:
-            if(synth->voices[3] != NULL) {
-                if(synth->voices[3]->active == 0) {
-                    synth->voices[3]->active = 1;
-                    printf("voice 1 active");
-                } else {
-                    synth->voices[3]->active = 0;
-                    printf("voice 1 inactive");
-                }
-            }
+        case SDLK_DOWN:
+            cSynthUpdateTrackCursor(synth->track_cursor_x, synth->track_cursor_y+1);
             break;
         case SDLK_a:
-            if(synth->instruments[0] != NULL) {
-                /*
-                if(synth->instruments[0]->note_on == 0) {
-                    synth->instruments[0]->note_on = 1;
-                    printf("ins 1 note_on 1");
-                } else {
-                    synth->instruments[0]->note_on = 0;
-                    printf("ins 1 note_on 0");
-                }
-                 */
-                cSynthInstrumentNoteOn(synth->instruments[0]);
-            }
+            cSynthAddTrackNode(synth->track_cursor_x, synth->track_cursor_y);
             break;
-            
+        case SDLK_s:
+            cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+            break;
         default:
             break;
     }
@@ -328,121 +271,7 @@ SDL_AudioSpec audioSpec;
 SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
-//Uint32 waveLength = 256;
-//Uint32 sineWaveIndex = 0;
-//double sineWaveIndexDouble = 0;
 
-
-
-/********************/
-
-/*
-char *sineWave;
-char *sawtoothWave;
-char *squareWave;
-char *triangleWave;
-char *noise;
- */
-
-/*
-void speak(voice *v) {
-    float sample;
-    Uint32 sourceIndex;
-    double phaseIncrement = v->frequency/sampleRate;
-    Uint32 i;
-    if (v->volume > practicallySilent) {
-        for (i=0; (i+1)<samplesPerFrame; i+=2) {
-            
-            v->phase += phaseIncrement;
-            if (v->phase > 1) v->phase -= 1;
-            
-            sourceIndex = v->phase*v->waveformLength;
-            sample = v->waveform[sourceIndex]*v->volume;
-            
-            audioBuffer[audioMainLeftOff+i] += sample*(1-v->pan); //left channel
-            audioBuffer[audioMainLeftOff+i+1] += sample*v->pan;   //right channel
-        }
-    }
-    else {
-        for (i=0; i<samplesPerFrame; i+=1)
-            audioBuffer[audioMainLeftOff+i] = 0;
-    }
-    audioMainAccumulator++;
-}*/
-
-/*
-double getFrequency(double pitch) {
-    return pow(ChromaticRatio, pitch-57)*440;
-}
-int getWaveformLength(double pitch) {
-    return sampleRate / getFrequency(pitch)+0.5f;
-}
-*/
- 
-//void buildSineWave(char *data, Uint32 length) {
-//
-//    float phaseIncrement = (2.0f * M_PI)/(float)waveLength;
-//    float currentPhase = 0.0;
-//    for (int i = 0; i < waveLength; i++) {
-//        int sample = (int)(sin(currentPhase)*128);
-//        data[i] = sample;
-//        currentPhase += phaseIncrement;
-//        printf("data %i:%i\n", i, data[i]);
-//    }
-//}
-//
-//void buildSawtoothWave(char *data, Uint32 length) {
-//    float phaseIncrement = 256/(float)waveLength;
-//    float currentPhase = 0.0;
-//    for (int i = 0; i < waveLength; i++) {
-//        Sint8 sample = 127-(int)currentPhase;
-//        int i_s = sample;
-//        data[i] = i_s;
-//        currentPhase += phaseIncrement;
-//        printf("sawtooth data %i:%i i_s:%i\n", i, data[i], i_s);
-//    }
-//}
-//
-//void buildSquareWave(char *data, Uint32 length) {
-//    for (int i = 0; i < waveLength; i++) {
-//        Sint8 sample = 127;
-//        if(i > waveLength/2) {
-//            sample = -127;
-//        }
-//        int i_s = sample;
-//        data[i] = i_s;
-//        printf("data %i:%i i_s:%i\n", i, data[i], i_s);
-//    }
-//}
-//
-//void buildTriangleWave(char *data, Uint32 length) {
-//    
-//    float phaseIncrement = (256/(float)waveLength)*2;
-//    float currentPhase = -127.0;
-//    
-//    for (int i = 0; i < waveLength; i++) {
-//        Sint8 sample = (int)currentPhase;
-//        if(currentPhase > 127) {
-//            sample = 127;
-//        }
-//        int i_s = sample;
-//        data[i] = i_s;
-//        if(i < waveLength/2) {
-//            currentPhase += phaseIncrement;
-//        } else {
-//            currentPhase -= phaseIncrement;
-//        }
-//        printf("triangle data %i:%i i_s:%i\n", i, data[i], i_s);
-//    }
-//}
-//
-//void buildNoise(char *data, Uint32 length) {
-//    for (int i = 0; i < waveLength; i++) {
-//        int sample = (rand()%255)-127;
-//        data[i] = sample;
-//        printf("data %i:%i\n", i, data[i]);
-//    }
-//}
 
 void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     printf("\n\nwaveform data:\n\n");
@@ -451,8 +280,6 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
         printf("%4d:%2.16f\n", i, floatStream[i]);
     printf("\n\n");
 }
-
-//static void incPhase(struct Voice *v, double inc);
 
 int testSchedule = 0;
 int testScheduleSwitch = 0;
@@ -475,24 +302,26 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double d_waveformLength = ins->voice->waveform_length;
             double delta_phi = (double) (cSynthGetFrequency((double)ins->tone) / d_sampleRate * (double)d_waveformLength);
             for (i = 0; i < byteStreamLength; i++) {
-                cSynthIncPhase(ins->voice, delta_phi);
                 
-                s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*((double)ins->amplitude[ins->amplitude_index]/256.0)*0.2;
-                //s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*0.6;
-                
-                //ins->voice->volume;
-                ins->amplitude_index_double += (double)byteStreamLength*0.001;
-                ins->amplitude_index = (int) ins->amplitude_index_double;
-                if(ins->amplitude_index >= ins->amplitude_length) {
-                    ins->amplitude_index = 0;
-                    ins->amplitude_index_double = 0;
-                    ins->note_on = 0;
+                if(ins->note_on == 1) {
+                    cSynthIncPhase(ins->voice, delta_phi);
+                    double amp = ((double)ins->amplitude[ins->amplitude_index]/256.0)*0.2;
+                    s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                    ins->amplitude_index_double += (double)byteStreamLength*0.001;
+                    ins->amplitude_index = (int) ins->amplitude_index_double;
+                    if(ins->amplitude_index >= ins->amplitude_length) {
+                        ins->amplitude_index = 0;
+                        ins->amplitude_index_double = 0;
+                        ins->note_on = 0;
+                    }
                 }
             }
         } 
     }
     
-    cSynthAdvanceTrack(byteStreamLength);
+    if(playing == 1) {
+        cSynthAdvanceTrack(byteStreamLength);
+    }
 }
 
 
@@ -504,12 +333,49 @@ int onExit() {
     return 0;
 }
 
+#define cengine_color_red 0xFFFF0000
+#define cengine_color_green 0xFF00FF00
+#define cengine_color_blue 0xFF0000FF
+#define cengine_color_black 0xFF000000
+#define cengine_color_white 0xFFFFFFFF
+
+void renderTrack() {
+    struct CSynthContext *synth = cSynthGetContext();
+    for (int x = 0; x < synth->track_width; x++) {
+        for (int y = 0; y < synth->track_height; y++) {
+            
+            int track_progress_int = synth->track_progress_int;
+            int offset_x = 1;
+            int offset_y = 6;
+            
+            int bg_color = cengine_color_black;
+            if(synth->track_progress_int == y) {
+                bg_color = cengine_color_green;
+            } else {
+                bg_color = cengine_color_black;
+            }
+            
+            if(synth->track_cursor_x == x && synth->track_cursor_y == y) {
+                bg_color = cengine_color_red;
+            }
+            
+            if(synth->track[x][y] != NULL) {
+                int tone = synth->track[x][y]->tone;
+                char ctone[10];
+                sprintf(ctone, "%i ---", tone);
+                cEngineRenderLabelWithParams(raster2d, ctone, offset_x+x*8, offset_y+y-track_progress_int, cengine_color_white, bg_color);
+            } else {
+                cEngineRenderLabelWithParams(raster2d, "-- ---", offset_x+x*8, offset_y+y-track_progress_int, cengine_color_white, bg_color);
+            }
+        }
+    }
+}
 
 int main(int argc, char ** argv)
 {
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window * window = SDL_CreateWindow("synth", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+    SDL_Window * window = SDL_CreateWindow("snibbetracker", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
     
     if (window != NULL) {
         SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
@@ -531,8 +397,8 @@ int main(int argc, char ** argv)
                 
                 
                 struct CEngineContext *c = cEngineContextNew();
-                c->width = 256;
-                c->height = 144;
+                c->width = s_width;
+                c->height = s_height;
                 c->sprite_size = 16;
                 c->sheet_size = 1024;
                 c->max_touches = 8;
@@ -618,6 +484,8 @@ int main(int argc, char ** argv)
                                 raster2d[x][y] = 0;
                             }
                         }
+                        
+                        renderTrack();
                         
                         /*
                         for(int i = sine_scroll; i < waveLength; i++) {
