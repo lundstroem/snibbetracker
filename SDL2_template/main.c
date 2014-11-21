@@ -38,16 +38,16 @@ static void setup_data()
     }
     
     raster2d = malloc(s_width * sizeof(unsigned int *));
-    if(raster2d == NULL)
-    {
+    if(raster2d == NULL) {
         fprintf(stderr, "out of memory\n");
-    }
-    for(int i = 0; i < s_width; i++)
-    {
-        raster2d[i] = malloc(s_height * sizeof(unsigned int));
-        if(raster2d[i] == NULL)
+    } else {
+        for(int i = 0; i < s_width; i++)
         {
-            fprintf(stderr, "out of memory\n");
+            raster2d[i] = malloc(s_height * sizeof(unsigned int));
+            if(raster2d[i] == NULL)
+            {
+                fprintf(stderr, "out of memory\n");
+            }
         }
     }
     
@@ -280,7 +280,7 @@ static void checkSDLEvents(SDL_Event event) {
 static int getDelta() {
     int currentTime = SDL_GetTicks();
     int delta = 0;
-    int fps = 0;
+    //int fps = 0;
     
     if(old_time == 0) {
         old_time = currentTime;
@@ -291,7 +291,7 @@ static int getDelta() {
         if(delta <= 0) {
             delta = 1;
         }
-        fps = 1000/delta;
+        //fps = 1000/delta;
     }
     
     if(fps_print_interval == 100) {
@@ -491,6 +491,8 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             }
         } 
     }
+    
+    cSynthAdvanceTrack(byteStreamLength);
 }
 
 
@@ -573,10 +575,10 @@ int main(int argc, char ** argv)
                     return 2;
                 }
                 
-                int sampleRate = synth->sample_rate;
+                //int sampleRate = synth->sample_rate;
                 int frameRate = synth->frame_rate;
                 
-                sampleRate = audioSpec.freq;
+                int sampleRate = audioSpec.freq;
                 floatStreamLength = audioSpec.size/4;
                 samplesPerFrame = sampleRate/frameRate;
                 msPerFrame = 1000/frameRate;
