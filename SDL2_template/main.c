@@ -27,7 +27,18 @@ int height = 144*4;
 int s_width = 256*2;
 int s_height = 144*2;
 
-int playing = 1;
+int playing = 0;
+int editing = 0;
+int octave = 0;
+int modifier = 0;
+int visual_track_width = 25;
+int visual_track_height = 16;
+int visual_cursor_x = 0;
+int visual_cursor_y = 0;
+
+int pattern_editor = 0;
+int pattern_cursor_x = 0;
+int pattern_cursor_y = 0;
 
 static void setup_data()
 {
@@ -110,15 +121,89 @@ static void quitGame( int code )
 
 
 int sine_scroll = 0;
+static void addTrackNodeWithOctave(int x, int y, int editing, int tone);
+static void checkVisualCursorBounds();
+static void checkPatternCursorBounds();
+static char *getWaveTypeAsChar(int type);
+
+static void addTrackNodeWithOctave(int x, int y, int editing, int tone) {
+    cSynthAddTrackNode(x, y, editing, tone+(octave*12));
+    
+    if(editing == 1) {
+        visual_cursor_y++;
+        checkVisualCursorBounds();
+    }
+}
+
+static void checkVisualCursorBounds() {
+    if(visual_cursor_x == visual_track_width) {
+        visual_cursor_x = 0;
+    }
+    
+    if(visual_cursor_x == -1) {
+        visual_cursor_x = visual_track_width-1;
+    }
+    
+    if(visual_cursor_y == visual_track_height) {
+        visual_cursor_y = 0;
+    }
+    
+    if(visual_cursor_y == -1) {
+        visual_cursor_y = visual_track_height-1;
+    }
+}
+
+static void checkPatternCursorBounds() {
+    
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    if(pattern_cursor_x == synth->patterns_and_voices_width) {
+        pattern_cursor_x = 0;
+    }
+    
+    if(pattern_cursor_x == -1) {
+        pattern_cursor_x = synth->patterns_and_voices_width-1;
+    }
+    
+    if(pattern_cursor_y == synth->patterns_and_voices_height) {
+        pattern_cursor_y = 0;
+    }
+    
+    if(pattern_cursor_y == -1) {
+        pattern_cursor_y = synth->patterns_and_voices_height-1;
+    }
+}
+
+void handle_key_up( SDL_Keysym* keysym )
+{
+    switch( keysym->sym ) {
+        case SDLK_LGUI:
+            modifier = 0;
+            printf("modifier off");
+            break;
+    }
+}
+
 
 void handle_key_down( SDL_Keysym* keysym )
 {
     struct CSynthContext *synth = cSynthGetContext();
     switch( keysym->sym ) {
+        case SDLK_TAB:
+            if(pattern_editor == 1) {
+                pattern_editor = 0;
+            } else {
+                pattern_editor = 1;
+            }
+            break;
+        case SDLK_LGUI:
+            modifier = 1;
+            printf("modifier on");
+            break;
         case SDLK_ESCAPE:
             quit = 1;
             break;
-        case SDLK_SPACE:
+        case SDLK_RETURN:
             if(playing == 0) {
                 playing = 1;
                 cSynthResetTrackProgress();
@@ -128,28 +213,182 @@ void handle_key_down( SDL_Keysym* keysym )
             break;
             
         case SDLK_LEFT:
-            cSynthUpdateTrackCursor(synth->track_cursor_x-1, synth->track_cursor_y);
+            if(pattern_editor == 1) {
+                pattern_cursor_x--;
+                checkPatternCursorBounds();
+            } else {
+                if(modifier == 1) {
+                    octave--;
+                    if(octave < 0) {
+                        octave = 0;
+                    }
+                } else {
+                    visual_cursor_x--;
+                    checkVisualCursorBounds();
+                }
+            }
             break;
         case SDLK_RIGHT:
-            cSynthUpdateTrackCursor(synth->track_cursor_x+1, synth->track_cursor_y);
+            if(pattern_editor == 1) {
+                pattern_cursor_x++;
+                checkPatternCursorBounds();
+            } else {
+                if(modifier == 1) {
+                    octave++;
+                    if(octave > 3) {
+                        octave = 3;
+                    }
+                } else {
+                    visual_cursor_x++;
+                    checkVisualCursorBounds();
+                }
+            }
             break;
         case SDLK_UP:
-            cSynthUpdateTrackCursor(synth->track_cursor_x, synth->track_cursor_y-1);
+            if(pattern_editor == 1) {
+                pattern_cursor_y--;
+                checkPatternCursorBounds();
+            } else {
+                visual_cursor_y--;
+                checkVisualCursorBounds();
+            }
             break;
         case SDLK_DOWN:
-            cSynthUpdateTrackCursor(synth->track_cursor_x, synth->track_cursor_y+1);
+            if(pattern_editor == 1) {
+                pattern_cursor_y++;
+                checkPatternCursorBounds();
+            } else {
+                visual_cursor_y++;
+                checkVisualCursorBounds();
+            }
             break;
-        case SDLK_a:
-            cSynthAddTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+        case SDLK_BACKSPACE:
+            if(editing == 1) {
+                cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+            }
+            break;
+        case SDLK_SPACE:
+            if(editing == 1) {
+                editing = 0;
+            } else {
+                editing = 1;
+            }
+            break;
+        case SDLK_z:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
             break;
         case SDLK_s:
-            cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            break;
+        case SDLK_x:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            break;
+        case SDLK_d:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            break;
+        case SDLK_c:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 16);
+            break;
+        case SDLK_v:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 17);
+            break;
+        case SDLK_g:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 18);
+            break;
+        case SDLK_b:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 19);
+            break;
+        case SDLK_h:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 20);
+            break;
+        case SDLK_n:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 21);
+            break;
+        case SDLK_j:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 22);
+            break;
+        case SDLK_m:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 23);
+            break;
+        case SDLK_COMMA:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            break;
+        case SDLK_l:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            break;
+        case SDLK_PERIOD:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            break;
+            
+        //upper keyboard
+        case SDLK_q:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            break;
+        case SDLK_2:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            break;
+        case SDLK_w:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            break;
+        case SDLK_3:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 27);
+            break;
+        case SDLK_e:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 28);
+            break;
+        case SDLK_r:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 29);
+            break;
+        case SDLK_5:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 30);
+            break;
+        case SDLK_t:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 31);
+            break;
+        case SDLK_6:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 32);
+            break;
+        case SDLK_y:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 33);
+            break;
+        case SDLK_7:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 34);
+            break;
+        case SDLK_u:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 35);
+            break;
+        case SDLK_i:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 36);
+            break;
+        case SDLK_9:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 37);
+            break;
+        case SDLK_o:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 38);
+            break;
+        case SDLK_0:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 39);
+            break;
+        case SDLK_p:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 40);
             break;
         default:
             break;
     }
 }
 
+
+
+/*C-1 - D-2
+zsxdcvgbhnjm,l.
+ 
+C-2 - E-3
+q2w3er5t6y7ui9o0p 
+ 
+ 
+ 
+ */
+ 
 static void checkSDLEvents(SDL_Event event) {
     
     while (SDL_PollEvent(&event)) {
@@ -159,6 +398,9 @@ static void checkSDLEvents(SDL_Event event) {
                 break;
             case SDL_KEYDOWN:
                 handle_key_down( &event.key.keysym );
+                break;
+            case SDL_KEYUP:
+                handle_key_up( &event.key.keysym );
                 break;
             case SDL_MOUSEMOTION:
                 //printf("Mouse moved by %d,%d to (%d,%d)\n",
@@ -301,13 +543,14 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double d_sampleRate = synth->sample_rate;
             double d_waveformLength = ins->voice->waveform_length;
             double delta_phi = (double) (cSynthGetFrequency((double)ins->tone) / d_sampleRate * (double)d_waveformLength);
-            for (i = 0; i < byteStreamLength; i++) {
+            for (i = 0; i < byteStreamLength; i+=2) {
                 
                 if(ins->note_on == 1) {
                     cSynthIncPhase(ins->voice, delta_phi);
                     double amp = ((double)ins->amplitude[ins->amplitude_index]/256.0)*0.2;
                     s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
-                    ins->amplitude_index_double += (double)byteStreamLength*0.001;
+                    s_byteStream[i+1] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                    ins->amplitude_index_double += (double)byteStreamLength*0.0001;
                     ins->amplitude_index = (int) ins->amplitude_index_double;
                     if(ins->amplitude_index >= ins->amplitude_length) {
                         ins->amplitude_index = 0;
@@ -333,39 +576,152 @@ int onExit() {
     return 0;
 }
 
-#define cengine_color_red 0xFFFF0000
-#define cengine_color_green 0xFF00FF00
-#define cengine_color_blue 0xFF0000FF
-#define cengine_color_black 0xFF000000
-#define cengine_color_white 0xFFFFFFFF
+#define cengine_color_dull_red 0xFF771111
+#define cengine_color_red 0xFF992222
+#define cengine_color_green 0xFF229922
+#define cengine_color_blue 0xFF0000CC
+#define cengine_color_black 0xFF222222
+#define cengine_color_white 0xFFCCCCCC
 
-void renderTrack() {
+#define cengine_color_bg1 0xFF332222
+#define cengine_color_bg2 0xFF223322
+#define cengine_color_bg3 0xFF222233
+#define cengine_color_bg4 0xFF332233
+#define cengine_color_bg5 0xFF333322
+
+
+
+
+
+static void renderPatternMapping() {
     struct CSynthContext *synth = cSynthGetContext();
-    for (int x = 0; x < synth->track_width; x++) {
-        for (int y = 0; y < synth->track_height; y++) {
+    
+    int inset_x = 1;
+    int inset_y = 6;
+    for (int x = 0; x < synth->patterns_and_voices_width; x++) {
+        for (int y = 0; y < synth->patterns_and_voices_height; y++) {
             
-            int track_progress_int = synth->track_progress_int;
-            int offset_x = 1;
-            int offset_y = 6;
-            
+            int val = synth->patterns_and_voices[x][y];
+            char cval[2];
+            sprintf(cval, "%d", val);
             int bg_color = cengine_color_black;
-            if(synth->track_progress_int == y) {
-                bg_color = cengine_color_green;
-            } else {
-                bg_color = cengine_color_black;
-            }
-            
-            if(synth->track_cursor_x == x && synth->track_cursor_y == y) {
+            if(x == pattern_cursor_x && y == pattern_cursor_y) {
                 bg_color = cengine_color_red;
             }
-            
-            if(synth->track[x][y] != NULL) {
-                int tone = synth->track[x][y]->tone;
-                char ctone[10];
-                sprintf(ctone, "%i ---", tone);
-                cEngineRenderLabelWithParams(raster2d, ctone, offset_x+x*8, offset_y+y-track_progress_int, cengine_color_white, bg_color);
+            if(y == 0) {
+                cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             } else {
-                cEngineRenderLabelWithParams(raster2d, "-- ---", offset_x+x*8, offset_y+y-track_progress_int, cengine_color_white, bg_color);
+                
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            }
+        }
+    }
+}
+
+static char *getWaveTypeAsChar(int type) {
+    if(type == 0) {
+        return "sine";
+    }
+    if(type == 1) {
+        return "saw";
+    }
+    if(type == 2) {
+        return "square";
+    }
+    if(type == 3) {
+        return "tri";
+    }
+    if(type == 4) {
+        return "noise";
+    }
+    return "error";
+}
+
+static void drawWaveTypes() {
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    for (int x = 0; x < synth->patterns_and_voices_width; x++) {
+        int val = synth->patterns_and_voices[x][0];
+        cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), 1+x*10, -visual_cursor_y+5, cengine_color_white, cengine_color_black);
+    }
+}
+
+void renderTrack() {
+    
+    
+    if(pattern_editor == 1) {
+        renderPatternMapping();
+        return;
+    }
+    
+    drawWaveTypes();
+    
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    int x_count = 0;
+    int offset_x = 0;
+    int inset_x = 1;
+    int inset_y = 6;
+    
+    
+    int cursor_x = visual_cursor_x/5;
+    cSynthUpdateTrackCursor(cursor_x, visual_cursor_y);
+    int track_progress_int = synth->track_progress_int;
+    
+    if(playing == 0) {
+        track_progress_int = visual_cursor_y;
+    } else {
+        visual_cursor_y = track_progress_int;
+        checkVisualCursorBounds();
+    }
+    
+    for (int y = 0; y < synth->track_height; y++) {
+        offset_x = 0;
+        for (int x = 0; x < visual_track_width; x++) {
+            
+            int bg_color = cengine_color_black;
+            if(x >= 0 && x < 5 ) bg_color = cengine_color_bg1;
+            if(x >= 5 && x < 10 ) bg_color = cengine_color_bg2;
+            if(x >= 10 && x < 15 ) bg_color = cengine_color_bg3;
+            if(x >= 15 && x < 20 ) bg_color = cengine_color_bg4;
+            if(x >= 20 && x < 25 ) bg_color = cengine_color_bg5;
+            
+            if(synth->track_progress_int == y && playing == 1) {
+                bg_color = cengine_color_green;
+            }
+            
+            if(visual_cursor_x == x && visual_cursor_y == y) {
+                if(editing == 1) {
+                    bg_color = cengine_color_red;
+                } else{
+                    bg_color = cengine_color_dull_red;
+                }
+            }
+            
+            
+            
+            if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20) {
+                int node_x = x/5;
+                
+                if(synth->track[0][node_x][y] != NULL) {
+                    int tone = synth->track[0][node_x][y]->tone;
+                    char *ctone = cSynthToneToChar(tone);
+                    cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                } else {
+                    cEngineRenderLabelWithParams(raster2d, "---", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                }
+                offset_x += 3;
+            } else {
+                cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                //offset_x += 1;
+                if(x_count == 1 || x_count == 4) {
+                    offset_x++;
+                }
+            }
+            
+            x_count++;
+            if(x_count == 5) {
+                x_count = 0;
             }
         }
     }
@@ -424,7 +780,7 @@ int main(int argc, char ** argv)
                 
                 want.freq = synth->sample_rate;
                 want.format = AUDIO_S8;
-                want.channels = 1;
+                want.channels = 2;
                 want.samples = floatStreamLength;
                 want.callback = audioCallback;
                 
