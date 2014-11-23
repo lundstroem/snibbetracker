@@ -4,6 +4,7 @@
 #include "CInput.h"
 #include "CTouch.h"
 #include "CSynth.h"
+#include "CAllocator.h"
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -31,7 +32,7 @@ int playing = 0;
 int editing = 0;
 int octave = 0;
 int modifier = 0;
-int visual_track_width = 25;
+int visual_track_width = 30;
 int visual_track_height = 16;
 int visual_cursor_x = 0;
 int visual_cursor_y = 0;
@@ -125,6 +126,7 @@ static void addTrackNodeWithOctave(int x, int y, int editing, int tone);
 static void checkVisualCursorBounds();
 static void checkPatternCursorBounds();
 static char *getWaveTypeAsChar(int type);
+static void changeParam(int plus);
 
 static void addTrackNodeWithOctave(int x, int y, int editing, int tone) {
     cSynthAddTrackNode(x, y, editing, tone+(octave*12));
@@ -189,6 +191,17 @@ void handle_key_down( SDL_Keysym* keysym )
 {
     struct CSynthContext *synth = cSynthGetContext();
     switch( keysym->sym ) {
+        case SDLK_PLUS:
+            if(pattern_editor == 1) {
+                changeParam(1);
+            }
+            break;
+        case SDLK_MINUS:
+            if(pattern_editor == 1) {
+                changeParam(0);
+            }
+            break;
+
         case SDLK_TAB:
             if(pattern_editor == 1) {
                 pattern_editor = 0;
@@ -588,16 +601,137 @@ int onExit() {
 #define cengine_color_bg3 0xFF222233
 #define cengine_color_bg4 0xFF332233
 #define cengine_color_bg5 0xFF333322
+#define cengine_color_bg6 0xFF223333
 
 
+static void changeWaveform(int plus) {
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    int current_waveform = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
+    if(plus == 1) {
+        current_waveform++;
+    } else {
+        current_waveform--;
+    }
+    
+    if(current_waveform < 0) {
+        current_waveform = 4;
+    } else if(current_waveform > 4) {
+        current_waveform = 0;
+    }
+    
+    if(current_waveform == 0) {
+        synth->voices[pattern_cursor_x]->waveform = synth->sine_wave_table;
+    }
+    if(current_waveform == 1) {
+        synth->voices[pattern_cursor_x]->waveform = synth->sawtooth_wave_table;
+    }
+    if(current_waveform == 2) {
+        synth->voices[pattern_cursor_x]->waveform = synth->square_wave_table;
+    }
+    if(current_waveform == 3) {
+        synth->voices[pattern_cursor_x]->waveform = synth->triangle_wave_table;
+    }
+    if(current_waveform == 4) {
+        synth->voices[pattern_cursor_x]->waveform = synth->noise_table;
+    }
+    synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = current_waveform;
+}
 
+
+static void changeParam(int plus) {
+    
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    int x = pattern_cursor_x;
+    int y = pattern_cursor_y;
+    
+    if(y == 0) {
+        
+        changeWaveform(plus);
+        /*
+        int current_waveform = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
+        if(plus == 1) {
+            current_waveform++;
+        } else {
+            current_waveform--;
+        }
+        
+        if(current_waveform < 0) {
+            current_waveform = 4;
+        } else if(current_waveform > 4) {
+            current_waveform = 0;
+        }
+        if(current_waveform == 0) { synth->voices[pattern_cursor_x]->waveform = synth->sine_wave_table; };
+        if(current_waveform == 1) { synth->voices[pattern_cursor_x]->waveform = synth->sawtooth_wave_table; };
+        if(current_waveform == 2) { synth->voices[pattern_cursor_x]->waveform = synth->square_wave_table; };
+        if(current_waveform == 3) { synth->voices[pattern_cursor_x]->waveform = synth->triangle_wave_table; };
+        if(current_waveform == 4) { synth->voices[pattern_cursor_x]->waveform = synth->noise_table; };
+        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = current_waveform;
+        */
+    } else if(y == 17 || y == 18) {
+        int ins_nr = x;
+        // instruments
+        if(y == 18) { ins_nr += 6; }
+    
+    } else if(y == 19 && x == 0) {
+        //BPM
+        int bpm = synth->BPM;
+        if(plus == 1) {
+            bpm++;
+            synth->BPM = bpm;
+        } else {
+            bpm--;
+            if(bpm < 20) {
+                bpm = 20;
+            }
+            synth->BPM = bpm;
+        }
+    
+    } else if(y == 19 && x == 1) {
+        // active patterns
+        int active_patterns = synth->active_patterns;
+        if(plus == 1) {
+            active_patterns++;
+            if(active_patterns > 16) {
+                active_patterns = 1;
+            }
+            synth->active_patterns = active_patterns;
+        } else {
+            active_patterns--;
+            if(active_patterns < 1) {
+                active_patterns = 16;
+            }
+            synth->active_patterns = active_patterns;
+        }
+        
+    } else if(y == 19) {
+        //nothing
+    } else {
+        // pattern nr.
+        int pattern = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
+        if(plus == 1) {
+            pattern++;
+        } else {
+            pattern--;
+        }
+        if(pattern > 9) {
+            pattern = 0;
+        } else if(pattern < 0){
+            pattern = 9;
+        }
+        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
+    }
+
+
+}
 
 
 static void renderPatternMapping() {
     struct CSynthContext *synth = cSynthGetContext();
     
     int inset_x = 1;
-    int inset_y = 6;
+    int inset_y = 1;
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
             
@@ -610,8 +744,29 @@ static void renderPatternMapping() {
             }
             if(y == 0) {
                 cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            } else if(y == 17 || y == 18) {
+                char cval[10];
+                int ins_nr = x;
+                if(y == 18) { ins_nr += 6; }
+                sprintf(cval, "Ins %d", ins_nr);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            } else if(y == 19 && x == 0) {
+                char cval[10];
+                sprintf(cval, "BPM %d", synth->BPM);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            } else if(y == 19 && x == 1) {
+                char cval[20];
+                sprintf(cval, "Active patterns %d", synth->active_patterns);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            } else if(y == 19) {
+                //nothing
             } else {
-                
+                if(y <= synth->active_patterns) {
+                    bg_color = cengine_color_green;
+                    if(x == pattern_cursor_x && y == pattern_cursor_y) {
+                        bg_color = cengine_color_red;
+                    }
+                }
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             }
         }
@@ -685,6 +840,7 @@ void renderTrack() {
             if(x >= 10 && x < 15 ) bg_color = cengine_color_bg3;
             if(x >= 15 && x < 20 ) bg_color = cengine_color_bg4;
             if(x >= 20 && x < 25 ) bg_color = cengine_color_bg5;
+            if(x >= 25 && x < 30 ) bg_color = cengine_color_bg6;
             
             if(synth->track_progress_int == y && playing == 1) {
                 bg_color = cengine_color_green;
@@ -700,7 +856,7 @@ void renderTrack() {
             
             
             
-            if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20) {
+            if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 int node_x = x/5;
                 
                 if(synth->track[0][node_x][y] != NULL) {
@@ -708,7 +864,7 @@ void renderTrack() {
                     char *ctone = cSynthToneToChar(tone);
                     cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, "---", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, " - ", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
                 }
                 offset_x += 3;
             } else {
