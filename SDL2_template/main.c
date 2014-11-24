@@ -676,16 +676,16 @@ static void changeParam(int plus) {
     
     } else if(y == 19 && x == 0) {
         //BPM
-        int bpm = synth->BPM;
+        int bpm = synth->bpm;
         if(plus == 1) {
             bpm++;
-            synth->BPM = bpm;
+            synth->bpm = bpm;
         } else {
             bpm--;
             if(bpm < 20) {
                 bpm = 20;
             }
-            synth->BPM = bpm;
+            synth->bpm = bpm;
         }
     
     } else if(y == 19 && x == 1) {
@@ -752,7 +752,7 @@ static void renderPatternMapping() {
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             } else if(y == 19 && x == 0) {
                 char cval[10];
-                sprintf(cval, "BPM %d", synth->BPM);
+                sprintf(cval, "BPM %d", synth->bpm);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             } else if(y == 19 && x == 1) {
                 char cval[20];
