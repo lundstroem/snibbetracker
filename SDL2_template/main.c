@@ -129,7 +129,7 @@ static char *getWaveTypeAsChar(int type);
 static void changeParam(int plus);
 
 static void addTrackNodeWithOctave(int x, int y, int editing, int tone) {
-    cSynthAddTrackNode(x, y, editing, tone+(octave*12));
+    cSynthAddTrackNode(x, y, editing, 1, tone+(octave*12));
     
     if(editing == 1) {
         visual_cursor_y++;
@@ -181,7 +181,7 @@ void handle_key_up( SDL_Keysym* keysym )
     switch( keysym->sym ) {
         case SDLK_LGUI:
             modifier = 0;
-            printf("modifier off");
+            //printf("modifier off");
             break;
     }
 }
@@ -211,7 +211,7 @@ void handle_key_down( SDL_Keysym* keysym )
             break;
         case SDLK_LGUI:
             modifier = 1;
-            printf("modifier on");
+            //printf("modifier on");
             break;
         case SDLK_ESCAPE:
             quit = 1;
@@ -248,8 +248,8 @@ void handle_key_down( SDL_Keysym* keysym )
             } else {
                 if(modifier == 1) {
                     octave++;
-                    if(octave > 3) {
-                        octave = 3;
+                    if(octave > 7) {
+                        octave = 7;
                     }
                 } else {
                     visual_cursor_x++;
@@ -504,15 +504,10 @@ static int getDelta() {
 //const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
-//Uint32 sampleRate = 22050;
-//Uint32 frameRate =    60;
-
-Uint32 floatStreamLength = 8;// must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
+Uint16 bufferSize = 64; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
-
-Uint32 audioBufferLength = 2940;// must be a multiple of samplesPerFrame (auto adjusted upwards if not)
 
 Sint8 *audioBuffer;
 
@@ -541,11 +536,10 @@ int testScheduleSwitch = 0;
 
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
    
-    for (int i = 0; i < byteStreamLength; i++) {
-        byteStream[i] = 0;
-    }
+    memset(byteStream, 0, byteStreamLength);
     
-    Sint8 *s_byteStream = (Sint8*)byteStream;
+    Sint16 *s_byteStream = (Sint16 *)byteStream;
+    int remain = byteStreamLength / 2;
     
     struct CSynthContext *synth = cSynthGetContext();
     
@@ -556,20 +550,13 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double d_sampleRate = synth->sample_rate;
             double d_waveformLength = ins->voice->waveform_length;
             double delta_phi = (double) (cSynthGetFrequency((double)ins->tone) / d_sampleRate * (double)d_waveformLength);
-            for (i = 0; i < byteStreamLength; i+=2) {
-                
+            for (i = 0; i < remain; i+=2) {
                 if(ins->note_on == 1) {
                     cSynthIncPhase(ins->voice, delta_phi);
-                    double amp = ((double)ins->amplitude[ins->amplitude_index]/256.0)*0.2;
+                    double amp = cSynthInstrumentVolume(ins)*ins->volume_scalar;
+                    ins->adsr_cursor += 0.00001;
                     s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
                     s_byteStream[i+1] += ins->voice->waveform[ins->voice->phase_int]*amp;
-                    ins->amplitude_index_double += (double)byteStreamLength*0.0001;
-                    ins->amplitude_index = (int) ins->amplitude_index_double;
-                    if(ins->amplitude_index >= ins->amplitude_length) {
-                        ins->amplitude_index = 0;
-                        ins->amplitude_index_double = 0;
-                        ins->note_on = 0;
-                    }
                 }
             }
         } 
@@ -682,8 +669,8 @@ static void changeParam(int plus) {
             synth->bpm = bpm;
         } else {
             bpm--;
-            if(bpm < 20) {
-                bpm = 20;
+            if(bpm < 1) {
+                bpm = 1;
             }
             synth->bpm = bpm;
         }
@@ -932,15 +919,24 @@ int main(int argc, char ** argv)
                 SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
                 SDL_AudioSpec want;
                 SDL_zero(want);// btw, I have no idea what this is...
-                
+                SDL_zero(audioSpec);// btw, I have no idea what this is...
                 
                 want.freq = synth->sample_rate;
-                want.format = AUDIO_S8;
+                want.format = AUDIO_S16LSB;
                 want.channels = 2;
-                want.samples = floatStreamLength;
+                want.samples = bufferSize;
                 want.callback = audioCallback;
                 
                 AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+                
+                printf("   audioSpec\n");
+                printf("----------------\n");
+                printf("sample rate:%d\n", want.freq);
+                printf("channels:%d\n", audioSpec.channels);
+                printf("samples:%d\n", audioSpec.samples);
+                printf("buffer size:%d\n", audioSpec.size);
+                printf("----------------\n");
+                
                 
                 if (AudioDevice == 0) {
                     printf("\nFailed to open audio: %s\n", SDL_GetError());
@@ -953,11 +949,12 @@ int main(int argc, char ** argv)
                     return 2;
                 }
                 
+                
                 //int sampleRate = synth->sample_rate;
                 int frameRate = synth->frame_rate;
                 
                 int sampleRate = audioSpec.freq;
-                floatStreamLength = audioSpec.size/4;
+                bufferSize = audioSpec.samples;
                 samplesPerFrame = sampleRate/frameRate;
                 msPerFrame = 1000/frameRate;
                 audioMainLeftOff = samplesPerFrame*8;
@@ -969,7 +966,7 @@ int main(int argc, char ** argv)
                 }
                 */
                 
-                audioBuffer = malloc( sizeof(Sint8)*audioBufferLength );
+                audioBuffer = malloc( sizeof(Sint8)*bufferSize );
                 
                 
                 SDL_Delay(42);// let the tubes warm up
@@ -989,6 +986,8 @@ int main(int argc, char ** argv)
                         }
                         
                         cEngineGameloop(getDelta(), raster2d, input);
+                        
+                        
                         //renderStuff
                         
                         for(int x = 0; x < s_width; x++) {
@@ -999,42 +998,8 @@ int main(int argc, char ** argv)
                         
                         renderTrack();
                         
-                        /*
-                        for(int i = sine_scroll; i < waveLength; i++) {
-                            int pos = sineWave[i]+150;
-                            if(pos > -1 && pos < s_height
-                               && i-sine_scroll < s_width) {
-                                raster2d[i-sine_scroll][pos] = 0xffffffff;
-                            }
-                        }
-                        
-                        for(int i = sine_scroll; i < waveLength; i++) {
-                            int pos = squareWave[i]+150;
-                            if(pos > -1 && pos < s_height
-                               && i-sine_scroll < s_width) {
-                                raster2d[i-sine_scroll][pos] = 0xff00ffff;
-                            }
-                        }
-                        
-                        for(int i = sine_scroll; i < waveLength; i++) {
-                            int pos = triangleWave[i]+150;
-                            if(pos > -1 && pos < s_height
-                               && i-sine_scroll < s_width) {
-                                raster2d[i-sine_scroll][pos] = 0xffff00ff;
-                            }
-                        }
-                        
-                        for(int i = sine_scroll; i < waveLength; i++) {
-                            int pos = sawtoothWave[i]+150;
-                            if(pos > -1 && pos < s_height
-                               && i-sine_scroll < s_width) {
-                                raster2d[i-sine_scroll][pos] = 0xffffff00;
-                            }
-                        }*/
-                        
                         SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
                         SDL_RenderClear(renderer);
-                        
                         
                         SDL_RenderCopy(renderer, texture, NULL, NULL);
                         SDL_RenderPresent(renderer);
