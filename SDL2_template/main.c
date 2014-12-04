@@ -573,9 +573,24 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             for (i = 0; i < remain; i+=2) {
                 if(ins->note_on == 1) {
                     
-                    cSynthIncPhase(ins->voice, delta_phi);
-                    double amp = cSynthInstrumentVolume(ins)*ins->volume_scalar;
-                    ins->adsr_cursor += 0.00001;
+                    double amp = 0;
+                    if(ins->noteoff_slope == 1) {
+                        cSynthIncPhase(ins->voice, delta_phi);
+                        amp = ins->noteoff_slope_value*ins->volume_scalar;
+                        ins->noteoff_slope_value -= 0.001;
+                        //printf("slope: %f\n", ins->noteoff_slope_value);
+                        if(ins->noteoff_slope_value < 0) {
+                            ins->noteoff_slope = 0;
+                            ins->noteoff_slope_value = 0;
+                        }
+                    } else {
+                        cSynthIncPhase(ins->voice, delta_phi);
+                        amp = cSynthInstrumentVolume(ins)*ins->volume_scalar;
+                        ins->adsr_cursor += 0.00001;
+                    }
+                    s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                    s_byteStream[i+1] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                    
                     
                     /*
                     if(ins_i == 4) {
@@ -585,8 +600,6 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                     } else {
                      */
                      
-                        s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
-                        s_byteStream[i+1] += ins->voice->waveform[ins->voice->phase_int]*amp;
                     
                         //double cutoff = 0.099;
                         
