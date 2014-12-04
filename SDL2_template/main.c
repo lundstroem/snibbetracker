@@ -44,20 +44,18 @@ int pattern_cursor_y = 0;
 static void setup_data()
 {
     // contains an integer for every color/pixel on the screen.
-    raster = (unsigned int *) malloc((s_width*s_height) * sizeof(unsigned int));
+    raster = (unsigned int *) cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
     int r = 0;
-    for(r = 0; r < s_width*s_height; r++)
-    {
+    for(r = 0; r < s_width*s_height; r++) {
         raster[r] = 0;
     }
     
-    raster2d = malloc(s_width * sizeof(unsigned int *));
+    raster2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c raster 2");
     if(raster2d == NULL) {
         fprintf(stderr, "out of memory\n");
     } else {
-        for(int i = 0; i < s_width; i++)
-        {
-            raster2d[i] = malloc(s_height * sizeof(unsigned int));
+        for(int i = 0; i < s_width; i++) {
+            raster2d[i] = cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c raster 3");
             if(raster2d[i] == NULL)
             {
                 fprintf(stderr, "out of memory\n");
@@ -67,7 +65,7 @@ static void setup_data()
     
     input = cInputNew();
     
-    input->touches = malloc(MAX_TOUCHES * sizeof(struct CTouch*));
+    input->touches = cAllocatorAlloc(MAX_TOUCHES * sizeof(struct CTouch*), "main.c touches");
     if(input->touches == NULL) {
         fprintf(stderr, "touchlist out of memory\n");
     }
@@ -81,7 +79,7 @@ static void setup_data()
         }
     }
     
-    input->ended_touches = malloc(MAX_TOUCHES * sizeof(struct CTouch*));
+    input->ended_touches = cAllocatorAlloc(MAX_TOUCHES * sizeof(struct CTouch*), "main.c ended touches");
     if(input->ended_touches == NULL) {
         fprintf(stderr, "ended touchlist out of memory\n");
     }
@@ -106,18 +104,15 @@ int quit = 0;
 
 static void quitGame( int code )
 {
-    free(raster);
-    
-    for(int i = 0; i < s_width; i++)
-    {
-        free(raster2d[i]);
+    raster = cAllocatorFree(raster);
+    for(int i = 0; i < s_width; i++) {
+        raster2d[i] = cAllocatorFree(raster2d[i]);
     }
-    free(raster2d);
-    
+    raster2d = cAllocatorFree(raster2d);
     cEngineCleanup();
-    free(input);
+    input = cInputCleanup(input);
     
-    printf("quit game");
+    printf("quit game\n");
 }
 
 
@@ -138,6 +133,9 @@ static void addTrackNodeWithOctave(int x, int y, int editing, int tone) {
 }
 
 static void checkVisualCursorBounds() {
+    
+    struct CSynthContext *synth = cSynthGetContext();
+    
     if(visual_cursor_x == visual_track_width) {
         visual_cursor_x = 0;
     }
@@ -147,10 +145,26 @@ static void checkVisualCursorBounds() {
     }
     
     if(visual_cursor_y == visual_track_height) {
+        
+        if(synth->current_track < synth->active_patterns-1) {
+            synth->current_track++;
+        } else {
+            //rewind
+            synth->current_track = 0;
+        }
+        
         visual_cursor_y = 0;
     }
     
     if(visual_cursor_y == -1) {
+        
+        if(synth->current_track < synth->active_patterns-1) {
+            synth->current_track++;
+        } else {
+            //rewind
+            synth->current_track = 0;
+        }
+        
         visual_cursor_y = visual_track_height-1;
     }
 }
@@ -236,8 +250,10 @@ void handle_key_down( SDL_Keysym* keysym )
                         octave = 0;
                     }
                 } else {
-                    visual_cursor_x--;
-                    checkVisualCursorBounds();
+                    if(playing == 0) {
+                        visual_cursor_x--;
+                        checkVisualCursorBounds();
+                    }
                 }
             }
             break;
@@ -252,8 +268,10 @@ void handle_key_down( SDL_Keysym* keysym )
                         octave = 7;
                     }
                 } else {
-                    visual_cursor_x++;
-                    checkVisualCursorBounds();
+                    if(playing == 0) {
+                        visual_cursor_x++;
+                        checkVisualCursorBounds();
+                    }
                 }
             }
             break;
@@ -262,8 +280,10 @@ void handle_key_down( SDL_Keysym* keysym )
                 pattern_cursor_y--;
                 checkPatternCursorBounds();
             } else {
-                visual_cursor_y--;
-                checkVisualCursorBounds();
+                if(playing == 0) {
+                    visual_cursor_y--;
+                    checkVisualCursorBounds();
+                }
             }
             break;
         case SDLK_DOWN:
@@ -271,8 +291,10 @@ void handle_key_down( SDL_Keysym* keysym )
                 pattern_cursor_y++;
                 checkPatternCursorBounds();
             } else {
-                visual_cursor_y++;
-                checkVisualCursorBounds();
+                if(playing == 0) {
+                    visual_cursor_y++;
+                    checkVisualCursorBounds();
+                }
             }
             break;
         case SDLK_BACKSPACE:
@@ -509,8 +531,6 @@ Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
 
-Sint8 *audioBuffer;
-
 SDL_atomic_t audioCallbackLeftOff;
 Sint32 audioMainLeftOff;
 Sint8 audioMainAccumulator;
@@ -552,29 +572,50 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double delta_phi = (double) (cSynthGetFrequency((double)ins->tone) / d_sampleRate * (double)d_waveformLength);
             for (i = 0; i < remain; i+=2) {
                 if(ins->note_on == 1) {
+                    
                     cSynthIncPhase(ins->voice, delta_phi);
                     double amp = cSynthInstrumentVolume(ins)*ins->volume_scalar;
                     ins->adsr_cursor += 0.00001;
-                    s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
-                    s_byteStream[i+1] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                    
+                    /*
+                    if(ins_i == 4) {
+                        int16_t sample = ((rand()%INT16_MAX*2)-INT16_MAX)*amp;
+                        s_byteStream[i] += sample;
+                        s_byteStream[i+1] += sample;
+                    } else {
+                     */
+                     
+                        s_byteStream[i] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                        s_byteStream[i+1] += ins->voice->waveform[ins->voice->phase_int]*amp;
+                    
+                        //double cutoff = 0.099;
+                        
+                        /*
+                        Sint16 lo_pass_output = s_byteStream[i] + (cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i]));
+                        s_byteStream[i] += lo_pass_output*amp;
+                        
+                        lo_pass_output = s_byteStream[i+1] + (cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i+1]));
+                        s_byteStream[i+1] += lo_pass_output*amp;
+                        */
+                        
+                        /*
+                        Sint16 hi_pass_output = ins->voice->waveform[ins->voice->phase_int] - (s_byteStream[i] + cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i]));
+                        s_byteStream[i] += hi_pass_output*amp;
+                        
+                        hi_pass_output = ins->voice->waveform[ins->voice->phase_int] - (s_byteStream[i+1] + cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i+1]));
+                        s_byteStream[i+1] += hi_pass_output*amp;
+                        */
+                    //}
                 }
             }
         } 
     }
     
     if(playing == 1) {
-        cSynthAdvanceTrack(byteStreamLength);
+        cSynthAdvanceTrack(remain);
     }
 }
 
-
-
-int onExit() {
-    SDL_CloseAudioDevice(AudioDevice);
-    free(audioBuffer);//not necessary?
-    //SDL_Quit();
-    return 0;
-}
 
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFF992222
@@ -634,28 +675,7 @@ static void changeParam(int plus) {
     int y = pattern_cursor_y;
     
     if(y == 0) {
-        
         changeWaveform(plus);
-        /*
-        int current_waveform = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
-        if(plus == 1) {
-            current_waveform++;
-        } else {
-            current_waveform--;
-        }
-        
-        if(current_waveform < 0) {
-            current_waveform = 4;
-        } else if(current_waveform > 4) {
-            current_waveform = 0;
-        }
-        if(current_waveform == 0) { synth->voices[pattern_cursor_x]->waveform = synth->sine_wave_table; };
-        if(current_waveform == 1) { synth->voices[pattern_cursor_x]->waveform = synth->sawtooth_wave_table; };
-        if(current_waveform == 2) { synth->voices[pattern_cursor_x]->waveform = synth->square_wave_table; };
-        if(current_waveform == 3) { synth->voices[pattern_cursor_x]->waveform = synth->triangle_wave_table; };
-        if(current_waveform == 4) { synth->voices[pattern_cursor_x]->waveform = synth->noise_table; };
-        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = current_waveform;
-        */
     } else if(y == 17 || y == 18) {
         int ins_nr = x;
         // instruments
@@ -846,8 +866,10 @@ void renderTrack() {
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 int node_x = x/5;
                 
-                if(synth->track[0][node_x][y] != NULL) {
-                    int tone = synth->track[0][node_x][y]->tone;
+                int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
+                
+                if(synth->track[pattern][node_x][y] != NULL) {
+                    int tone = synth->track[pattern][node_x][y]->tone;
                     char *ctone = cSynthToneToChar(tone);
                     cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
                 } else {
@@ -960,16 +982,6 @@ int main(int argc, char ** argv)
                 audioMainLeftOff = samplesPerFrame*8;
                 SDL_AtomicSet(&audioCallbackLeftOff, 0);
                 
-                /*
-                if (audioBufferLength % samplesPerFrame) {
-                    audioBufferLength += samplesPerFrame-(audioBufferLength % samplesPerFrame);
-                }
-                */
-                
-                audioBuffer = malloc( sizeof(Sint8)*bufferSize );
-                
-                
-                SDL_Delay(42);// let the tubes warm up
                 
                 SDL_PauseAudioDevice(AudioDevice, 0);// unpause audio.
                 /***********************************************/
@@ -1008,10 +1020,20 @@ int main(int argc, char ** argv)
                     SDL_DestroyTexture(texture);
                 }
             }
+            printf("allocs before cleanup:\n");
+            cAllocatorPrintAllocationCount();
             
             quitGame(0);
+            
+            printf("allocs after cleanup:\n");
+            cAllocatorPrintAllocations();
+            cAllocatorPrintAllocationCount();
+            
+            // If allocation tracking is on, clean up the last stuff.
+            cAllocatorCleanup();
+            
             SDL_DestroyWindow(window);
-            onExit();
+            SDL_CloseAudioDevice(AudioDevice);
             SDL_Quit();
         }
     }
