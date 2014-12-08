@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2_image/SDL_image.h>
+#include <stdbool.h>
 #include "Game.h"
 #include "CInput.h"
 #include "CTouch.h"
@@ -28,10 +29,12 @@ int height = 144*4;
 int s_width = 256*2;
 int s_height = 144*2;
 
-int playing = 0;
-int editing = 0;
+bool playing = false;
+bool editing = false;
+bool modifier = false;
+
 int octave = 0;
-int modifier = 0;
+
 int visual_track_width = 30;
 int visual_track_height = 16;
 int visual_cursor_x = 0;
@@ -194,7 +197,7 @@ void handle_key_up( SDL_Keysym* keysym )
 {
     switch( keysym->sym ) {
         case SDLK_LGUI:
-            modifier = 0;
+            modifier = false;
             //printf("modifier off");
             break;
     }
@@ -217,22 +220,22 @@ void handle_key_down( SDL_Keysym* keysym )
             break;
 
         case SDLK_TAB:
-            if(pattern_editor == 1) {
-                pattern_editor = 0;
+            if(pattern_editor == true) {
+                pattern_editor = false;
             } else {
-                pattern_editor = 1;
+                pattern_editor = true;
             }
             break;
         case SDLK_LGUI:
-            modifier = 1;
+            modifier = true;
             //printf("modifier on");
             break;
         case SDLK_ESCAPE:
-            quit = 1;
+            quit = true;
             break;
         case SDLK_RETURN:
             if(playing == 0) {
-                playing = 1;
+                playing = true;
                 cSynthResetTrackProgress();
             } else {
                 playing = 0;
@@ -303,10 +306,10 @@ void handle_key_down( SDL_Keysym* keysym )
             }
             break;
         case SDLK_SPACE:
-            if(editing == 1) {
-                editing = 0;
+            if(editing == true) {
+                editing = false;
             } else {
-                editing = 1;
+                editing = true;
             }
             break;
         case SDLK_z:
@@ -429,7 +432,7 @@ static void checkSDLEvents(SDL_Event event) {
     while (SDL_PollEvent(&event)) {
         switch(event.type) {
             case SDL_QUIT:
-                quit = 1;
+                quit = true;
                 break;
             case SDL_KEYDOWN:
                 handle_key_down( &event.key.keysym );
@@ -456,8 +459,8 @@ static void checkSDLEvents(SDL_Event event) {
                 //           event.button.button, event.button.x, event.button.y);
                 
                 if(event.button.button == SDL_BUTTON_LEFT) {
-                    input->mouse1 = 1;
-                    input->touches[0]->active = 1;
+                    input->mouse1 = true;
+                    input->touches[0]->active = true;
                     input->touches[0]->x = event.motion.x/4;
                     input->touches[0]->y = event.motion.y/4;
                     printf("mouse 1 x:%i y:%i\n", input->touches[0]->x, input->touches[0]->y);
@@ -465,8 +468,8 @@ static void checkSDLEvents(SDL_Event event) {
                 }
                 
                 if(event.button.button == SDL_BUTTON_RIGHT) {
-                    input->mouse2 = 1;
-                    input->touches[1]->active = 1;
+                    input->mouse2 = true;
+                    input->touches[1]->active = true;
                     input->touches[1]->x = event.motion.x;
                     input->touches[1]->y = event.motion.y;
                 }
@@ -478,16 +481,16 @@ static void checkSDLEvents(SDL_Event event) {
                 
                 if(event.button.button == SDL_BUTTON_LEFT) {
                     input->mouse1 = 0;
-                    input->touches[0]->active = 0;
-                    input->ended_touches[0]->active = 1;
+                    input->touches[0]->active = false;
+                    input->ended_touches[0]->active = true;
                     input->ended_touches[0]->x = event.motion.x;
                     input->ended_touches[0]->y = event.motion.y;
                 }
                 
                 if(event.button.button == SDL_BUTTON_RIGHT) {
                     input->mouse2 = 0;
-                    input->touches[1]->active = 0;
-                    input->ended_touches[1]->active = 1;
+                    input->touches[1]->active = false;
+                    input->ended_touches[1]->active = true;
                     input->ended_touches[1]->x = event.motion.x;
                     input->ended_touches[1]->y = event.motion.y;
                 }
@@ -580,7 +583,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         ins->noteoff_slope_value -= 0.001;
                         //printf("slope: %f\n", ins->noteoff_slope_value);
                         if(ins->noteoff_slope_value < 0) {
-                            ins->noteoff_slope = 0;
+                            ins->noteoff_slope = false;
                             ins->noteoff_slope_value = 0;
                         }
                     } else {
@@ -939,8 +942,8 @@ int main(int argc, char ** argv)
                 c->level_width = 64;
                 c->level_height = 64;
                 c->max_buttons = 10;
-                c->show_fps = 0;
-                c->ground_render_enabled = 0;
+                c->show_fps = false;
+                c->ground_render_enabled = false;
                 
                 cEngineInit(c);
                 
