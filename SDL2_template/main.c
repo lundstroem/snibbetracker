@@ -40,9 +40,18 @@ int visual_track_height = 16;
 int visual_cursor_x = 0;
 int visual_cursor_y = 0;
 
-int pattern_editor = 0;
+bool pattern_editor = false;
 int pattern_cursor_x = 0;
 int pattern_cursor_y = 0;
+
+bool instrument_editor = false;
+int selected_instrument_id = 0;
+int selected_instrument_node_index = 0;
+
+bool pressed_left = false;
+bool pressed_right = false;
+bool pressed_up = false;
+bool pressed_down = false;
 
 static void setup_data()
 {
@@ -123,13 +132,20 @@ int sine_scroll = 0;
 static void addTrackNodeWithOctave(int x, int y, int editing, int tone);
 static void checkVisualCursorBounds();
 static void checkPatternCursorBounds();
+static bool checkScreenBounds(int x, int y);
 static char *getWaveTypeAsChar(int type);
-static void changeParam(int plus);
+static void changeParam(bool plus);
+static void ADSRInvertYRender(double x, double y, int color);
 
 static void addTrackNodeWithOctave(int x, int y, int editing, int tone) {
+    
+    if(pattern_editor || instrument_editor) {
+        return;
+    }
+    
     cSynthAddTrackNode(x, y, editing, 1, tone+(octave*12));
     
-    if(editing == 1) {
+    if(editing) {
         visual_cursor_y++;
         checkVisualCursorBounds();
     }
@@ -193,12 +209,32 @@ static void checkPatternCursorBounds() {
     }
 }
 
+static bool checkScreenBounds(int x, int y) {
+    if(x > -1 && x < s_width && y > -1 && y < s_height) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 void handle_key_up( SDL_Keysym* keysym )
 {
     switch( keysym->sym ) {
         case SDLK_LGUI:
             modifier = false;
             //printf("modifier off");
+            break;
+        case SDLK_LEFT:
+            pressed_left = false;
+            break;
+        case SDLK_RIGHT:
+            pressed_right = false;
+            break;
+        case SDLK_UP:
+            pressed_up = false;
+            break;
+        case SDLK_DOWN:
+            pressed_down = false;
             break;
     }
 }
@@ -209,21 +245,34 @@ void handle_key_down( SDL_Keysym* keysym )
     struct CSynthContext *synth = cSynthGetContext();
     switch( keysym->sym ) {
         case SDLK_PLUS:
-            if(pattern_editor == 1) {
-                changeParam(1);
+            if(instrument_editor) {
+                
+            } else if(pattern_editor) {
+                changeParam(true);
             }
             break;
         case SDLK_MINUS:
-            if(pattern_editor == 1) {
-                changeParam(0);
+            if(instrument_editor) {
+                
+            } else if(pattern_editor) {
+                changeParam(false);
             }
             break;
 
         case SDLK_TAB:
-            if(pattern_editor == true) {
-                pattern_editor = false;
+            if(instrument_editor) {
+                struct CInstrument *ins = synth->instruments[selected_instrument_id];
+                selected_instrument_node_index++;
+                if(selected_instrument_node_index >= ins->adsr_nodes) {
+                    selected_instrument_node_index = 0;
+                }
+                printf("selected_instrument_node_index:%i", selected_instrument_node_index);
             } else {
-                pattern_editor = true;
+                if(pattern_editor) {
+                    pattern_editor = false;
+                } else {
+                    pattern_editor = true;
+                }
             }
             break;
         case SDLK_LGUI:
@@ -243,73 +292,118 @@ void handle_key_down( SDL_Keysym* keysym )
             break;
             
         case SDLK_LEFT:
-            if(pattern_editor == 1) {
-                pattern_cursor_x--;
-                checkPatternCursorBounds();
+            pressed_left = true;
+            if(instrument_editor) {
+                
             } else {
-                if(modifier == 1) {
-                    octave--;
-                    if(octave < 0) {
-                        octave = 0;
-                    }
+                if(pattern_editor) {
+                    pattern_cursor_x--;
+                    checkPatternCursorBounds();
                 } else {
-                    if(playing == 0) {
-                        visual_cursor_x--;
-                        checkVisualCursorBounds();
+                    if(modifier == 1) {
+                        octave--;
+                        if(octave < 0) {
+                            octave = 0;
+                        }
+                    } else {
+                        //if(playing) {
+                            visual_cursor_x--;
+                            checkVisualCursorBounds();
+                        //}
                     }
                 }
             }
             break;
         case SDLK_RIGHT:
-            if(pattern_editor == 1) {
-                pattern_cursor_x++;
-                checkPatternCursorBounds();
+            pressed_right = true;
+            if(instrument_editor) {
+                
             } else {
-                if(modifier == 1) {
-                    octave++;
-                    if(octave > 7) {
-                        octave = 7;
-                    }
+                if(pattern_editor) {
+                    pattern_cursor_x++;
+                    checkPatternCursorBounds();
                 } else {
-                    if(playing == 0) {
-                        visual_cursor_x++;
-                        checkVisualCursorBounds();
+                    if(modifier == 1) {
+                        octave++;
+                        if(octave > 7) {
+                            octave = 7;
+                        }
+                    } else {
+                        //if(playing) {
+                            visual_cursor_x++;
+                            checkVisualCursorBounds();
+                        //}
                     }
                 }
             }
             break;
         case SDLK_UP:
-            if(pattern_editor == 1) {
-                pattern_cursor_y--;
-                checkPatternCursorBounds();
+            pressed_up = true;
+            if(instrument_editor) {
+                
             } else {
-                if(playing == 0) {
-                    visual_cursor_y--;
-                    checkVisualCursorBounds();
+                if(pattern_editor) {
+                    pattern_cursor_y--;
+                    checkPatternCursorBounds();
+                } else {
+                    //if(playing) {
+                        visual_cursor_y--;
+                        checkVisualCursorBounds();
+                    //}
                 }
             }
             break;
         case SDLK_DOWN:
-            if(pattern_editor == 1) {
-                pattern_cursor_y++;
-                checkPatternCursorBounds();
+            pressed_down = true;
+            if(instrument_editor) {
+                
             } else {
-                if(playing == 0) {
-                    visual_cursor_y++;
-                    checkVisualCursorBounds();
+                if(pattern_editor == 1) {
+                    pattern_cursor_y++;
+                    checkPatternCursorBounds();
+                } else {
+                    //if(playing) {
+                        visual_cursor_y++;
+                        checkVisualCursorBounds();
+                    //}
                 }
             }
             break;
         case SDLK_BACKSPACE:
-            if(editing == 1) {
+            if(instrument_editor) {}
+            else if(pattern_editor) {}
+            else if(editing) {
                 cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
             }
             break;
         case SDLK_SPACE:
-            if(editing == true) {
-                editing = false;
+            if(instrument_editor) {
+                instrument_editor = false;
             } else {
-                editing = true;
+                if(pattern_editor) {
+                    if(pattern_cursor_y == 17 || pattern_cursor_y == 18) {
+                        int ins_nr = pattern_cursor_x;
+                        // instruments
+                        if(pattern_cursor_y == 18) {
+                            ins_nr += 6;
+                        }
+                        selected_instrument_id = ins_nr;
+                        printf("selected instrument:%d\n", ins_nr);
+                        if(instrument_editor) {
+                            instrument_editor = false;
+                            printf("instrument editor false\n");
+                        } else {
+                            instrument_editor = true;
+                            printf("instrument editor true\n");
+                        }
+                    }
+                } else {
+                    if(editing == true) {
+                        editing = false;
+                    } else {
+                        editing = true;
+                    }
+                }
             }
             break;
         case SDLK_z:
@@ -565,6 +659,10 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     int remain = byteStreamLength / 2;
     
     struct CSynthContext *synth = cSynthGetContext();
+    if(synth == NULL) {
+        printf("audioCallback: synthContext is null, returning.");
+        return;
+    }
     
     for(int ins_i = 0; ins_i < synth->max_instruments; ins_i++) {
         struct CInstrument *ins = synth->instruments[ins_i];
@@ -652,7 +750,7 @@ static void changeWaveform(int plus) {
     struct CSynthContext *synth = cSynthGetContext();
     
     int current_waveform = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
-    if(plus == 1) {
+    if(plus) {
         current_waveform++;
     } else {
         current_waveform--;
@@ -683,7 +781,7 @@ static void changeWaveform(int plus) {
 }
 
 
-static void changeParam(int plus) {
+static void changeParam(bool plus) {
     
     struct CSynthContext *synth = cSynthGetContext();
     
@@ -695,12 +793,13 @@ static void changeParam(int plus) {
     } else if(y == 17 || y == 18) {
         int ins_nr = x;
         // instruments
-        if(y == 18) { ins_nr += 6; }
-    
+        if(y == 18) {
+            ins_nr += 6;
+        }
     } else if(y == 19 && x == 0) {
         //BPM
         int bpm = synth->bpm;
-        if(plus == 1) {
+        if(plus) {
             bpm++;
             synth->bpm = bpm;
         } else {
@@ -714,7 +813,7 @@ static void changeParam(int plus) {
     } else if(y == 19 && x == 1) {
         // active patterns
         int active_patterns = synth->active_patterns;
-        if(plus == 1) {
+        if(plus) {
             active_patterns++;
             if(active_patterns > 16) {
                 active_patterns = 1;
@@ -733,7 +832,7 @@ static void changeParam(int plus) {
     } else {
         // pattern nr.
         int pattern = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
-        if(plus == 1) {
+        if(plus) {
             pattern++;
         } else {
             pattern--;
@@ -749,10 +848,153 @@ static void changeParam(int plus) {
 
 }
 
+static void drawLine(int x0, int y0, int x1, int y1) {
+    
+    double g_vec_x = x1 - x0;
+    double g_vec_y = y1 - y0;
+    double scale_factor = 1.0;
+    double length = sqrt( g_vec_x*g_vec_x + g_vec_y*g_vec_y );
+    g_vec_x = (g_vec_x/length) * scale_factor;
+    g_vec_y = (g_vec_y/length) * scale_factor;
+   
+    double pos_x = x0;
+    double pos_y = y0;
+    
+    int max_i = 100;
+    int i = 0;
+    while (i < max_i) {
+        
+        pos_x += g_vec_x;
+        pos_y += g_vec_y;
+        
+        int i_pos_x = (int)pos_x;
+        int i_pos_y = (int)pos_y;
+        
+        printf("pos_x: %d pos_y:%d\n", i_pos_x, i_pos_y);
+        
+        if(checkScreenBounds(i_pos_x, i_pos_y)) {
+            raster2d[i_pos_x][i_pos_y] = 0xff00ff00;
+        }
+        i++;
+    }
+    
+    /*
+    var g_vec_x = target_x - this.x;
+    var g_vec_y = target_y - this.y;
+    var scale_factor = 1.0;
+    var length = Math.sqrt( g_vec_x*g_vec_x + g_vec_y*g_vec_y );
+    g_vec_x = (g_vec_x/length) * scale_factor;
+    g_vec_y = (g_vec_y/length) * scale_factor;
+    this.vec_x = g_vec_x;
+    this.vec_y = g_vec_y;*/
+}
+
+static void renderInstrumentEditor() {
+    /*
+    for(int x = 0; x < s_width; x++) {
+        for(int y = 0; y < s_height; y++) {
+            raster2d[x][y] = 0xff00ff00;
+        }
+    }*/
+    struct CSynthContext *synth = cSynthGetContext();
+    struct CInstrument *ins = synth->instruments[selected_instrument_id];
+    int ins_id = selected_instrument_id;
+    int ins_node = selected_instrument_node_index;
+    int max_nodes = ins->adsr_nodes;
+    double pos = 0;
+    
+    int inset_x = 10;
+    int inset_y = 50;
+    double speed = 0.01;
+    
+    if(selected_instrument_node_index > 0) {
+        if (pressed_left) {
+                double pos1 = ins->adsr[selected_instrument_node_index-1]->pos;
+                double pos2 = ins->adsr[selected_instrument_node_index]->pos;
+                if(pos2 > pos1) {
+                    ins->adsr[selected_instrument_node_index]->pos -= speed;
+                }
+                if(pos2 < pos1) {
+                    ins->adsr[selected_instrument_node_index]->pos = pos1;
+                }
+        } else if(pressed_right) {
+            if(selected_instrument_node_index < max_nodes-1) {
+                double pos1 = ins->adsr[selected_instrument_node_index]->pos;
+                double pos2 = ins->adsr[selected_instrument_node_index+1]->pos;
+                if(pos1 < pos2) {
+                    ins->adsr[selected_instrument_node_index]->pos += speed;
+                }
+                if(ins->adsr[selected_instrument_node_index]->pos > pos2) {
+                    ins->adsr[selected_instrument_node_index]->pos = pos2;
+                }
+            } else if(selected_instrument_node_index == max_nodes-1) {
+                // last node
+                ins->adsr[selected_instrument_node_index]->pos += speed;
+            }
+        }
+        
+        if(pressed_down) {
+            ins->adsr[selected_instrument_node_index]->amp -= speed;
+            if(ins->adsr[selected_instrument_node_index]->amp < 0) {
+                ins->adsr[selected_instrument_node_index]->amp = 0;
+            }
+        } else if(pressed_up) {
+            ins->adsr[selected_instrument_node_index]->amp += speed;
+            if(ins->adsr[selected_instrument_node_index]->amp > 1) {
+                ins->adsr[selected_instrument_node_index]->amp = 1;
+            }
+        }
+    }
+
+    double amp_factor = 100;
+    double pos_factor = 400;
+    
+    for(int i = 0; i < 2000; i++) {
+        double amp = cSynthInstrumentVolumeByPos(ins, (double)i*0.001);
+        double g_amp = (amp*amp_factor) + inset_y;
+        double g_pos = (i*(pos_factor*0.001)) + inset_x;
+        
+        ADSRInvertYRender(g_pos, g_amp, 0xffffffff);
+        
+        int top_line_y = amp_factor + inset_y;
+        int bottom_line_y = 0 + inset_y;
+        
+        ADSRInvertYRender(g_pos, top_line_y, 0xffffffff);
+        ADSRInvertYRender(g_pos, bottom_line_y, 0xffffffff);
+
+    }
+    
+    for(int i = 0; i < max_nodes; i++) {
+        struct CadsrNode *node = ins->adsr[i];
+        double g_amp = (node->amp*amp_factor) + inset_y;
+        double g_pos = (node->pos*pos_factor) + inset_x;
+        for(int x = -2; x < 2; x++) {
+            for(int y = -2; y < 2; y++) {
+                int color = 0xffff0000;
+                if(i == selected_instrument_node_index) {
+                    color = 0xff00ff00;
+                }
+                ADSRInvertYRender(g_pos+x, g_amp+y, color);
+            }
+        }
+    }
+}
+
+
+static void ADSRInvertYRender(double x, double y, int color) {
+    int i_x = (int)x;
+    int i_y = (int)y/-1+170;
+    
+    if(checkScreenBounds(i_x, i_y)) {
+        raster2d[i_x][i_y] = color;
+    }
+}
+
 
 static void renderPatternMapping() {
     struct CSynthContext *synth = cSynthGetContext();
     
+
     int inset_x = 1;
     int inset_y = 1;
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
@@ -826,8 +1068,12 @@ static void drawWaveTypes() {
 
 void renderTrack() {
     
+    if(instrument_editor) {
+        renderInstrumentEditor();
+        return;
+    }
     
-    if(pattern_editor == 1) {
+    if(pattern_editor) {
         renderPatternMapping();
         return;
     }
@@ -912,7 +1158,7 @@ int main(int argc, char ** argv)
 {
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window * window = SDL_CreateWindow("snibbetracker", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+    SDL_Window * window = SDL_CreateWindow("dtracker", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
     
     if (window != NULL) {
         SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
