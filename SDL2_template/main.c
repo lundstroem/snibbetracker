@@ -6,6 +6,7 @@
 #include "CTouch.h"
 #include "CSynth.h"
 #include "CAllocator.h"
+#include "CTimer.h"
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -16,6 +17,20 @@ int old_time = 0;
 #define sheet_width 1024
 #define sheet_height 1024
 #define fullscreen 0
+
+#define cengine_color_dull_red 0xFF771111
+#define cengine_color_red 0xFF992222
+#define cengine_color_green 0xFF229922
+#define cengine_color_blue 0xFF0000CC
+#define cengine_color_black 0xFF222222
+#define cengine_color_white 0xFFCCCCCC
+
+#define cengine_color_bg1 0xFF332222
+#define cengine_color_bg2 0xFF223322
+#define cengine_color_bg3 0xFF222233
+#define cengine_color_bg4 0xFF332233
+#define cengine_color_bg5 0xFF333322
+#define cengine_color_bg6 0xFF223333
 
 struct CInput *input = NULL;
 
@@ -33,7 +48,7 @@ bool playing = false;
 bool editing = false;
 bool modifier = false;
 
-int octave = 0;
+int octave = 2;
 
 int visual_track_width = 30;
 int visual_track_height = 16;
@@ -52,6 +67,54 @@ bool pressed_left = false;
 bool pressed_right = false;
 bool pressed_up = false;
 bool pressed_down = false;
+
+struct CTimer *infoTimer = NULL;
+char *infoString = NULL;
+
+static void setInfoTimer(char *string) {
+    if(string != NULL) {
+        int max_size = 20;
+        int len = (int)strlen(string);
+        if(len < max_size) {
+            char *info = (char *)malloc(max_size * sizeof(char));
+            sprintf(info, "%s", string);
+            if(infoString != NULL) {
+                free(infoString);
+            }
+            infoString = info;
+            cTimerReset(infoTimer);
+        } else {
+            printf("setInfoTimerWithInt: string too large\n");
+        }
+    }
+}
+
+static void setInfoTimerWithInt(char *string, int data) {
+    if(string != NULL) {
+        int max_size = 20;
+        int len = (int)strlen(string);
+        if(len < max_size) {
+            char *info = (char *)malloc(max_size * sizeof(char));
+            sprintf(info, "%s:%d", string, data);
+            if(infoString != NULL) {
+                free(infoString);
+            }
+            infoString = info;
+            cTimerReset(infoTimer);
+        } else {
+            printf("setInfoTimerWithInt: string too large\n");
+        }
+    }
+}
+
+static void updateAndRenderInfo(double dt) {
+    if(infoString != NULL) {
+        if(!cTimerIsReady(infoTimer)) {
+            cTimerAdvance(dt, infoTimer);
+            cEngineRenderLabelWithParams(raster2d, infoString, 0, 23, cengine_color_white, cengine_color_black);
+        }
+    }
+}
 
 static void setup_data()
 {
@@ -103,7 +166,12 @@ static void setup_data()
             }
         }
     }
+    
+    infoTimer = cTimerNew(1000);
+    cTimerReset(infoTimer);
+    
 }
+
 
 void convertInput(int x, int y)
 {
@@ -123,6 +191,7 @@ static void quitGame( int code )
     raster2d = cAllocatorFree(raster2d);
     cEngineCleanup();
     input = cInputCleanup(input);
+    infoTimer = cAllocatorFree(infoTimer);
     
     printf("quit game\n");
 }
@@ -139,17 +208,52 @@ static void ADSRInvertYRender(double x, double y, int color);
 
 static void addTrackNodeWithOctave(int x, int y, int editing, int tone) {
     
-    if(pattern_editor || instrument_editor) {
-        return;
-    }
-    
-    cSynthAddTrackNode(x, y, editing, 1, tone+(octave*12));
-    
-    if(editing) {
-        visual_cursor_y++;
-        checkVisualCursorBounds();
+    if(instrument_editor || pattern_editor) {
+        // only allow preview of notes in editor
+        cSynthAddTrackNode(x, y, false, 1, tone+(octave*12));
+    } else {
+        int base = 5;
+        int diff = 0;
+        int node_x = floor(visual_cursor_x/5);
+        int x_count = visual_cursor_x%5;
+        if(x_count == 0) {
+            cSynthAddTrackNode(x, y, editing, 1, tone+(octave*12));
+            if(editing) {
+                visual_cursor_y++;
+                checkVisualCursorBounds();
+            }
+        } else if(!editing) {
+            cSynthAddTrackNode(x, y, false, 1, tone+(octave*12));
+        }
+        
+        if(x_count == 1 && editing) {
+            // change instrument
+            printf("change instrument\n");
+        }
+        
+        if(x_count == 2 && editing) {
+            // change param1
+            printf("change param1\n");
+        }
+        
+        if(x_count == 3 && editing) {
+            // change param2
+            printf("change param2\n");
+        }
+        
+        if(x_count == 4 && editing) {
+            // change param1
+            printf("change param3\n");
+        }
     }
 }
+
+static void addParamToTrackNode() {
+    
+    
+    
+}
+
 
 static void checkVisualCursorBounds() {
     
@@ -266,6 +370,7 @@ void handle_key_down( SDL_Keysym* keysym )
                 if(selected_instrument_node_index >= ins->adsr_nodes) {
                     selected_instrument_node_index = 0;
                 }
+                
                 printf("selected_instrument_node_index:%i", selected_instrument_node_index);
             } else {
                 if(pattern_editor) {
@@ -293,48 +398,34 @@ void handle_key_down( SDL_Keysym* keysym )
             
         case SDLK_LEFT:
             pressed_left = true;
-            if(instrument_editor) {
-                
-            } else {
-                if(pattern_editor) {
-                    pattern_cursor_x--;
-                    checkPatternCursorBounds();
-                } else {
-                    if(modifier == 1) {
-                        octave--;
-                        if(octave < 0) {
-                            octave = 0;
-                        }
-                    } else {
-                        //if(playing) {
-                            visual_cursor_x--;
-                            checkVisualCursorBounds();
-                        //}
-                    }
+            if(modifier == 1) {
+                octave--;
+                if(octave < 0) {
+                    octave = 0;
                 }
+                setInfoTimerWithInt("octave", octave);
+            } if(pattern_editor) {
+                pattern_cursor_x--;
+                checkPatternCursorBounds();
+            } else {
+                visual_cursor_x--;
+                checkVisualCursorBounds();
             }
             break;
         case SDLK_RIGHT:
             pressed_right = true;
-            if(instrument_editor) {
-                
-            } else {
-                if(pattern_editor) {
-                    pattern_cursor_x++;
-                    checkPatternCursorBounds();
-                } else {
-                    if(modifier == 1) {
-                        octave++;
-                        if(octave > 7) {
-                            octave = 7;
-                        }
-                    } else {
-                        //if(playing) {
-                            visual_cursor_x++;
-                            checkVisualCursorBounds();
-                        //}
-                    }
+            if(modifier == 1) {
+                octave++;
+                if(octave > 7) {
+                    octave = 7;
                 }
+                setInfoTimerWithInt("octave", octave);
+            } else if(pattern_editor) {
+                pattern_cursor_x++;
+                checkPatternCursorBounds();
+            } else {
+                visual_cursor_x++;
+                checkVisualCursorBounds();
             }
             break;
         case SDLK_UP:
@@ -346,10 +437,8 @@ void handle_key_down( SDL_Keysym* keysym )
                     pattern_cursor_y--;
                     checkPatternCursorBounds();
                 } else {
-                    //if(playing) {
-                        visual_cursor_y--;
-                        checkVisualCursorBounds();
-                    //}
+                    visual_cursor_y--;
+                    checkVisualCursorBounds();
                 }
             }
             break;
@@ -362,10 +451,8 @@ void handle_key_down( SDL_Keysym* keysym )
                     pattern_cursor_y++;
                     checkPatternCursorBounds();
                 } else {
-                    //if(playing) {
-                        visual_cursor_y++;
-                        checkVisualCursorBounds();
-                    //}
+                    visual_cursor_y++;
+                    checkVisualCursorBounds();
                 }
             }
             break;
@@ -400,8 +487,10 @@ void handle_key_down( SDL_Keysym* keysym )
                 } else {
                     if(editing == true) {
                         editing = false;
+                        setInfoTimer("editing off");
                     } else {
                         editing = true;
+                        setInfoTimer("editing on");
                     }
                 }
             }
@@ -730,22 +819,6 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     }
 }
 
-
-#define cengine_color_dull_red 0xFF771111
-#define cengine_color_red 0xFF992222
-#define cengine_color_green 0xFF229922
-#define cengine_color_blue 0xFF0000CC
-#define cengine_color_black 0xFF222222
-#define cengine_color_white 0xFFCCCCCC
-
-#define cengine_color_bg1 0xFF332222
-#define cengine_color_bg2 0xFF223322
-#define cengine_color_bg3 0xFF222233
-#define cengine_color_bg4 0xFF332233
-#define cengine_color_bg5 0xFF333322
-#define cengine_color_bg6 0xFF223333
-
-
 static void changeWaveform(int plus) {
     struct CSynthContext *synth = cSynthGetContext();
     
@@ -844,69 +917,35 @@ static void changeParam(bool plus) {
         }
         synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
     }
-
-
 }
 
 static void drawLine(int x0, int y0, int x1, int y1) {
-    
     double g_vec_x = x1 - x0;
     double g_vec_y = y1 - y0;
     double scale_factor = 1.0;
     double length = sqrt( g_vec_x*g_vec_x + g_vec_y*g_vec_y );
     g_vec_x = (g_vec_x/length) * scale_factor;
     g_vec_y = (g_vec_y/length) * scale_factor;
-   
     double pos_x = x0;
     double pos_y = y0;
-    
-    int max_i = 100;
     int i = 0;
-    while (i < max_i) {
-        
+    while (i < length) {
         pos_x += g_vec_x;
         pos_y += g_vec_y;
-        
         int i_pos_x = (int)pos_x;
         int i_pos_y = (int)pos_y;
-        
-        printf("pos_x: %d pos_y:%d\n", i_pos_x, i_pos_y);
-        
-        if(checkScreenBounds(i_pos_x, i_pos_y)) {
-            raster2d[i_pos_x][i_pos_y] = 0xff00ff00;
-        }
+        ADSRInvertYRender(i_pos_x, i_pos_y, 0xff00ff00);
         i++;
     }
-    
-    /*
-    var g_vec_x = target_x - this.x;
-    var g_vec_y = target_y - this.y;
-    var scale_factor = 1.0;
-    var length = Math.sqrt( g_vec_x*g_vec_x + g_vec_y*g_vec_y );
-    g_vec_x = (g_vec_x/length) * scale_factor;
-    g_vec_y = (g_vec_y/length) * scale_factor;
-    this.vec_x = g_vec_x;
-    this.vec_y = g_vec_y;*/
 }
 
 static void renderInstrumentEditor() {
-    /*
-    for(int x = 0; x < s_width; x++) {
-        for(int y = 0; y < s_height; y++) {
-            raster2d[x][y] = 0xff00ff00;
-        }
-    }*/
     struct CSynthContext *synth = cSynthGetContext();
     struct CInstrument *ins = synth->instruments[selected_instrument_id];
-    int ins_id = selected_instrument_id;
-    int ins_node = selected_instrument_node_index;
     int max_nodes = ins->adsr_nodes;
-    double pos = 0;
-    
     int inset_x = 10;
     int inset_y = 50;
     double speed = 0.01;
-    
     if(selected_instrument_node_index > 0) {
         if (pressed_left) {
                 double pos1 = ins->adsr[selected_instrument_node_index-1]->pos;
@@ -950,29 +989,33 @@ static void renderInstrumentEditor() {
     double pos_factor = 400;
     
     for(int i = 0; i < 2000; i++) {
-        double amp = cSynthInstrumentVolumeByPos(ins, (double)i*0.001);
-        double g_amp = (amp*amp_factor) + inset_y;
         double g_pos = (i*(pos_factor*0.001)) + inset_x;
-        
-        ADSRInvertYRender(g_pos, g_amp, 0xffffffff);
-        
         int top_line_y = amp_factor + inset_y;
         int bottom_line_y = 0 + inset_y;
-        
-        ADSRInvertYRender(g_pos, top_line_y, 0xffffffff);
-        ADSRInvertYRender(g_pos, bottom_line_y, 0xffffffff);
-
+        ADSRInvertYRender(g_pos, top_line_y, cengine_color_white);
+        ADSRInvertYRender(g_pos, bottom_line_y, cengine_color_white);
     }
     
+    for(int i = 0; i < max_nodes-1; i++) {
+        struct CadsrNode *node = ins->adsr[i];
+        struct CadsrNode *node2 = ins->adsr[i+1];
+        double g_amp = (node->amp*amp_factor) + inset_y;
+        double g_pos = (node->pos*pos_factor) + inset_x;
+        double g_amp2 = (node2->amp*amp_factor) + inset_y;
+        double g_pos2 = (node2->pos*pos_factor) + inset_x;
+        drawLine((int)g_pos, (int)g_amp, (int)g_pos2, (int)g_amp2);
+    }
+    
+    // render dots for nodes
     for(int i = 0; i < max_nodes; i++) {
         struct CadsrNode *node = ins->adsr[i];
         double g_amp = (node->amp*amp_factor) + inset_y;
         double g_pos = (node->pos*pos_factor) + inset_x;
         for(int x = -2; x < 2; x++) {
             for(int y = -2; y < 2; y++) {
-                int color = 0xffff0000;
+                int color = cengine_color_red;
                 if(i == selected_instrument_node_index) {
-                    color = 0xff00ff00;
+                    color = cengine_color_green;
                 }
                 ADSRInvertYRender(g_pos+x, g_amp+y, color);
             }
@@ -980,20 +1023,16 @@ static void renderInstrumentEditor() {
     }
 }
 
-
 static void ADSRInvertYRender(double x, double y, int color) {
     int i_x = (int)x;
     int i_y = (int)y/-1+170;
-    
     if(checkScreenBounds(i_x, i_y)) {
         raster2d[i_x][i_y] = color;
     }
 }
 
-
 static void renderPatternMapping() {
     struct CSynthContext *synth = cSynthGetContext();
-    
 
     int inset_x = 1;
     int inset_y = 1;
@@ -1099,6 +1138,8 @@ void renderTrack() {
         checkVisualCursorBounds();
     }
     
+    int node_x = -1;
+    
     for (int y = 0; y < synth->track_height; y++) {
         offset_x = 0;
         for (int x = 0; x < visual_track_width; x++) {
@@ -1124,10 +1165,8 @@ void renderTrack() {
             }
             
             
-            
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
-                int node_x = x/5;
-                
+                node_x = floor(x/5);
                 int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
                 
                 if(synth->track[pattern][node_x][y] != NULL) {
@@ -1139,8 +1178,20 @@ void renderTrack() {
                 }
                 offset_x += 3;
             } else {
-                cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
-                //offset_x += 1;
+                
+                if(x_count == 1) {
+                    int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
+                    if(synth->track[pattern][node_x][y] != NULL) {
+                        char cval[20];
+                        sprintf(cval, "%d", synth->track[pattern][node_x][y]->instrument_nr);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    } else {
+                        cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    }
+                } else {
+                    cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                }
+                
                 if(x_count == 1 || x_count == 4) {
                     offset_x++;
                 }
@@ -1259,7 +1310,8 @@ int main(int argc, char ** argv)
                             }
                         }
                         
-                        cEngineGameloop(getDelta(), raster2d, input);
+                        double dt = (double)getDelta();
+                        cEngineGameloop(dt, raster2d, input);
                         
                         
                         //renderStuff
@@ -1271,6 +1323,8 @@ int main(int argc, char ** argv)
                         }
                         
                         renderTrack();
+                        
+                        updateAndRenderInfo(dt);
                         
                         SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
                         SDL_RenderClear(renderer);
