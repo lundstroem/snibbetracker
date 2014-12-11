@@ -753,6 +753,8 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
         return;
     }
     
+    
+    
     for(int ins_i = 0; ins_i < synth->max_instruments; ins_i++) {
         struct CInstrument *ins = synth->instruments[ins_i];
         if(ins != NULL && ins->note_on == 1 && ins->voice != NULL) {
