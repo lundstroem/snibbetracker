@@ -71,6 +71,8 @@ bool pressed_down = false;
 struct CTimer *infoTimer = NULL;
 char *infoString = NULL;
 
+bool show_tips = true;
+
 static void setInfoTimer(char *string) {
     if(string != NULL) {
         int max_size = 20;
@@ -198,7 +200,7 @@ static void quitGame( int code )
 
 
 int sine_scroll = 0;
-static void addTrackNodeWithOctave(int x, int y, int editing, int tone);
+static void addTrackNodeWithOctave(int x, int y, bool editing, int tone);
 static void checkVisualCursorBounds();
 static void checkPatternCursorBounds();
 static bool checkScreenBounds(int x, int y);
@@ -206,48 +208,47 @@ static char *getWaveTypeAsChar(int type);
 static void changeParam(bool plus);
 static void ADSRInvertYRender(double x, double y, int color);
 
-static void addTrackNodeWithOctave(int x, int y, int editing, int value) {
-    if(instrument_editor || pattern_editor) {
+static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
+    int x_count = visual_cursor_x%5;
+    
+    if(instrument_editor || pattern_editor || !editing) {
+        printf("not editing\n");
         // only allow preview of notes in editor
-        cSynthAddTrackNode(x, y, false, 1, value+(octave*12));
+        cSynthAddTrackNode(x, y, false, true, value+(octave*12));
     } else {
-        //int base = 5;
-        //int diff = 0;
-        //int node_x = floor(visual_cursor_x/5);
-        int x_count = visual_cursor_x%5;
         
-        if(x_count == 0) {
+        if(!editing) {
+            printf("not editing\n");
+            cSynthAddTrackNode(x, y, false, true, value+(octave*12));
+        } else {
+            
             if(x_count == 0) {
-                cSynthAddTrackNode(x, y, editing, 1, value+(octave*12));
+                cSynthAddTrackNode(x, y, editing, true, value+(octave*12));
                 if(editing) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
-            } else if(!editing) {
-                cSynthAddTrackNode(x, y, false, 1, value+(octave*12));
             }
-        }
-        
-        if(x_count == 1 && editing) {
-            // change instrument
-            //void cSynthAddTrackNodeParams(int x, int y, int instrument, char effect, char effect_param1, char effect_param2)
-            cSynthAddTrackNodeParams(x, y, value, -1, -1, -1);
-            printf("change instrument\n");
-        }
-        
-        if(x_count == 2 && editing) {
-            // change param1
-            printf("change param1\n");
-        }
-        
-        if(x_count == 3 && editing) {
-            // change param2
-            printf("change param2\n");
-        }
-        
-        if(x_count == 4 && editing) {
-            // change param1
-            printf("change param3\n");
+            
+            if(x_count == 1 && editing) {
+                cSynthAddTrackNodeParams(x, y, value, -1, -1, -1);
+                printf("change instrument\n");
+            }
+            
+            if(x_count == 2 && editing) {
+                // change param1
+                printf("change param1\n");
+            }
+            
+            if(x_count == 3 && editing) {
+                // change param2
+                printf("change param2\n");
+            }
+            
+            if(x_count == 4 && editing) {
+                // change param1
+                printf("change param3\n");
+            }
         }
     }
 }
@@ -278,11 +279,11 @@ static void checkVisualCursorBounds() {
     
     if(visual_cursor_y == -1) {
         
-        if(synth->current_track < synth->active_patterns-1) {
-            synth->current_track++;
+        if(synth->current_track > 0) {
+            synth->current_track--;
         } else {
-            //rewind
-            synth->current_track = 0;
+            //move to last pattern
+            synth->current_track = synth->active_patterns-1;
         }
         
         visual_cursor_y = visual_track_height-1;
@@ -541,34 +542,42 @@ void handle_key_down( SDL_Keysym* keysym )
             
         case SDLK_LEFT:
             pressed_left = true;
-            if(modifier == 1) {
-                octave--;
-                if(octave < 0) {
-                    octave = 0;
-                }
-                setInfoTimerWithInt("octave", octave);
-            } if(pattern_editor) {
-                pattern_cursor_x--;
-                checkPatternCursorBounds();
+            if(instrument_editor) {
+                
             } else {
-                visual_cursor_x--;
-                checkVisualCursorBounds();
+                if(modifier == 1) {
+                    octave--;
+                    if(octave < 0) {
+                        octave = 0;
+                    }
+                    setInfoTimerWithInt("octave", octave);
+                } if(pattern_editor) {
+                    pattern_cursor_x--;
+                    checkPatternCursorBounds();
+                } else {
+                    visual_cursor_x--;
+                    checkVisualCursorBounds();
+                }
             }
             break;
         case SDLK_RIGHT:
             pressed_right = true;
-            if(modifier == 1) {
-                octave++;
-                if(octave > 7) {
-                    octave = 7;
-                }
-                setInfoTimerWithInt("octave", octave);
-            } else if(pattern_editor) {
-                pattern_cursor_x++;
-                checkPatternCursorBounds();
+            if(instrument_editor) {
+                
             } else {
-                visual_cursor_x++;
-                checkVisualCursorBounds();
+                if(modifier == 1) {
+                    octave++;
+                    if(octave > 7) {
+                        octave = 7;
+                    }
+                    setInfoTimerWithInt("octave", octave);
+                } else if(pattern_editor) {
+                    pattern_cursor_x++;
+                    checkPatternCursorBounds();
+                } else {
+                    visual_cursor_x++;
+                    checkVisualCursorBounds();
+                }
             }
             break;
         case SDLK_UP:
@@ -644,7 +653,7 @@ void handle_key_down( SDL_Keysym* keysym )
     }
     
     int x_count = visual_cursor_x%5;
-    if(x_count > 0) {
+    if(x_count > 0 && editing) {
         handleParamKeys(keysym);
         return;
     } else {
@@ -797,12 +806,12 @@ int testScheduleSwitch = 0;
 
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
    
+    memset(byteStream, 0, byteStreamLength);
+    
     if(quit) {
         return;
     }
-    
-    memset(byteStream, 0, byteStreamLength);
-    
+
     Sint16 *s_byteStream = (Sint16 *)byteStream;
     int remain = byteStreamLength / 2;
     
@@ -811,9 +820,6 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
         printf("audioCallback: synthContext is null, returning.");
         return;
     }
-    
-    
-    
     
     for(int v_i = 0; v_i < synth->max_voices; v_i++) {
         struct CVoice *voice = synth->voices[v_i];
@@ -1129,17 +1135,24 @@ static void renderPatternMapping() {
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             } else if(y == 19 && x == 1) {
                 char cval[20];
-                sprintf(cval, "Active patterns %d", synth->active_patterns);
+                sprintf(cval, "Active %d", synth->active_patterns);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             } else if(y == 19) {
                 //nothing
-            } else {
+                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            }
+            else {
                 if(y <= synth->active_patterns) {
                     bg_color = cengine_color_green;
                     if(x == pattern_cursor_x && y == pattern_cursor_y) {
                         bg_color = cengine_color_red;
                     }
                 }
+                
+                if(y-1 == synth->current_track && playing) {
+                    bg_color = cengine_color_red;
+                }
+                
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             }
         }
