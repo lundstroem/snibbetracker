@@ -906,7 +906,13 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             Uint32 i;
             double d_sampleRate = synth->sample_rate;
             double d_waveformLength = voice->waveform_length;
-            double delta_phi = (double) (cSynthGetFrequency((double)voice->tone) / d_sampleRate * (double)d_waveformLength);
+            
+            
+            cSynthVoiceApplyEffects(voice);
+            
+            double delta_phi = (double) (cSynthGetFrequency((double)voice->tone_with_fx) / d_sampleRate * (double)d_waveformLength);
+            
+            
             for (i = 0; i < remain; i+=2) {
                 if(voice->note_on) {
                     
@@ -1099,6 +1105,10 @@ static void renderInstrumentEditor() {
     int inset_x = 10;
     int inset_y = 50;
     double speed = 0.01;
+    if(modifier) {
+        speed = 0.001;
+    }
+    
     if(selected_instrument_node_index > 0) {
         if (pressed_left) {
                 double pos1 = ins->adsr[selected_instrument_node_index-1]->pos;
