@@ -233,21 +233,26 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 1 && editing) {
                 cSynthAddTrackNodeParams(x, y, value, -1, -1, -1);
                 printf("change instrument\n");
+                struct CSynthContext *synth = cSynthGetContext();
+                synth->current_instrument = value;
             }
             
             if(x_count == 2 && editing) {
-                // change param1
-                printf("change param1\n");
+                // change effect
+                cSynthAddTrackNodeParams(x, y, -1, value, -1, -1);
+                printf("change effect\n");
             }
             
             if(x_count == 3 && editing) {
                 // change param2
-                printf("change param2\n");
+                cSynthAddTrackNodeParams(x, y, -1, -1, value, -1);
+                printf("change param1\n");
             }
             
             if(x_count == 4 && editing) {
                 // change param1
-                printf("change param3\n");
+                cSynthAddTrackNodeParams(x, y, -1, -1, -1, value);
+                printf("change param2\n");
             }
         }
     }
@@ -450,7 +455,7 @@ void handleNoteKeys( SDL_Keysym* keysym ) {
     }
 }
 
-void handleParamKeys( SDL_Keysym* keysym ) {
+void handleInstrumentKeys( SDL_Keysym* keysym ) {
     struct CSynthContext *synth = cSynthGetContext();
     switch( keysym->sym ) {
         case SDLK_0:
@@ -487,6 +492,65 @@ void handleParamKeys( SDL_Keysym* keysym ) {
             break;
     }
 }
+
+void handleEffectKeys( SDL_Keysym* keysym ) {
+    
+    struct CSynthContext *synth = cSynthGetContext();
+    
+    switch( keysym->sym ) {
+        case SDLK_a:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            break;
+        case SDLK_b:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            break;
+        case SDLK_c:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            break;
+        case SDLK_d:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            break;
+        case SDLK_e:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            break;
+        case SDLK_f:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            break;
+        case SDLK_0:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            break;
+        case SDLK_1:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            break;
+        case SDLK_2:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            break;
+        case SDLK_3:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            break;
+        case SDLK_4:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            break;
+        case SDLK_5:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            break;
+        case SDLK_6:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            break;
+        case SDLK_7:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            break;
+        case SDLK_8:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            break;
+        case SDLK_9:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            break;
+        default:
+            break;
+    }
+}
+
 
 void handle_key_down( SDL_Keysym* keysym )
 {
@@ -612,7 +676,18 @@ void handle_key_down( SDL_Keysym* keysym )
             if(instrument_editor) {}
             else if(pattern_editor) {}
             else if(editing) {
-                cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+                int x_count = visual_cursor_x%5;
+                if(x_count == 0) {
+                    cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+                } else if(x_count == 1) {
+                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                } else if(x_count == 2) {
+                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                } else if(x_count == 3) {
+                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                } else if(x_count == 4) {
+                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                }
             }
             break;
         case SDLK_SPACE:
@@ -653,8 +728,11 @@ void handle_key_down( SDL_Keysym* keysym )
     }
     
     int x_count = visual_cursor_x%5;
-    if(x_count > 0 && editing) {
-        handleParamKeys(keysym);
+    if(x_count == 1 && editing) {
+        handleInstrumentKeys(keysym);
+        return;
+    } else if((x_count > 1 && editing) && (x_count < 5 && editing)) {
+        handleEffectKeys(keysym);
         return;
     } else {
         handleNoteKeys(keysym);
@@ -1251,8 +1329,9 @@ void renderTrack() {
                 node_x = floor(x/5);
                 int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
                 
-                if(synth->track[pattern][node_x][y] != NULL) {
-                    int tone = synth->track[pattern][node_x][y]->tone;
+                struct CTrackNode *t = synth->track[pattern][node_x][y];
+                if(t != NULL && t->tone_active) {
+                    int tone = t->tone;
                     char *ctone = cSynthToneToChar(tone);
                     cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
                 } else {
@@ -1260,15 +1339,33 @@ void renderTrack() {
                 }
                 offset_x += 3;
             } else {
+                int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
                 
-                if(x_count == 1) {
-                    int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
-                    if(synth->track[pattern][node_x][y] != NULL) {
+                struct CTrackNode *t = synth->track[pattern][node_x][y];
+                if(t != NULL) {
+                    if(x_count == 1) {
+                        if(t->instrument != NULL) {
+                            char cval[20];
+                            sprintf(cval, "%d", t->instrument_nr);
+                            cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                        } else {
+                            cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                        }
+                    } else if(x_count == 2) {
+                        //effect type
                         char cval[20];
-                        sprintf(cval, "%d", synth->track[pattern][node_x][y]->instrument_nr);
+                        sprintf(cval, "%c", t->effect);
                         cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
-                    } else {
-                        cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    } else if(x_count == 3) {
+                        //effect type
+                        char cval[20];
+                        sprintf(cval, "%c", t->effect_param1);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    } else if(x_count == 4) {
+                        //effect type
+                        char cval[20];
+                        sprintf(cval, "%c", t->effect_param2);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
                     }
                 } else {
                     cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
