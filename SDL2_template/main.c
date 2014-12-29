@@ -927,10 +927,19 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                             ins->noteoff_slope_value = 0;
                         }
                     } else {*/
+                    if(voice->waveform == synth->noise_table) {
+                        //cSynthIncPhase(voice, 1);
+                        voice->phase_double++;
+                        voice->phase_int = (int)voice->phase_double;
+                        if(voice->phase_double >= synth->noise_length) {
+                            double diff = voice->phase_double - synth->noise_length;
+                            voice->phase_double = diff;
+                            voice->phase_int = (int)diff;
+                        }
+                    } else {
                         cSynthIncPhase(voice, delta_phi);
+                    }
                     
-                    //    amp = cSynthInstrumentVolume(ins)*ins->volume_scalar;
-                    //    ins->adsr_cursor += 0.00001;
                     amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
                     voice->adsr_cursor += 0.00001;
                     
@@ -948,26 +957,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         s_byteStream[i+1] += sample;
                     } else {
                      */
-                     
                     
-                        //double cutoff = 0.099;
-                        
-                        /*
-                        Sint16 lo_pass_output = s_byteStream[i] + (cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i]));
-                        s_byteStream[i] += lo_pass_output*amp;
-                        
-                        lo_pass_output = s_byteStream[i+1] + (cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i+1]));
-                        s_byteStream[i+1] += lo_pass_output*amp;
-                        */
-                        
-                        /*
-                        Sint16 hi_pass_output = ins->voice->waveform[ins->voice->phase_int] - (s_byteStream[i] + cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i]));
-                        s_byteStream[i] += hi_pass_output*amp;
-                        
-                        hi_pass_output = ins->voice->waveform[ins->voice->phase_int] - (s_byteStream[i+1] + cutoff*(ins->voice->waveform[ins->voice->phase_int] - s_byteStream[i+1]));
-                        s_byteStream[i+1] += hi_pass_output*amp;
-                        */
-                    //}
                 }
             }
         } 
