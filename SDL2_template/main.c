@@ -232,7 +232,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             
             if(x_count == 1 && editing) {
                 cSynthAddTrackNodeParams(x, y, value, -1, -1, -1);
-                printf("change instrument\n");
+                printf("change instrument value:%d\n", value);
                 struct CSynthContext *synth = cSynthGetContext();
                 synth->current_instrument = value;
             }
@@ -240,19 +240,19 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 2 && editing) {
                 // change effect
                 cSynthAddTrackNodeParams(x, y, -1, value, -1, -1);
-                printf("change effect\n");
+                printf("change effect value:%d\n", value);
             }
             
             if(x_count == 3 && editing) {
                 // change param2
                 cSynthAddTrackNodeParams(x, y, -1, -1, value, -1);
-                printf("change param1\n");
+                printf("change param1 value:%d\n", value);
             }
             
             if(x_count == 4 && editing) {
                 // change param1
                 cSynthAddTrackNodeParams(x, y, -1, -1, -1, value);
-                printf("change param2\n");
+                printf("change param2 value:%d\n", value);
             }
         }
     }
@@ -615,7 +615,7 @@ void handle_key_down( SDL_Keysym* keysym )
                         octave = 0;
                     }
                     setInfoTimerWithInt("octave", octave);
-                } if(pattern_editor) {
+                } else if(pattern_editor) {
                     pattern_cursor_x--;
                     checkPatternCursorBounds();
                 } else {
@@ -882,6 +882,10 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
 int testSchedule = 0;
 int testScheduleSwitch = 0;
 
+int count = -1;
+int f_limit = 100;
+Sint16 last_sample = 0;
+
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
    
     memset(byteStream, 0, byteStreamLength);
@@ -929,7 +933,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                     } else {*/
                     if(voice->waveform == synth->noise_table) {
                         //cSynthIncPhase(voice, 1);
-                        voice->phase_double++;
+                        voice->phase_double+=voice->tone_with_fx*2;
                         voice->phase_int = (int)voice->phase_double;
                         if(voice->phase_double >= synth->noise_length) {
                             double diff = voice->phase_double - synth->noise_length;
@@ -946,8 +950,28 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                     
                     //}
                     
-                    s_byteStream[i] += voice->waveform[voice->phase_int]*amp;
-                    s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp;
+                    if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
+                       
+                        if(voice->lowpass_sweep_up) {
+                            cSynthVoiceApplyLowpassSweep(voice, true);
+                        }
+                        
+                        if(voice->lowpass_sweep_down) {
+                            cSynthVoiceApplyLowpassSweep(voice, false);
+                        }
+                        
+                        if(voice->lowpass_next_sample) {
+                            voice->lowpass_last_sample = voice->waveform[voice->phase_int]*amp;
+                            voice->lowpass_next_sample = false;
+                        }
+                        
+                        s_byteStream[i] += voice->lowpass_last_sample;
+                        s_byteStream[i+1] += voice->lowpass_last_sample;
+                        
+                    } else {
+                        s_byteStream[i] += voice->waveform[voice->phase_int]*amp;
+                        s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp;
+                    }
                     
                     
                     /*
@@ -960,7 +984,25 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                     
                 }
             }
-        } 
+            
+           /*
+            if(count == -1) {
+                count = f_limit;
+            }
+            
+            for (i = 0; i < remain; i+=2) {
+                
+                if(count >= f_limit) {
+                    last_sample = s_byteStream[i];
+                    count = 0;
+                }
+                s_byteStream[i] = last_sample;
+                s_byteStream[i+1] = last_sample;
+                
+                count++;
+            }
+            */
+        }
     }
     
     if(playing == 1) {
@@ -1049,7 +1091,21 @@ static void changeParam(bool plus) {
             synth->active_patterns = active_patterns;
         }
         
-    } else if(y == 19) {
+    } else if(y == 19 && x == 2) {
+        if(plus) {
+            f_limit++;
+            //if(f_limit > 16) {
+            //    f_limit = 1;
+            //}
+        } else {
+            f_limit--;
+            if(f_limit < 1) {
+                f_limit = 1;
+            }
+        }
+        
+    }
+    else if(y == 19) {
         //nothing
     } else {
         // pattern nr.
@@ -1215,7 +1271,12 @@ static void renderPatternMapping() {
                 char cval[20];
                 sprintf(cval, "Active %d", synth->active_patterns);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
-            } else if(y == 19) {
+            } else if(y == 19 && x == 2) {
+                char cval[20];
+                sprintf(cval, "F Limit %d", f_limit);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            }
+            else if(y == 19) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             }
