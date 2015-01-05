@@ -882,8 +882,8 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
 int testSchedule = 0;
 int testScheduleSwitch = 0;
 
-int count = -1;
-int f_limit = 100;
+//int count = -1;
+//int f_limit = 100;
 Sint16 last_sample = 0;
 
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
@@ -1091,21 +1091,7 @@ static void changeParam(bool plus) {
             synth->active_patterns = active_patterns;
         }
         
-    } else if(y == 19 && x == 2) {
-        if(plus) {
-            f_limit++;
-            //if(f_limit > 16) {
-            //    f_limit = 1;
-            //}
-        } else {
-            f_limit--;
-            if(f_limit < 1) {
-                f_limit = 1;
-            }
-        }
-        
-    }
-    else if(y == 19) {
+    } else if(y == 19) {
         //nothing
     } else {
         // pattern nr.
@@ -1271,12 +1257,7 @@ static void renderPatternMapping() {
                 char cval[20];
                 sprintf(cval, "Active %d", synth->active_patterns);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
-            } else if(y == 19 && x == 2) {
-                char cval[20];
-                sprintf(cval, "F Limit %d", f_limit);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
-            }
-            else if(y == 19) {
+            } else if(y == 19) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             }
