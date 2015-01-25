@@ -16,11 +16,11 @@
 
 void cEngineInitHook(struct CEngineContext *e);
 void cEnginePreUpdateHook(struct CButton **buttons, double dt);
-void cEngineUpdateHook();
+void cEngineUpdateHook(double dt);
 void cEnginePreEntityRenderHook(double dt, unsigned int **raster);
 void cEngineRenderHook(double dt, unsigned int **raster);
 void cEngineEntityCollisionHook(struct CEntity *a, struct CEntity *b);
-void cEngineEnvironmentCollisionHook();
-void cEngineCleanupHook();
+void cEngineEnvironmentCollisionHook(void);
+void cEngineCleanupHook(void);
 
 #endif /* defined(__iOS_GL_Frontend__ExampleGame__) */

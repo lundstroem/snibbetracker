@@ -68,6 +68,8 @@ bool pressed_right = false;
 bool pressed_up = false;
 bool pressed_down = false;
 
+struct CSynthContext *synth = NULL;
+
 struct CTimer *infoTimer = NULL;
 char *infoString = NULL;
 
@@ -118,7 +120,7 @@ static void updateAndRenderInfo(double dt) {
     }
 }
 
-static void setup_data()
+static void setup_data(void)
 {
     // contains an integer for every color/pixel on the screen.
     raster = (unsigned int *) cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
@@ -184,13 +186,14 @@ void convertInput(int x, int y)
 
 int quit = 0;
 
-static void quitGame( int code )
+static void quitGame(int code)
 {
     raster = cAllocatorFree(raster);
     for(int i = 0; i < s_width; i++) {
         raster2d[i] = cAllocatorFree(raster2d[i]);
     }
     raster2d = cAllocatorFree(raster2d);
+    cSynthCleanup(synth);
     cEngineCleanup();
     input = cInputCleanup(input);
     infoTimer = cAllocatorFree(infoTimer);
@@ -201,8 +204,8 @@ static void quitGame( int code )
 
 int sine_scroll = 0;
 static void addTrackNodeWithOctave(int x, int y, bool editing, int tone);
-static void checkVisualCursorBounds();
-static void checkPatternCursorBounds();
+static void checkVisualCursorBounds(void);
+static void checkPatternCursorBounds(void);
 static bool checkScreenBounds(int x, int y);
 static char *getWaveTypeAsChar(int type);
 static void changeParam(bool plus);
@@ -214,16 +217,16 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     if(instrument_editor || pattern_editor || !editing) {
         printf("not editing\n");
         // only allow preview of notes in editor
-        cSynthAddTrackNode(x, y, false, true, value+(octave*12));
+        cSynthAddTrackNode(synth, x, y, false, true, value+(octave*12));
     } else {
         
         if(!editing) {
             printf("not editing\n");
-            cSynthAddTrackNode(x, y, false, true, value+(octave*12));
+            cSynthAddTrackNode(synth, x, y, false, true, value+(octave*12));
         } else {
             
             if(x_count == 0) {
-                cSynthAddTrackNode(x, y, editing, true, value+(octave*12));
+                cSynthAddTrackNode(synth, x, y, editing, true, value+(octave*12));
                 if(editing) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
@@ -231,36 +234,33 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             }
             
             if(x_count == 1 && editing) {
-                cSynthAddTrackNodeParams(x, y, value, -1, -1, -1);
+                cSynthAddTrackNodeParams(synth, x, y, value, -1, -1, -1);
                 printf("change instrument value:%d\n", value);
-                struct CSynthContext *synth = cSynthGetContext();
                 synth->current_instrument = value;
             }
             
             if(x_count == 2 && editing) {
                 // change effect
-                cSynthAddTrackNodeParams(x, y, -1, value, -1, -1);
+                cSynthAddTrackNodeParams(synth, x, y, -1, value, -1, -1);
                 printf("change effect value:%d\n", value);
             }
             
             if(x_count == 3 && editing) {
                 // change param2
-                cSynthAddTrackNodeParams(x, y, -1, -1, value, -1);
+                cSynthAddTrackNodeParams(synth, x, y, -1, -1, value, -1);
                 printf("change param1 value:%d\n", value);
             }
             
             if(x_count == 4 && editing) {
                 // change param1
-                cSynthAddTrackNodeParams(x, y, -1, -1, -1, value);
+                cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, value);
                 printf("change param2 value:%d\n", value);
             }
         }
     }
 }
 
-static void checkVisualCursorBounds() {
-    
-    struct CSynthContext *synth = cSynthGetContext();
+static void checkVisualCursorBounds(void) {
     
     if(visual_cursor_x == visual_track_width) {
         visual_cursor_x = 0;
@@ -295,9 +295,7 @@ static void checkVisualCursorBounds() {
     }
 }
 
-static void checkPatternCursorBounds() {
-    
-    struct CSynthContext *synth = cSynthGetContext();
+static void checkPatternCursorBounds(void) {
     
     if(pattern_cursor_x == synth->patterns_and_voices_width) {
         pattern_cursor_x = 0;
@@ -347,8 +345,6 @@ void handle_key_up( SDL_Keysym* keysym )
 }
 
 void handleNoteKeys( SDL_Keysym* keysym ) {
-    
-    struct CSynthContext *synth = cSynthGetContext();
     
     switch( keysym->sym ) {
         case SDLK_z:
@@ -456,7 +452,7 @@ void handleNoteKeys( SDL_Keysym* keysym ) {
 }
 
 void handleInstrumentKeys( SDL_Keysym* keysym ) {
-    struct CSynthContext *synth = cSynthGetContext();
+    
     switch( keysym->sym ) {
         case SDLK_0:
             addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
@@ -494,8 +490,6 @@ void handleInstrumentKeys( SDL_Keysym* keysym ) {
 }
 
 void handleEffectKeys( SDL_Keysym* keysym ) {
-    
-    struct CSynthContext *synth = cSynthGetContext();
     
     switch( keysym->sym ) {
         case SDLK_a:
@@ -554,7 +548,7 @@ void handleEffectKeys( SDL_Keysym* keysym ) {
 
 void handle_key_down( SDL_Keysym* keysym )
 {
-    struct CSynthContext *synth = cSynthGetContext();
+    
     switch( keysym->sym ) {
         case SDLK_PLUS:
             if(instrument_editor) {
@@ -598,7 +592,7 @@ void handle_key_down( SDL_Keysym* keysym )
         case SDLK_RETURN:
             if(playing == 0) {
                 playing = true;
-                cSynthResetTrackProgress();
+                cSynthResetTrackProgress(synth);
             } else {
                 playing = 0;
             }
@@ -678,15 +672,15 @@ void handle_key_down( SDL_Keysym* keysym )
             else if(editing) {
                 int x_count = visual_cursor_x%5;
                 if(x_count == 0) {
-                    cSynthRemoveTrackNode(synth->track_cursor_x, synth->track_cursor_y);
+                    cSynthRemoveTrackNode(synth, synth->track_cursor_x, synth->track_cursor_y);
                 } else if(x_count == 1) {
-                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
                 } else if(x_count == 2) {
-                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
                 } else if(x_count == 3) {
-                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
                 } else if(x_count == 4) {
-                    cSynthRemoveTrackNodeParams(synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                 }
             }
             break;
@@ -825,7 +819,7 @@ static void checkSDLEvents(SDL_Event event) {
     }
 }
 
-static int getDelta() {
+static int getDelta(void) {
     int currentTime = SDL_GetTicks();
     int delta = 0;
     //int fps = 0;
@@ -897,7 +891,6 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     Sint16 *s_byteStream = (Sint16 *)byteStream;
     int remain = byteStreamLength / 2;
     
-    struct CSynthContext *synth = cSynthGetContext();
     if(synth == NULL) {
         printf("audioCallback: synthContext is null, returning.");
         return;
@@ -912,7 +905,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double d_waveformLength = voice->waveform_length;
             
             
-            cSynthVoiceApplyEffects(voice);
+            cSynthVoiceApplyEffects(synth, voice);
             
             double delta_phi = (double) (cSynthGetFrequency((double)voice->tone_with_fx) / d_sampleRate * (double)d_waveformLength);
             
@@ -953,11 +946,11 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                     if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
                        
                         if(voice->lowpass_sweep_up) {
-                            cSynthVoiceApplyLowpassSweep(voice, true);
+                            cSynthVoiceApplyLowpassSweep(synth, voice, true);
                         }
                         
                         if(voice->lowpass_sweep_down) {
-                            cSynthVoiceApplyLowpassSweep(voice, false);
+                            cSynthVoiceApplyLowpassSweep(synth, voice, false);
                         }
                         
                         if(voice->lowpass_next_sample) {
@@ -1006,12 +999,11 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     }
     
     if(playing == 1) {
-        cSynthAdvanceTrack(remain);
+        cSynthAdvanceTrack(synth, remain);
     }
 }
 
 static void changeWaveform(int plus) {
-    struct CSynthContext *synth = cSynthGetContext();
     
     int current_waveform = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
     if(plus) {
@@ -1046,8 +1038,6 @@ static void changeWaveform(int plus) {
 
 
 static void changeParam(bool plus) {
-    
-    struct CSynthContext *synth = cSynthGetContext();
     
     int x = pattern_cursor_x;
     int y = pattern_cursor_y;
@@ -1130,8 +1120,8 @@ static void drawLine(int x0, int y0, int x1, int y1) {
     }
 }
 
-static void renderInstrumentEditor() {
-    struct CSynthContext *synth = cSynthGetContext();
+static void renderInstrumentEditor(void) {
+
     struct CInstrument *ins = synth->instruments[selected_instrument_id];
     int max_nodes = ins->adsr_nodes;
     int inset_x = 10;
@@ -1226,9 +1216,8 @@ static void ADSRInvertYRender(double x, double y, int color) {
     }
 }
 
-static void renderPatternMapping() {
-    struct CSynthContext *synth = cSynthGetContext();
-
+static void renderPatternMapping(void) {
+    
     int inset_x = 1;
     int inset_y = 1;
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
@@ -1298,8 +1287,7 @@ static char *getWaveTypeAsChar(int type) {
     return "error";
 }
 
-static void drawWaveTypes() {
-    struct CSynthContext *synth = cSynthGetContext();
+static void drawWaveTypes(void) {
     
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         int val = synth->patterns_and_voices[x][0];
@@ -1307,7 +1295,7 @@ static void drawWaveTypes() {
     }
 }
 
-void renderTrack() {
+void renderTrack(void) {
     
     if(instrument_editor) {
         renderInstrumentEditor();
@@ -1321,8 +1309,6 @@ void renderTrack() {
     
     drawWaveTypes();
     
-    struct CSynthContext *synth = cSynthGetContext();
-    
     int x_count = 0;
     int offset_x = 0;
     int inset_x = 1;
@@ -1330,7 +1316,7 @@ void renderTrack() {
     
     
     int cursor_x = visual_cursor_x/5;
-    cSynthUpdateTrackCursor(cursor_x, visual_cursor_y);
+    cSynthUpdateTrackCursor(synth, cursor_x, visual_cursor_y);
     int track_progress_int = synth->track_progress_int;
     
     if(playing == 0) {
@@ -1468,7 +1454,7 @@ int main(int argc, char ** argv)
                 cEngineWritePixelData(raw_sheet);
                 free(raw_sheet);
                 
-                struct CSynthContext *synth = cSynthContextNew();
+                synth = cSynthContextNew();
                 cSynthInit(synth);
                 
                 //if ( init() ) return 1;

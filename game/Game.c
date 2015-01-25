@@ -47,11 +47,11 @@ void cEngineEntityCollisionHook(struct CEntity *a, struct CEntity *b) {
     //printf("collision");
 }
 
-void cEngineEnvironmentCollisionHook() {
+void cEngineEnvironmentCollisionHook(void) {
     
 }
 
-void cEngineCleanupHook() {
+void cEngineCleanupHook(void) {
 
 }
 
