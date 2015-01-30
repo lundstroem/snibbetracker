@@ -914,18 +914,8 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                 if(voice->note_on) {
                     
                     double amp = 0;
-                    /*if(ins->noteoff_slope == 1) {
-                        cSynthIncPhase(ins->voice, delta_phi);
-                        amp = ins->noteoff_slope_value*ins->volume_scalar;
-                        ins->noteoff_slope_value -= 0.001;
-                        //printf("slope: %f\n", ins->noteoff_slope_value);
-                        if(ins->noteoff_slope_value < 0) {
-                            ins->noteoff_slope = false;
-                            ins->noteoff_slope_value = 0;
-                        }
-                    } else {*/
+
                     if(voice->waveform == synth->noise_table) {
-                        //cSynthIncPhase(voice, 1);
                         voice->phase_double+=voice->tone_with_fx*2;
                         voice->phase_int = (int)voice->phase_double;
                         if(voice->phase_double >= synth->noise_length) {
@@ -937,11 +927,20 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         cSynthIncPhase(voice, delta_phi);
                     }
                     
-                    amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
+                    if(voice->noteoff_slope) {
+                        double init_amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
+                        amp = voice->noteoff_slope_value*init_amp;
+                        double bpm = synth->bpm;
+                        voice->noteoff_slope_value -= bpm * 0.00005;
+                        if(voice->noteoff_slope_value < 0) {
+                            voice->noteoff_slope_value = 0;
+                        }
+                    } else {
+                        amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
+                    }
+                    
                     voice->adsr_cursor += 0.00001;
                     
-                    
-                    //}
                     
                     if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
                        
@@ -1416,7 +1415,7 @@ int main(int argc, char ** argv)
 {
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window * window = SDL_CreateWindow("dtracker", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+    SDL_Window * window = SDL_CreateWindow("snibbetracker", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
     
     if (window != NULL) {
         SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
