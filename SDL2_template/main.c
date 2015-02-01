@@ -293,6 +293,8 @@ static void checkVisualCursorBounds(void) {
         
         visual_cursor_y = visual_track_height-1;
     }
+    
+    //printf("current track:%d", synth->current_track);
 }
 
 static void checkPatternCursorBounds(void) {
@@ -312,6 +314,8 @@ static void checkPatternCursorBounds(void) {
     if(pattern_cursor_y == -1) {
         pattern_cursor_y = synth->patterns_and_voices_height-1;
     }
+    
+    printf("pattern cursor y:%d\n", pattern_cursor_y);
 }
 
 static bool checkScreenBounds(int x, int y) {
@@ -592,7 +596,13 @@ void handle_key_down( SDL_Keysym* keysym )
         case SDLK_RETURN:
             if(playing == 0) {
                 playing = true;
-                cSynthResetTrackProgress(synth);
+                if(pattern_editor) {
+                    printf("playing from pattern when editing:%d", pattern_cursor_y-1);
+                    cSynthResetTrackProgress(synth, pattern_cursor_y-1);
+                } else {
+                    cSynthResetTrackProgress(synth, synth->current_track);
+                    printf("playing from pattern:%d", synth->current_track);
+                }
             } else {
                 playing = 0;
             }
@@ -964,36 +974,8 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         s_byteStream[i] += voice->waveform[voice->phase_int]*amp;
                         s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp;
                     }
-                    
-                    
-                    /*
-                    if(ins_i == 4) {
-                        int16_t sample = ((rand()%INT16_MAX*2)-INT16_MAX)*amp;
-                        s_byteStream[i] += sample;
-                        s_byteStream[i+1] += sample;
-                    } else {
-                     */
-                    
                 }
             }
-            
-           /*
-            if(count == -1) {
-                count = f_limit;
-            }
-            
-            for (i = 0; i < remain; i+=2) {
-                
-                if(count >= f_limit) {
-                    last_sample = s_byteStream[i];
-                    count = 0;
-                }
-                s_byteStream[i] = last_sample;
-                s_byteStream[i+1] = last_sample;
-                
-                count++;
-            }
-            */
         }
     }
     
@@ -1078,6 +1060,25 @@ static void changeParam(bool plus) {
                 active_patterns = 16;
             }
             synth->active_patterns = active_patterns;
+        }
+        
+    } else if(y == 19 && x == 2) {
+        // active rows for all patterns
+        int track_height = synth->track_height;
+        if(plus) {
+            track_height++;
+            if(track_height > synth->track_max_height) {
+                track_height = synth->track_max_height;
+            }
+            synth->track_height = track_height;
+            visual_track_height = track_height;
+        } else {
+            track_height--;
+            if(track_height < 16) {
+                track_height = 16;
+            }
+            synth->track_height = track_height;
+            visual_track_height = track_height;
         }
         
     } else if(y == 19) {
@@ -1245,7 +1246,12 @@ static void renderPatternMapping(void) {
                 char cval[20];
                 sprintf(cval, "Active %d", synth->active_patterns);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
-            } else if(y == 19) {
+            } else if(y == 19 && x == 2) {
+                char cval[20];
+                sprintf(cval, "Rows %d", synth->track_height);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            }
+            else if(y == 19) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             }
@@ -1318,7 +1324,7 @@ void renderTrack(void) {
     cSynthUpdateTrackCursor(synth, cursor_x, visual_cursor_y);
     int track_progress_int = synth->track_progress_int;
     
-    if(playing == 0) {
+    if(playing == false) {
         track_progress_int = visual_cursor_y;
     } else {
         visual_cursor_y = track_progress_int;
@@ -1351,6 +1357,13 @@ void renderTrack(void) {
                 }
             }
             
+            int pos_y = inset_y+y-track_progress_int;
+            if(bg_color == cengine_color_green) {
+                // TODO: For some reason, it flips to 7 for a few frames randomly. Needs more investigation.
+                if (pos_y == 7) {
+                    pos_y = 6;
+                }
+            }
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 node_x = floor(x/5);
@@ -1360,9 +1373,9 @@ void renderTrack(void) {
                 if(t != NULL && t->tone_active) {
                     int tone = t->tone;
                     char *ctone = cSynthToneToChar(tone);
-                    cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, " - ", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, " - ", inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                 }
                 offset_x += 3;
             } else {
@@ -1374,28 +1387,28 @@ void renderTrack(void) {
                         if(t->instrument != NULL) {
                             char cval[20];
                             sprintf(cval, "%d", t->instrument_nr);
-                            cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                            cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                         } else {
-                            cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                            cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                         }
                     } else if(x_count == 2) {
                         //effect type
                         char cval[20];
                         sprintf(cval, "%c", t->effect);
-                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                     } else if(x_count == 3) {
                         //effect type
                         char cval[20];
                         sprintf(cval, "%c", t->effect_param1);
-                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                     } else if(x_count == 4) {
                         //effect type
                         char cval[20];
                         sprintf(cval, "%c", t->effect_param2);
-                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                     }
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, inset_y+y-track_progress_int, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
                 }
                 
                 if(x_count == 1 || x_count == 4) {
@@ -1450,11 +1463,15 @@ int main(int argc, char ** argv)
                 
                 cEngineInit(c);
                 
+                
                 cEngineWritePixelData(raw_sheet);
                 free(raw_sheet);
                 
                 synth = cSynthContextNew();
                 cSynthInit(synth);
+                
+                visual_track_height = synth->track_height;
+                
                 
                 //if ( init() ) return 1;
                 SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
