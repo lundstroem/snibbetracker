@@ -455,6 +455,62 @@ void handleNoteKeys( SDL_Keysym* keysym ) {
     }
 }
 
+
+
+
+void handlePatternKeys( SDL_Keysym* keysym ) {
+    
+    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+        // pattern nr.
+        int pattern = 0;
+
+        switch( keysym->sym ) {
+            case SDLK_0:
+                pattern = 0;
+                break;
+            case SDLK_1:
+                pattern = 1;
+                break;
+            case SDLK_2:
+                pattern = 2;
+                break;
+            case SDLK_3:
+                pattern = 3;
+                break;
+            case SDLK_4:
+                pattern = 4;
+                break;
+            case SDLK_5:
+                pattern = 5;
+                break;
+            case SDLK_6:
+                pattern = 6;
+                break;
+            case SDLK_7:
+                pattern = 7;
+                break;
+            case SDLK_8:
+                pattern = 8;
+                break;
+            case SDLK_9:
+                pattern = 9;
+                break;
+            default:
+                break;
+        }
+        
+        if(pattern > 9) {
+            pattern = 9;
+        } else if(pattern < 0){
+            pattern = 0;
+        }
+        
+        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
+    }
+}
+
+
+
 void handleInstrumentKeys( SDL_Keysym* keysym ) {
     
     switch( keysym->sym ) {
@@ -732,7 +788,11 @@ void handle_key_down( SDL_Keysym* keysym )
     }
     
     int x_count = visual_cursor_x%5;
-    if(x_count == 1 && editing) {
+    
+    if(pattern_editor) {
+        handlePatternKeys(keysym);
+        return;
+    } else if(x_count == 1 && editing) {
         handleInstrumentKeys(keysym);
         return;
     } else if((x_count > 1 && editing) && (x_count < 5 && editing)) {

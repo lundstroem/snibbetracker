@@ -22,6 +22,15 @@
 		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
 		0399B2F717F35C1D005ACCBE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0399B2F617F35C1D005ACCBE /* main.c */; };
 		03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */ = {isa = PBXBuildFile; fileRef = 03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */; };
+		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
+		03F0ADE71A80EE8500884785 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDD1A80EE8500884785 /* LICENSE */; };
+		03F0ADE81A80EE8500884785 /* README in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDE1A80EE8500884785 /* README */; };
+		03F0ADE91A80EE8500884785 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDF1A80EE8500884785 /* test.c */; };
+		03F0ADEA1A80EE8500884785 /* test1 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE11A80EE8500884785 /* test1 */; };
+		03F0ADEB1A80EE8500884785 /* test2 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE21A80EE8500884785 /* test2 */; };
+		03F0ADEC1A80EE8500884785 /* test3 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE31A80EE8500884785 /* test3 */; };
+		03F0ADED1A80EE8500884785 /* test4 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE41A80EE8500884785 /* test4 */; };
+		03F0ADEE1A80EE8500884785 /* test5 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE51A80EE8500884785 /* test5 */; };
 		03FCECB217F606A60045D4FB /* SDL2_image.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03FCECB117F606A60045D4FB /* SDL2_image.framework */; };
 		03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; };
 		03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -75,6 +84,16 @@
 		0399B30717F35D84005ACCBE /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAllocator.c; sourceTree = "<group>"; };
 		03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAllocator.h; sourceTree = "<group>"; };
+		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
+		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
+		03F0ADDD1A80EE8500884785 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		03F0ADDE1A80EE8500884785 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
+		03F0ADDF1A80EE8500884785 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = test.c; sourceTree = "<group>"; };
+		03F0ADE11A80EE8500884785 /* test1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test1; sourceTree = "<group>"; };
+		03F0ADE21A80EE8500884785 /* test2 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test2; sourceTree = "<group>"; };
+		03F0ADE31A80EE8500884785 /* test3 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test3; sourceTree = "<group>"; };
+		03F0ADE41A80EE8500884785 /* test4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4; sourceTree = "<group>"; };
+		03F0ADE51A80EE8500884785 /* test5 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test5; sourceTree = "<group>"; };
 		03FCECB117F606A60045D4FB /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
 		03FCECB717F60FF80045D4FB /* groundtiles.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = groundtiles.png; sourceTree = "<group>"; };
 		03FCECC217F625B50045D4FB /* Game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Game.c; sourceTree = "<group>"; };
@@ -97,6 +116,7 @@
 		03420CCD1A077D3500B4EF5D /* cengine */ = {
 			isa = PBXGroup;
 			children = (
+				03F0ADDA1A80EE8500884785 /* cJSON */,
 				03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */,
 				03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */,
 				038D21941A08D11100CD39F5 /* CInput.c */,
@@ -174,6 +194,31 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		03F0ADDA1A80EE8500884785 /* cJSON */ = {
+			isa = PBXGroup;
+			children = (
+				03F0ADDB1A80EE8500884785 /* cJSON.c */,
+				03F0ADDC1A80EE8500884785 /* cJSON.h */,
+				03F0ADDD1A80EE8500884785 /* LICENSE */,
+				03F0ADDE1A80EE8500884785 /* README */,
+				03F0ADDF1A80EE8500884785 /* test.c */,
+				03F0ADE01A80EE8500884785 /* tests */,
+			);
+			path = cJSON;
+			sourceTree = "<group>";
+		};
+		03F0ADE01A80EE8500884785 /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				03F0ADE11A80EE8500884785 /* test1 */,
+				03F0ADE21A80EE8500884785 /* test2 */,
+				03F0ADE31A80EE8500884785 /* test3 */,
+				03F0ADE41A80EE8500884785 /* test4 */,
+				03F0ADE51A80EE8500884785 /* test5 */,
+			);
+			path = tests;
+			sourceTree = "<group>";
+		};
 		03FCECB617F60FF80045D4FB /* res */ = {
 			isa = PBXGroup;
 			children = (
@@ -243,8 +288,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03F0ADED1A80EE8500884785 /* test4 in Resources */,
+				03F0ADEC1A80EE8500884785 /* test3 in Resources */,
+				03F0ADEE1A80EE8500884785 /* test5 in Resources */,
+				03F0ADEA1A80EE8500884785 /* test1 in Resources */,
+				03F0ADE81A80EE8500884785 /* README in Resources */,
 				03FCECB817F60FF80045D4FB /* groundtiles.png in Resources */,
+				03F0ADEB1A80EE8500884785 /* test2 in Resources */,
 				03420CE11A077D3500B4EF5D /* .gitignore in Resources */,
+				03F0ADE71A80EE8500884785 /* LICENSE in Resources */,
 				0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -259,9 +311,11 @@
 				03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */,
 				03420CE31A077D3500B4EF5D /* CAnimationFrame.c in Sources */,
 				03420CE81A077D3500B4EF5D /* CListQueue.c in Sources */,
+				03F0ADE61A80EE8500884785 /* cJSON.c in Sources */,
 				03420CE21A077D3500B4EF5D /* CAnimation.c in Sources */,
 				03420CEA1A077D3500B4EF5D /* CTouch.c in Sources */,
 				038D21961A08D11100CD39F5 /* CInput.c in Sources */,
+				03F0ADE91A80EE8500884785 /* test.c in Sources */,
 				037D46EC1A1DE73300EA2179 /* CSynth.c in Sources */,
 				03420CE91A077D3500B4EF5D /* CTimer.c in Sources */,
 				03420CE71A077D3500B4EF5D /* CLabel.c in Sources */,
