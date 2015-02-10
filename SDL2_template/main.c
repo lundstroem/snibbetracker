@@ -496,6 +496,7 @@ void handlePatternKeys( SDL_Keysym* keysym ) {
                 pattern = 9;
                 break;
             default:
+                return;
                 break;
         }
         
@@ -1621,6 +1622,8 @@ int main(int argc, char ** argv)
             }
             printf("allocs before cleanup:\n");
             cAllocatorPrintAllocationCount();
+            
+            cSynthSaveProject(synth);
             
             quitGame(0);
             
