@@ -1024,9 +1024,16 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         }
                         
                         if(voice->lowpass_next_sample) {
-                            if(voice->phase_int < synth->wave_length) {
-                                voice->lowpass_last_sample = voice->waveform[voice->phase_int]*amp;
+                            if(voice->waveform == synth->noise_table) {
+                                if(voice->phase_int < synth->noise_length) {
+                                    voice->lowpass_last_sample = voice->waveform[voice->phase_int]*amp;
+                                }
+                            } else {
+                                if(voice->phase_int < synth->wave_length) {
+                                    voice->lowpass_last_sample = voice->waveform[voice->phase_int]*amp;
+                                }
                             }
+                            
                             voice->lowpass_next_sample = false;
                         }
                         
@@ -1158,6 +1165,15 @@ static void changeParam(bool plus) {
             synth->arpeggio_speed--;
             if(synth->arpeggio_speed < 1) {
                 synth->arpeggio_speed = 1;
+            }
+        }
+    } else if(y == 19 && x == 4) {
+        if(plus) {
+            synth->swing++;
+        } else {
+            synth->swing--;
+            if(synth->swing < 0) {
+                synth->swing = 0;
             }
         }
         
@@ -1334,6 +1350,10 @@ static void renderPatternMapping(void) {
             } else if(y == 19 && x == 3) {
                 char cval[20];
                 sprintf(cval, "Arp %d", synth->arpeggio_speed);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+            } else if(y == 19 && x == 4) {
+                char cval[20];
+                sprintf(cval, "Swing %d", synth->swing);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             }
             else if(y == 19) {
