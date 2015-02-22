@@ -22,6 +22,9 @@
 		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
 		0399B2F717F35C1D005ACCBE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0399B2F617F35C1D005ACCBE /* main.c */; };
 		03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */ = {isa = PBXBuildFile; fileRef = 03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */; };
+		03C75C921A9634D200DA3DE7 /* nfd_cocoa.m in Sources */ = {isa = PBXBuildFile; fileRef = 03C75C8A1A9634D200DA3DE7 /* nfd_cocoa.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
+		03C75C931A9634D200DA3DE7 /* nfd_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 03C75C8B1A9634D200DA3DE7 /* nfd_common.c */; };
+		03C75C981A96370E00DA3DE7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03C75C971A96370E00DA3DE7 /* AppKit.framework */; };
 		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
 		03F0ADE71A80EE8500884785 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDD1A80EE8500884785 /* LICENSE */; };
 		03F0ADE81A80EE8500884785 /* README in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDE1A80EE8500884785 /* README */; };
@@ -31,11 +34,8 @@
 		03F0ADEC1A80EE8500884785 /* test3 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE31A80EE8500884785 /* test3 */; };
 		03F0ADED1A80EE8500884785 /* test4 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE41A80EE8500884785 /* test4 */; };
 		03F0ADEE1A80EE8500884785 /* test5 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE51A80EE8500884785 /* test5 */; };
-		03FCECB217F606A60045D4FB /* SDL2_image.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03FCECB117F606A60045D4FB /* SDL2_image.framework */; };
 		03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; };
 		03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		03FCECB517F606D80045D4FB /* SDL2_image.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 03FCECB117F606A60045D4FB /* SDL2_image.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		03FCECB817F60FF80045D4FB /* groundtiles.png in Resources */ = {isa = PBXBuildFile; fileRef = 03FCECB717F60FF80045D4FB /* groundtiles.png */; };
 		03FCECD417F625B50045D4FB /* Game.c in Sources */ = {isa = PBXBuildFile; fileRef = 03FCECC217F625B50045D4FB /* Game.c */; };
 /* End PBXBuildFile section */
 
@@ -47,13 +47,13 @@
 			dstSubfolderSpec = 10;
 			files = (
 				03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */,
-				03FCECB517F606D80045D4FB /* SDL2_image.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		033AC4891A99DEC000183CD7 /* chars_gfx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = chars_gfx.h; sourceTree = "<group>"; };
 		03420CCE1A077D3500B4EF5D /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		03420CCF1A077D3500B4EF5D /* CAnimation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAnimation.c; sourceTree = "<group>"; };
 		03420CD01A077D3500B4EF5D /* CAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAnimation.h; sourceTree = "<group>"; };
@@ -84,6 +84,12 @@
 		0399B30717F35D84005ACCBE /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAllocator.c; sourceTree = "<group>"; };
 		03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAllocator.h; sourceTree = "<group>"; };
+		03C75C871A9634D200DA3DE7 /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = common.h; sourceTree = "<group>"; };
+		03C75C891A9634D200DA3DE7 /* nfd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nfd.h; sourceTree = "<group>"; };
+		03C75C8A1A9634D200DA3DE7 /* nfd_cocoa.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = nfd_cocoa.m; sourceTree = "<group>"; };
+		03C75C8B1A9634D200DA3DE7 /* nfd_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = nfd_common.c; sourceTree = "<group>"; };
+		03C75C8C1A9634D200DA3DE7 /* nfd_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nfd_common.h; sourceTree = "<group>"; };
+		03C75C971A96370E00DA3DE7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
 		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
 		03F0ADDD1A80EE8500884785 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -95,7 +101,6 @@
 		03F0ADE41A80EE8500884785 /* test4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4; sourceTree = "<group>"; };
 		03F0ADE51A80EE8500884785 /* test5 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test5; sourceTree = "<group>"; };
 		03FCECB117F606A60045D4FB /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
-		03FCECB717F60FF80045D4FB /* groundtiles.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = groundtiles.png; sourceTree = "<group>"; };
 		03FCECC217F625B50045D4FB /* Game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Game.c; sourceTree = "<group>"; };
 		03FCECC317F625B50045D4FB /* Game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Game.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -105,7 +110,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03FCECB217F606A60045D4FB /* SDL2_image.framework in Frameworks */,
+				03C75C981A96370E00DA3DE7 /* AppKit.framework in Frameworks */,
 				03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -150,12 +155,12 @@
 		0399B2DE17F35C1D005ACCBE = {
 			isa = PBXGroup;
 			children = (
+				03C75C831A9634D200DA3DE7 /* nativefiledialog */,
 				03420CCD1A077D3500B4EF5D /* cengine */,
 				03FCECB917F625B50045D4FB /* game */,
 				0399B2F017F35C1D005ACCBE /* SDL2_template */,
 				0399B2E917F35C1D005ACCBE /* Frameworks */,
 				0399B2E817F35C1D005ACCBE /* Products */,
-				03FCECB617F60FF80045D4FB /* res */,
 			);
 			sourceTree = "<group>";
 		};
@@ -170,6 +175,7 @@
 		0399B2E917F35C1D005ACCBE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				03C75C971A96370E00DA3DE7 /* AppKit.framework */,
 				0399B30717F35D84005ACCBE /* SDL2.framework */,
 				03FCECB117F606A60045D4FB /* SDL2_image.framework */,
 			);
@@ -181,6 +187,7 @@
 			children = (
 				0399B2F617F35C1D005ACCBE /* main.c */,
 				0399B2F117F35C1D005ACCBE /* Supporting Files */,
+				033AC4891A99DEC000183CD7 /* chars_gfx.h */,
 			);
 			path = SDL2_template;
 			sourceTree = "<group>";
@@ -192,6 +199,34 @@
 				0399B2F317F35C1D005ACCBE /* InfoPlist.strings */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		03C75C831A9634D200DA3DE7 /* nativefiledialog */ = {
+			isa = PBXGroup;
+			children = (
+				03C75C861A9634D200DA3DE7 /* src */,
+			);
+			path = nativefiledialog;
+			sourceTree = "<group>";
+		};
+		03C75C861A9634D200DA3DE7 /* src */ = {
+			isa = PBXGroup;
+			children = (
+				03C75C871A9634D200DA3DE7 /* common.h */,
+				03C75C881A9634D200DA3DE7 /* include */,
+				03C75C8A1A9634D200DA3DE7 /* nfd_cocoa.m */,
+				03C75C8B1A9634D200DA3DE7 /* nfd_common.c */,
+				03C75C8C1A9634D200DA3DE7 /* nfd_common.h */,
+			);
+			path = src;
+			sourceTree = "<group>";
+		};
+		03C75C881A9634D200DA3DE7 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				03C75C891A9634D200DA3DE7 /* nfd.h */,
+			);
+			path = include;
 			sourceTree = "<group>";
 		};
 		03F0ADDA1A80EE8500884785 /* cJSON */ = {
@@ -217,14 +252,6 @@
 				03F0ADE51A80EE8500884785 /* test5 */,
 			);
 			path = tests;
-			sourceTree = "<group>";
-		};
-		03FCECB617F60FF80045D4FB /* res */ = {
-			isa = PBXGroup;
-			children = (
-				03FCECB717F60FF80045D4FB /* groundtiles.png */,
-			);
-			path = res;
 			sourceTree = "<group>";
 		};
 		03FCECB917F625B50045D4FB /* game */ = {
@@ -293,7 +320,6 @@
 				03F0ADEE1A80EE8500884785 /* test5 in Resources */,
 				03F0ADEA1A80EE8500884785 /* test1 in Resources */,
 				03F0ADE81A80EE8500884785 /* README in Resources */,
-				03FCECB817F60FF80045D4FB /* groundtiles.png in Resources */,
 				03F0ADEB1A80EE8500884785 /* test2 in Resources */,
 				03420CE11A077D3500B4EF5D /* .gitignore in Resources */,
 				03F0ADE71A80EE8500884785 /* LICENSE in Resources */,
@@ -308,6 +334,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03C75C921A9634D200DA3DE7 /* nfd_cocoa.m in Sources */,
 				03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */,
 				03420CE31A077D3500B4EF5D /* CAnimationFrame.c in Sources */,
 				03420CE81A077D3500B4EF5D /* CListQueue.c in Sources */,
@@ -323,6 +350,7 @@
 				03420CE51A077D3500B4EF5D /* CEngine.c in Sources */,
 				0399B2F717F35C1D005ACCBE /* main.c in Sources */,
 				03420CE61A077D3500B4EF5D /* CEntity.c in Sources */,
+				03C75C931A9634D200DA3DE7 /* nfd_common.c in Sources */,
 				03FCECD417F625B50045D4FB /* Game.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

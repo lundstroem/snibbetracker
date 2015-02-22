@@ -8,6 +8,7 @@
 #include "CSynth.h"
 #include "CAllocator.h"
 #include "CTimer.h"
+#include "chars_gfx.h"
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -33,8 +34,9 @@ int old_time = 0;
 #define cengine_color_bg5 0xFF333322
 #define cengine_color_bg6 0xFF223333
 
-struct CInput *input = NULL;
+char *title = "snibbetracker";
 
+struct CInput *input = NULL;
 
 unsigned int *raster = NULL;
 unsigned int **raster2d = NULL;
@@ -128,6 +130,12 @@ static void setup_data(void)
     int r = 0;
     for(r = 0; r < s_width*s_height; r++) {
         raster[r] = 0;
+    }
+    
+    // contains an integer for every color/pixel on the sheet.
+    raw_sheet = (unsigned int *) cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c sheet 1");
+    for(r = 0; r < s_width*s_height; r++) {
+        raw_sheet[r] = 0;
     }
     
     raster2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c raster 2");
@@ -1464,7 +1472,7 @@ void renderTrack(void) {
             
             int pos_y = inset_y+y-track_progress_int;
             if(bg_color == cengine_color_green) {
-                // TODO: For some reason, it flips to 7 for a few frames randomly. Needs more investigation.
+                // TODO: For some reason, it flips to 7 for a few frames randomly. Needs more investigation. Can it have something with threading to do?
                 if (pos_y == 7) {
                     pos_y = 6;
                 }
@@ -1531,20 +1539,21 @@ void renderTrack(void) {
 
 int main(int argc, char ** argv)
 {
+    
     SDL_Event event;
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window * window = SDL_CreateWindow("snibbetracker", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+    SDL_Window * window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
     
     if (window != NULL) {
         SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
         if (renderer != NULL) {
-            char * filename = "groundtiles.png";
-            SDL_Surface * image = IMG_Load(filename);
-            raw_sheet = image->pixels;
+            //char * filename = "groundtiles.png";
+            //SDL_Surface * image = IMG_Load(filename);
+            //raw_sheet = image->pixels;
             setup_data();
             //SDL_FreeSurface(image);
             
-            if (image != NULL) {
+            //if (image != NULL) {
                 
                 SDL_Texture * texture = SDL_CreateTexture(renderer,
                                                           SDL_PIXELFORMAT_ARGB8888,
@@ -1568,14 +1577,31 @@ int main(int argc, char ** argv)
                 
                 cEngineInit(c);
                 
+                printf("\n unsigned int chars_gfx[16384] = [");
+                
+
+                
+                // print label gfx to store in code instead.
+                for (int i = 0; i < c->sheet_size*16; i++) {
+                    raw_sheet[i] = chars_gfx[i];
+                }
                 
                 cEngineWritePixelData(raw_sheet);
                 free(raw_sheet);
+                
+                printf("];\n");
+                
+                
                 
                 synth = cSynthContextNew();
                 cSynthInit(synth);
                 
                 visual_track_height = synth->track_height;
+                
+                char title_string[40];
+                sprintf(title_string, "%s (build:%d)", title, synth->build_number);
+                SDL_SetWindowTitle(window, title_string);
+                
                 
                 // test load
                 char *song_json = "{\"bpm\":60,\"active_patterns\":1,\"track_height\":16,\"nodes\":[{\"p\":0,\"c\":1,\"r\":0,\"n\":55,\"t\":1,\"i\":0,\"e\":51,\"f\":3,\"g\":49,\"h\":1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":1,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":2,\"n\":52,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":3,\"n\":60,\"t\":1,\"i\":0,\"e\":48,\"f\":0,\"g\":52,\"h\":4,\"j\":55,\"k\":7},{\"p\":0,\"c\":1,\"r\":4,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":6,\"n\":62,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":7,\"n\":60,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":8,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":9,\"n\":53,\"t\":1,\"i\":0,\"e\":51,\"f\":3,\"g\":48,\"h\":0,\"j\":48,\"k\":0},{\"p\":0,\"c\":1,\"r\":10,\"n\":60,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":11,\"n\":43,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":12,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":13,\"n\":60,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":14,\"n\":53,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":15,\"n\":62,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1}],\"patterns\":[{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":1},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":2},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":3},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":4},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":4},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0}],\"instruments_adsr\":[[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}]]}";
@@ -1668,7 +1694,7 @@ int main(int argc, char ** argv)
                     
                     SDL_DestroyTexture(texture);
                 }
-            }
+            //}
             printf("allocs before cleanup:\n");
             cAllocatorPrintAllocationCount();
             
