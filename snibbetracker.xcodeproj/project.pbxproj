@@ -22,9 +22,6 @@
 		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
 		0399B2F717F35C1D005ACCBE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0399B2F617F35C1D005ACCBE /* main.c */; };
 		03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */ = {isa = PBXBuildFile; fileRef = 03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */; };
-		03C75C921A9634D200DA3DE7 /* nfd_cocoa.m in Sources */ = {isa = PBXBuildFile; fileRef = 03C75C8A1A9634D200DA3DE7 /* nfd_cocoa.m */; settings = {COMPILER_FLAGS = "-fno-objc-arc"; }; };
-		03C75C931A9634D200DA3DE7 /* nfd_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 03C75C8B1A9634D200DA3DE7 /* nfd_common.c */; };
-		03C75C981A96370E00DA3DE7 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03C75C971A96370E00DA3DE7 /* AppKit.framework */; };
 		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
 		03F0ADE71A80EE8500884785 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDD1A80EE8500884785 /* LICENSE */; };
 		03F0ADE81A80EE8500884785 /* README in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDE1A80EE8500884785 /* README */; };
@@ -73,22 +70,18 @@
 		03420CDE1A077D3500B4EF5D /* CTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTimer.h; sourceTree = "<group>"; };
 		03420CDF1A077D3500B4EF5D /* CTouch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTouch.c; sourceTree = "<group>"; };
 		03420CE01A077D3500B4EF5D /* CTouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTouch.h; sourceTree = "<group>"; };
+		03758DED1A9C7451005882C2 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		037D46EA1A1DE73300EA2179 /* CSynth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CSynth.c; sourceTree = "<group>"; };
 		037D46EB1A1DE73300EA2179 /* CSynth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSynth.h; sourceTree = "<group>"; };
 		038D21941A08D11100CD39F5 /* CInput.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CInput.c; sourceTree = "<group>"; };
 		038D21951A08D11100CD39F5 /* CInput.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CInput.h; sourceTree = "<group>"; };
-		0399B2E717F35C1D005ACCBE /* synth.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = synth.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		0399B2F217F35C1D005ACCBE /* synth-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "synth-Info.plist"; sourceTree = "<group>"; };
+		0399B2E717F35C1D005ACCBE /* snibbetracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = snibbetracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0399B2F217F35C1D005ACCBE /* snibbetracker-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "snibbetracker-Info.plist"; sourceTree = "<group>"; };
 		0399B2F417F35C1D005ACCBE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		0399B2F617F35C1D005ACCBE /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		0399B30717F35D84005ACCBE /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
 		03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAllocator.c; sourceTree = "<group>"; };
 		03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAllocator.h; sourceTree = "<group>"; };
-		03C75C871A9634D200DA3DE7 /* common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = common.h; sourceTree = "<group>"; };
-		03C75C891A9634D200DA3DE7 /* nfd.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nfd.h; sourceTree = "<group>"; };
-		03C75C8A1A9634D200DA3DE7 /* nfd_cocoa.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = nfd_cocoa.m; sourceTree = "<group>"; };
-		03C75C8B1A9634D200DA3DE7 /* nfd_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = nfd_common.c; sourceTree = "<group>"; };
-		03C75C8C1A9634D200DA3DE7 /* nfd_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nfd_common.h; sourceTree = "<group>"; };
 		03C75C971A96370E00DA3DE7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
 		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
@@ -100,7 +93,6 @@
 		03F0ADE31A80EE8500884785 /* test3 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test3; sourceTree = "<group>"; };
 		03F0ADE41A80EE8500884785 /* test4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4; sourceTree = "<group>"; };
 		03F0ADE51A80EE8500884785 /* test5 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test5; sourceTree = "<group>"; };
-		03FCECB117F606A60045D4FB /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
 		03FCECC217F625B50045D4FB /* Game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Game.c; sourceTree = "<group>"; };
 		03FCECC317F625B50045D4FB /* Game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Game.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -110,7 +102,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03C75C981A96370E00DA3DE7 /* AppKit.framework in Frameworks */,
 				03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -155,7 +146,6 @@
 		0399B2DE17F35C1D005ACCBE = {
 			isa = PBXGroup;
 			children = (
-				03C75C831A9634D200DA3DE7 /* nativefiledialog */,
 				03420CCD1A077D3500B4EF5D /* cengine */,
 				03FCECB917F625B50045D4FB /* game */,
 				0399B2F017F35C1D005ACCBE /* SDL2_template */,
@@ -167,7 +157,7 @@
 		0399B2E817F35C1D005ACCBE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0399B2E717F35C1D005ACCBE /* synth.app */,
+				0399B2E717F35C1D005ACCBE /* snibbetracker.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -175,9 +165,9 @@
 		0399B2E917F35C1D005ACCBE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				03758DED1A9C7451005882C2 /* OpenGL.framework */,
 				03C75C971A96370E00DA3DE7 /* AppKit.framework */,
 				0399B30717F35D84005ACCBE /* SDL2.framework */,
-				03FCECB117F606A60045D4FB /* SDL2_image.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -195,38 +185,10 @@
 		0399B2F117F35C1D005ACCBE /* Supporting Files */ = {
 			isa = PBXGroup;
 			children = (
-				0399B2F217F35C1D005ACCBE /* synth-Info.plist */,
+				0399B2F217F35C1D005ACCBE /* snibbetracker-Info.plist */,
 				0399B2F317F35C1D005ACCBE /* InfoPlist.strings */,
 			);
 			name = "Supporting Files";
-			sourceTree = "<group>";
-		};
-		03C75C831A9634D200DA3DE7 /* nativefiledialog */ = {
-			isa = PBXGroup;
-			children = (
-				03C75C861A9634D200DA3DE7 /* src */,
-			);
-			path = nativefiledialog;
-			sourceTree = "<group>";
-		};
-		03C75C861A9634D200DA3DE7 /* src */ = {
-			isa = PBXGroup;
-			children = (
-				03C75C871A9634D200DA3DE7 /* common.h */,
-				03C75C881A9634D200DA3DE7 /* include */,
-				03C75C8A1A9634D200DA3DE7 /* nfd_cocoa.m */,
-				03C75C8B1A9634D200DA3DE7 /* nfd_common.c */,
-				03C75C8C1A9634D200DA3DE7 /* nfd_common.h */,
-			);
-			path = src;
-			sourceTree = "<group>";
-		};
-		03C75C881A9634D200DA3DE7 /* include */ = {
-			isa = PBXGroup;
-			children = (
-				03C75C891A9634D200DA3DE7 /* nfd.h */,
-			);
-			path = include;
 			sourceTree = "<group>";
 		};
 		03F0ADDA1A80EE8500884785 /* cJSON */ = {
@@ -266,9 +228,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0399B2E617F35C1D005ACCBE /* synth */ = {
+		0399B2E617F35C1D005ACCBE /* snibbetracker */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0399B30417F35C1D005ACCBE /* Build configuration list for PBXNativeTarget "synth" */;
+			buildConfigurationList = 0399B30417F35C1D005ACCBE /* Build configuration list for PBXNativeTarget "snibbetracker" */;
 			buildPhases = (
 				0399B2E317F35C1D005ACCBE /* Sources */,
 				0399B2E417F35C1D005ACCBE /* Frameworks */,
@@ -279,9 +241,9 @@
 			);
 			dependencies = (
 			);
-			name = synth;
+			name = snibbetracker;
 			productName = SDL2_template;
-			productReference = 0399B2E717F35C1D005ACCBE /* synth.app */;
+			productReference = 0399B2E717F35C1D005ACCBE /* snibbetracker.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -293,7 +255,7 @@
 				LastUpgradeCheck = 0610;
 				ORGANIZATIONNAME = D;
 			};
-			buildConfigurationList = 0399B2E217F35C1D005ACCBE /* Build configuration list for PBXProject "synth" */;
+			buildConfigurationList = 0399B2E217F35C1D005ACCBE /* Build configuration list for PBXProject "snibbetracker" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -305,7 +267,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0399B2E617F35C1D005ACCBE /* synth */,
+				0399B2E617F35C1D005ACCBE /* snibbetracker */,
 			);
 		};
 /* End PBXProject section */
@@ -334,7 +296,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03C75C921A9634D200DA3DE7 /* nfd_cocoa.m in Sources */,
 				03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */,
 				03420CE31A077D3500B4EF5D /* CAnimationFrame.c in Sources */,
 				03420CE81A077D3500B4EF5D /* CListQueue.c in Sources */,
@@ -350,7 +311,6 @@
 				03420CE51A077D3500B4EF5D /* CEngine.c in Sources */,
 				0399B2F717F35C1D005ACCBE /* main.c in Sources */,
 				03420CE61A077D3500B4EF5D /* CEntity.c in Sources */,
-				03C75C931A9634D200DA3DE7 /* nfd_common.c in Sources */,
 				03FCECD417F625B50045D4FB /* Game.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -436,9 +396,9 @@
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "";
-				INFOPLIST_FILE = "SDL2_template/synth-Info.plist";
+				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				PRODUCT_NAME = synth;
+				PRODUCT_NAME = snibbetracker;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -453,9 +413,9 @@
 				);
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "";
-				INFOPLIST_FILE = "SDL2_template/synth-Info.plist";
+				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				PRODUCT_NAME = synth;
+				PRODUCT_NAME = snibbetracker;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
@@ -463,7 +423,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		0399B2E217F35C1D005ACCBE /* Build configuration list for PBXProject "synth" */ = {
+		0399B2E217F35C1D005ACCBE /* Build configuration list for PBXProject "snibbetracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0399B30217F35C1D005ACCBE /* Debug */,
@@ -472,7 +432,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0399B30417F35C1D005ACCBE /* Build configuration list for PBXNativeTarget "synth" */ = {
+		0399B30417F35C1D005ACCBE /* Build configuration list for PBXNativeTarget "snibbetracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0399B30517F35C1D005ACCBE /* Debug */,

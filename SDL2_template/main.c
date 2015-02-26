@@ -1,6 +1,5 @@
 
 #include <SDL2/SDL.h>
-#include <SDL2_image/SDL_image.h>
 #include <stdbool.h>
 #include "Game.h"
 #include "CInput.h"
@@ -9,6 +8,10 @@
 #include "CAllocator.h"
 #include "CTimer.h"
 #include "chars_gfx.h"
+#include "cJSON.h"
+#include <OpenGL/glu.h>
+#include <dirent.h>
+#include <stdio.h>
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -78,6 +81,78 @@ char *infoString = NULL;
 
 bool show_tips = true;
 
+static void recreateWindow(void);
+static void listDirectory(void);
+
+static void listDirectory(void) {
+    // POSIX only. Need another solution for win.
+    
+    DIR           *d;
+    struct dirent *dir;
+    d = opendir("/Users");
+    if (d)
+    {
+        while ((dir = readdir(d)) != NULL)
+        {
+            printf("%s\n", dir->d_name);
+        }
+        
+        closedir(d);
+    }
+}
+
+int saveProject(struct CSynthContext *synth) {
+    
+    cJSON *root = cSynthSaveProject(synth);
+    if(root != NULL) {
+    
+        // TODO: need to get correct savepath.
+        char *savePath = "path to save";
+    
+        FILE * fp;
+        fp = fopen (savePath, "w+");
+        fprintf(fp, "%s", cJSON_PrintUnformatted(root));
+        fclose(fp);
+        
+        cJSON_Delete(root);
+    }
+    return 0;
+}
+
+
+int openProject(struct CSynthContext *synth) {
+    
+    //TODO: need correct outPath.
+    char *outPath = "out path";
+    
+        FILE *fp = NULL;
+        fp = fopen(outPath, "rb");
+        if(fp != NULL) {
+            fseek(fp, 0L, SEEK_END);
+            long sz = ftell(fp);
+            printf("file size:%ld\n", sz);
+            char *b = malloc(sizeof(char)*sz);
+            fseek(fp, 0, SEEK_SET);
+            fread(b, sz, 1, fp);
+            
+            if(b != NULL) {
+                printf("json_str:%s\n", b);
+                cSynthLoadProject(synth, b);
+                free(b);
+            } else {
+                printf("buffer is null\n");
+            }
+            fclose(fp);
+        } else {
+            printf("file pointer is null\n");
+        }
+        
+    
+    return 0;
+}
+
+
+
 static void setInfoTimer(char *string) {
     if(string != NULL) {
         int max_size = 20;
@@ -133,7 +208,7 @@ static void setup_data(void)
     }
     
     // contains an integer for every color/pixel on the sheet.
-    raw_sheet = (unsigned int *) cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c sheet 1");
+    raw_sheet = (unsigned int *) cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw sheet 1");
     for(r = 0; r < s_width*s_height; r++) {
         raw_sheet[r] = 0;
     }
@@ -628,13 +703,23 @@ void handle_key_down( SDL_Keysym* keysym )
             }
             break;
         case SDLK_MINUS:
+            
             if(instrument_editor) {
                 
             } else if(pattern_editor) {
                 changeParam(false);
             }
             break;
-
+        case SDLK_o:
+            if(modifier) {
+                openProject(synth);
+            }
+            break;
+        case SDLK_s:
+            if(modifier) {
+                saveProject(synth);
+            }
+            break;
         case SDLK_TAB:
             if(instrument_editor) {
                 struct CInstrument *ins = synth->instruments[selected_instrument_id];
@@ -679,7 +764,7 @@ void handle_key_down( SDL_Keysym* keysym )
             if(instrument_editor) {
                 
             } else {
-                if(modifier == 1) {
+                if(modifier) {
                     octave--;
                     if(octave < 0) {
                         octave = 0;
@@ -699,7 +784,7 @@ void handle_key_down( SDL_Keysym* keysym )
             if(instrument_editor) {
                 
             } else {
-                if(modifier == 1) {
+                if(modifier) {
                     octave++;
                     if(octave > 7) {
                         octave = 7;
@@ -733,7 +818,7 @@ void handle_key_down( SDL_Keysym* keysym )
             if(instrument_editor) {
                 
             } else {
-                if(pattern_editor == 1) {
+                if(pattern_editor) {
                     pattern_cursor_y++;
                     checkPatternCursorBounds();
                 } else {
@@ -1011,6 +1096,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         double init_amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
                         amp = voice->noteoff_slope_value*init_amp;
                         double bpm = synth->bpm;
+                        //TODO: needs to be sample rate independent. Currently dependent on 44100Hz.
                         voice->noteoff_slope_value -= bpm * 0.00005;
                         if(voice->noteoff_slope_value < 0) {
                             voice->noteoff_slope_value = 0;
@@ -1019,6 +1105,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                         amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
                     }
                     
+                    //TODO: needs to be sample rate independent. Currently dependent on 44100Hz.
                     voice->adsr_cursor += 0.00001;
                     
                     if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
@@ -1536,184 +1623,220 @@ void renderTrack(void) {
         }
     }
 }
+SDL_Window *window = NULL;
+SDL_Texture *texture;
+SDL_Renderer *renderer;
+SDL_GLContext context;
+
+void setupSDL() {
+    
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    
+    window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_OPENGL);
+    context = SDL_GL_CreateContext(window);
+    if(context == NULL) {
+        printf("\nFailed to create context: %s\n", SDL_GetError());
+    }
+    SDL_GL_MakeCurrent(window, context);
+    
+    if (window != NULL) {
+        
+        renderer = SDL_CreateRenderer(window, -1, 0);
+        if (renderer != NULL) {
+        
+            texture = SDL_CreateTexture(renderer,
+                                        SDL_PIXELFORMAT_ARGB8888,
+                                        SDL_TEXTUREACCESS_STREAMING,
+                                        s_width, s_height);
+            
+            SDL_GL_SetSwapInterval(1);
+            
+            char title_string[40];
+            sprintf(title_string, "%s (build:%d)", title, synth->build_number);
+            SDL_SetWindowTitle(window, title_string);
+            
+            visual_track_height = synth->track_height;
+        } else {
+            printf("renderer is null");
+        }
+    } else {
+        printf("window is null");
+    }
+}
+
+void destroySDL() {
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    
+}
+
+int setupSDLAudio() {
+    SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
+    SDL_AudioSpec want;
+    SDL_zero(want);// btw, I have no idea what this is...
+    SDL_zero(audioSpec);// btw, I have no idea what this is...
+    
+    want.freq = synth->sample_rate;
+    want.format = AUDIO_S16LSB;
+    want.channels = 2;
+    want.samples = bufferSize;
+    want.callback = audioCallback;
+    
+    AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+    
+    printf("   audioSpec\n");
+    printf("----------------\n");
+    printf("sample rate:%d\n", want.freq);
+    printf("channels:%d\n", audioSpec.channels);
+    printf("samples:%d\n", audioSpec.samples);
+    printf("buffer size:%d\n", audioSpec.size);
+    printf("----------------\n");
+    
+    
+    if (AudioDevice == 0) {
+        printf("\nFailed to open audio: %s\n", SDL_GetError());
+        return 1;
+    }
+    
+    
+    if (audioSpec.format != want.format) {
+        printf("\nCouldn't get Float32 audio format.\n");
+        return 2;
+    }
+    
+    
+    //int sampleRate = synth->sample_rate;
+    int frameRate = synth->frame_rate;
+    
+    int sampleRate = audioSpec.freq;
+    bufferSize = audioSpec.samples;
+    samplesPerFrame = sampleRate/frameRate;
+    msPerFrame = 1000/frameRate;
+    audioMainLeftOff = samplesPerFrame*8;
+    SDL_AtomicSet(&audioCallbackLeftOff, 0);
+    
+    SDL_PauseAudioDevice(AudioDevice, 0);// unpause audio.
+    
+    return 0;
+}
+
+void setupCSynth() {
+    setup_data();
+    struct CEngineContext *c = cEngineContextNew();
+    c->width = s_width;
+    c->height = s_height;
+    c->sprite_size = 16;
+    c->sheet_size = 1024;
+    c->max_touches = 8;
+    c->level_width = 64;
+    c->level_height = 64;
+    c->max_buttons = 10;
+    c->show_fps = false;
+    c->ground_render_enabled = false;
+    
+    cEngineInit(c);
+    
+    //printf("\n unsigned int chars_gfx[16384] = [");
+    // print label gfx to store in code instead.
+    for (int i = 0; i < c->sheet_size*16; i++) {
+        raw_sheet[i] = chars_gfx[i];
+    }
+    cEngineWritePixelData(raw_sheet);
+    //printf("];\n");
+    
+    
+    cAllocatorFree(raw_sheet);
+    
+    synth = cSynthContextNew();
+    cSynthInit(synth);
+    
+    visual_track_height = synth->track_height;
+    
+}
+
+void cleanupSynth() {
+    printf("allocs before cleanup:\n");
+    cAllocatorPrintAllocationCount();
+    
+    cSynthSaveProject(synth);
+    
+    quitGame(0);
+    
+    printf("allocs after cleanup:\n");
+    cAllocatorPrintAllocations();
+    cAllocatorPrintAllocationCount();
+    
+    // If allocation tracking is on, clean up the last stuff.
+    cAllocatorCleanup();
+}
+
+int error_freq = 0;
+void mainLoop() {
+    checkSDLEvents(event);
+    
+    for (int r_x = 0; r_x < s_width; r_x++) {
+        for (int r_y = 0; r_y < s_height; r_y++) {
+            raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
+        }
+    }
+    
+    double dt = (double)getDelta();
+    cEngineGameloop(dt, raster2d, input);
+    
+    
+    //renderStuff
+    
+    for(int x = 0; x < s_width; x++) {
+        for(int y = 0; y < s_height; y++) {
+            raster2d[x][y] = 0;
+        }
+    }
+    
+    renderTrack();
+    
+    updateAndRenderInfo(dt);
+    
+    SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
+    SDL_RenderClear(renderer);
+    
+    SDL_RenderCopy(renderer, texture, NULL, NULL);
+    SDL_RenderPresent(renderer);
+    
+    SDL_Delay(16);
+    
+}
+
+
+
+
 
 int main(int argc, char ** argv)
 {
     
-    SDL_Event event;
-    SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window * window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, 0);
+    listDirectory();
     
-    if (window != NULL) {
-        SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, 0);
-        if (renderer != NULL) {
-            //char * filename = "groundtiles.png";
-            //SDL_Surface * image = IMG_Load(filename);
-            //raw_sheet = image->pixels;
-            setup_data();
-            //SDL_FreeSurface(image);
+    setupCSynth();
+    setupSDL();
+    setupSDLAudio();
             
-            //if (image != NULL) {
-                
-                SDL_Texture * texture = SDL_CreateTexture(renderer,
-                                                          SDL_PIXELFORMAT_ARGB8888,
-                                                          SDL_TEXTUREACCESS_STREAMING,
-                                                          s_width, s_height);
-                
-                SDL_GL_SetSwapInterval(1);
-                
-                
-                struct CEngineContext *c = cEngineContextNew();
-                c->width = s_width;
-                c->height = s_height;
-                c->sprite_size = 16;
-                c->sheet_size = 1024;
-                c->max_touches = 8;
-                c->level_width = 64;
-                c->level_height = 64;
-                c->max_buttons = 10;
-                c->show_fps = false;
-                c->ground_render_enabled = false;
-                
-                cEngineInit(c);
-                
-                printf("\n unsigned int chars_gfx[16384] = [");
-                
-
-                
-                // print label gfx to store in code instead.
-                for (int i = 0; i < c->sheet_size*16; i++) {
-                    raw_sheet[i] = chars_gfx[i];
-                }
-                
-                cEngineWritePixelData(raw_sheet);
-                free(raw_sheet);
-                
-                printf("];\n");
-                
-                
-                
-                synth = cSynthContextNew();
-                cSynthInit(synth);
-                
-                visual_track_height = synth->track_height;
-                
-                char title_string[40];
-                sprintf(title_string, "%s (build:%d)", title, synth->build_number);
-                SDL_SetWindowTitle(window, title_string);
-                
-                
-                // test load
-                char *song_json = "{\"bpm\":60,\"active_patterns\":1,\"track_height\":16,\"nodes\":[{\"p\":0,\"c\":1,\"r\":0,\"n\":55,\"t\":1,\"i\":0,\"e\":51,\"f\":3,\"g\":49,\"h\":1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":1,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":2,\"n\":52,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":3,\"n\":60,\"t\":1,\"i\":0,\"e\":48,\"f\":0,\"g\":52,\"h\":4,\"j\":55,\"k\":7},{\"p\":0,\"c\":1,\"r\":4,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":6,\"n\":62,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":7,\"n\":60,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":8,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":9,\"n\":53,\"t\":1,\"i\":0,\"e\":51,\"f\":3,\"g\":48,\"h\":0,\"j\":48,\"k\":0},{\"p\":0,\"c\":1,\"r\":10,\"n\":60,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":11,\"n\":43,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":12,\"n\":59,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":13,\"n\":60,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":14,\"n\":53,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1},{\"p\":0,\"c\":1,\"r\":15,\"n\":62,\"t\":1,\"i\":0,\"e\":45,\"f\":-1,\"g\":45,\"h\":-1,\"j\":45,\"k\":-1}],\"patterns\":[{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":1},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":2},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":3},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":4},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":4},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0},{\"o\":0}],\"instruments_adsr\":[[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}],[{\"a\":0,\"p\":0},{\"a\":0.800000,\"p\":0.100000},{\"a\":0.500000,\"p\":0.300000},{\"a\":0.300000,\"p\":0.600000},{\"a\":0,\"p\":0.900000}]]}";
-                
-                //cSynthLoadProject(synth, song_json);
-                visual_track_height = synth->track_height;
-                
-                //if ( init() ) return 1;
-                SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
-                SDL_AudioSpec want;
-                SDL_zero(want);// btw, I have no idea what this is...
-                SDL_zero(audioSpec);// btw, I have no idea what this is...
-                
-                want.freq = synth->sample_rate;
-                want.format = AUDIO_S16LSB;
-                want.channels = 2;
-                want.samples = bufferSize;
-                want.callback = audioCallback;
-                
-                AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
-                
-                printf("   audioSpec\n");
-                printf("----------------\n");
-                printf("sample rate:%d\n", want.freq);
-                printf("channels:%d\n", audioSpec.channels);
-                printf("samples:%d\n", audioSpec.samples);
-                printf("buffer size:%d\n", audioSpec.size);
-                printf("----------------\n");
-                
-                
-                if (AudioDevice == 0) {
-                    printf("\nFailed to open audio: %s\n", SDL_GetError());
-                    return 1;
-                }
-                
-                
-                if (audioSpec.format != want.format) {
-                    printf("\nCouldn't get Float32 audio format.\n");
-                    return 2;
-                }
-                
-                
-                //int sampleRate = synth->sample_rate;
-                int frameRate = synth->frame_rate;
-                
-                int sampleRate = audioSpec.freq;
-                bufferSize = audioSpec.samples;
-                samplesPerFrame = sampleRate/frameRate;
-                msPerFrame = 1000/frameRate;
-                audioMainLeftOff = samplesPerFrame*8;
-                SDL_AtomicSet(&audioCallbackLeftOff, 0);
-                
-                
-                SDL_PauseAudioDevice(AudioDevice, 0);// unpause audio.
-                /***********************************************/
-                
-                if (texture != NULL) {
-                    while (!quit) {
-                        
-                        checkSDLEvents(event);
-                        
-                        for (int r_x = 0; r_x < s_width; r_x++) {
-                            for (int r_y = 0; r_y < s_height; r_y++) {
-                                raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
-                            }
-                        }
-                        
-                        double dt = (double)getDelta();
-                        cEngineGameloop(dt, raster2d, input);
-                        
-                        
-                        //renderStuff
-                        
-                        for(int x = 0; x < s_width; x++) {
-                            for(int y = 0; y < s_height; y++) {
-                                raster2d[x][y] = 0;
-                            }
-                        }
-                        
-                        renderTrack();
-                        
-                        updateAndRenderInfo(dt);
-                        
-                        SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
-                        SDL_RenderClear(renderer);
-                        
-                        SDL_RenderCopy(renderer, texture, NULL, NULL);
-                        SDL_RenderPresent(renderer);
-                    }
-                    
-                    SDL_DestroyTexture(texture);
-                }
-            //}
-            printf("allocs before cleanup:\n");
-            cAllocatorPrintAllocationCount();
-            
-            cSynthSaveProject(synth);
-            
-            quitGame(0);
-            
-            printf("allocs after cleanup:\n");
-            cAllocatorPrintAllocations();
-            cAllocatorPrintAllocationCount();
-            
-            // If allocation tracking is on, clean up the last stuff.
-            cAllocatorCleanup();
-            
-            SDL_DestroyWindow(window);
-            SDL_CloseAudioDevice(AudioDevice);
-            SDL_Quit();
+    if (texture != NULL) {
+        while (!quit) {
+            mainLoop();
         }
     }
+
+    cleanupSynth();
+            
+    //SDL_GL_DeleteContext(mainGLContext);
+    destroySDL();
+    
+    SDL_CloseAudioDevice(AudioDevice);
+    SDL_Quit();
+
     
     return 0;
 }
