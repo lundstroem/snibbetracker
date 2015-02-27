@@ -69,6 +69,22 @@ bool instrument_editor = false;
 int selected_instrument_id = 0;
 int selected_instrument_node_index = 0;
 
+// file editor
+bool file_editor = false;
+int file_cursor_x = 0;
+int file_cursor_y = 0;
+int file_pos_in_list = 0;
+char **file_dirs = NULL;
+int file_dir_max_length = 1024;
+int file_name_max_length = 256;
+char *file_default_dir = "/";
+char **file_path_list = NULL;
+char *file_path = NULL;
+int file_path_max_length = 256;
+int file_path_pos = 0;
+int file_cursor_y_saved[256];
+bool reload_dirs = true;
+
 bool pressed_left = false;
 bool pressed_right = false;
 bool pressed_up = false;
@@ -82,27 +98,200 @@ char *infoString = NULL;
 bool show_tips = true;
 
 static void recreateWindow(void);
-static void listDirectory(void);
+static void listDirectory();
+static void getDirectoryListPosix(char *dir_string);
 
-static void listDirectory(void) {
-    // POSIX only. Need another solution for win.
-    
-    DIR           *d;
-    struct dirent *dir;
-    d = opendir("/Users");
-    if (d)
-    {
-        while ((dir = readdir(d)) != NULL)
-        {
-            printf("%s\n", dir->d_name);
-        }
-        
-        closedir(d);
+/********* file handling **********/
+// open mode
+// [file list] [open]
+
+
+// save mode
+// [file list] [filename]
+//             [save]
+
+// filename entering needs to override other keyboard input.
+// separate platform specific dir listings to prepare for win version.
+
+// - first task, enter/exit file mode
+// - scroll in dir list.
+
+
+void handle_key_down_file( SDL_Keysym* keysym) {
+   
+    switch( keysym->sym ) {
+        case SDLK_PLUS:
+            break;
+        case SDLK_MINUS:
+            break;
+        case SDLK_o:
+            break;
+        case SDLK_s:
+            break;
+        case SDLK_TAB:
+            for (int i = 0; i < file_dir_max_length; i++) {
+                if (file_dirs[i] != NULL) {
+                    cAllocatorFree(file_dirs[i]);
+                    file_dirs[i] = NULL;
+                }
+            }
+            for (int i = 0; i < file_path_max_length; i++) {
+                if (file_path_list[i] != NULL) {
+                    cAllocatorFree(file_path_list[i]);
+                    file_path_list[i] = NULL;
+                }
+            }
+            cAllocatorFree(file_path);
+            file_editor = false;
+            reload_dirs = true;
+            break;
+        case SDLK_LGUI:
+            break;
+        case SDLK_ESCAPE:
+            break;
+        case SDLK_RETURN:
+            // activate another node in the path.
+            if(file_path_pos < file_path_max_length) {
+                file_cursor_y_saved[file_path_pos] = file_cursor_y;
+                file_path_pos++;
+                if(file_path_list[file_path_pos] != NULL) {
+                    cAllocatorFree(file_path_list[file_path_pos]);
+                    file_path_list[file_path_pos] = NULL;
+                }
+                char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
+                sprintf(path, "%s", file_dirs[file_cursor_y]);
+                file_path_list[file_path_pos] = path;
+                file_cursor_y = 0;
+                printf("adding another to path:%s path_pos:%d\n", path, file_path_pos);
+                reload_dirs = true;
+            } else {
+                printf("file path max nodes reached, cannot go deeper\n");
+            }
+            break;
+        case SDLK_LEFT:
+            break;
+        case SDLK_RIGHT:
+            break;
+        case SDLK_UP:
+            file_cursor_y--;
+            if(file_cursor_y < 0) {
+                file_cursor_y = 0;
+            }
+            break;
+        case SDLK_DOWN:
+            if(file_cursor_y < file_dir_max_length-1) {
+                if(file_dirs[file_cursor_y+1] != NULL) {
+                    file_cursor_y++;
+                }
+            }
+            break;
+        case SDLK_BACKSPACE:
+            if(file_path_pos > 0) {
+                if(file_path_list[file_path_pos] != NULL) {
+                    cAllocatorFree(file_path_list[file_path_pos]);
+                    file_path_list[file_path_pos] = NULL;
+                }
+                file_path_pos--;
+                file_cursor_y = file_cursor_y_saved[file_path_pos];
+                reload_dirs = true;
+            } else {
+                printf("cannot go further back.\n");
+            }
+            break;
+        case SDLK_SPACE:
+            break;
+        default:
+            break;
     }
 }
 
+
+static DIR *d = NULL;
+static void getDirectoryListPosix(char *dir_string) {
+    // POSIX only. Need another solution for win.
+    
+    // Clear out all stored directories
+    for (int i = 0; i < file_dir_max_length; i++) {
+        if (file_dirs[i] != NULL) {
+            cAllocatorFree(file_dirs[i]);
+            file_dirs[i] = NULL;
+        }
+    }
+    
+    int pos = 0;
+    struct dirent *dir;
+    d = opendir(dir_string);
+    if (d) {
+        while ((dir = readdir(d)) != NULL) {
+            //printf("%s\n", dir->d_name);
+            char *dir_name_chars = cAllocatorAlloc(sizeof(char)*file_name_max_length, "dir name chars");
+            sprintf(dir_name_chars, "%s", dir->d_name);
+            file_dirs[pos] = dir_name_chars;
+            pos++;
+        }
+        closedir(d);
+    } else {
+        printf("dir is null.\n");
+    }
+}
+
+static void listDirectory() {
+    
+    // Set default values
+    if(reload_dirs) {
+        if(file_path_list[0] == NULL) {
+            printf("setting up file path defaults.\n");
+            char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
+            sprintf(path, "%s", file_default_dir);
+            file_path_list[0] = path;
+            file_path_pos = 0;
+            // TODO: need to cleanup file_path_list on exit.
+        }
+        
+        // append the dir names to the path.
+        char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "dir name chars");
+        for(int i = 0; i < file_path_pos+1; i++) {
+            if(file_path_list[i] != NULL) {
+                if(i < 2) {
+                    sprintf(path, "%s%s", path, file_path_list[i]);
+                } else {
+                    // Also append slash.
+                    sprintf(path, "%s/%s", path, file_path_list[i]);
+                }
+            }
+        }
+        
+        // Set the new path
+        if(file_path != NULL) {
+            cAllocatorFree(file_path);
+            file_path = NULL;
+        }
+        file_path = path;
+        
+        printf("path:%s path_pos:%d\n", path, file_path_pos);
+        
+        getDirectoryListPosix(file_path);
+        reload_dirs = false;
+    }
+    
+    int offset_y = 0;
+    for (int i = 0; i < file_dir_max_length; i++) {
+        if (file_dirs[i] != NULL) {
+            if(i == file_cursor_y) {
+                cEngineRenderLabelWithParams(raster2d, file_dirs[i], 0, offset_y-file_cursor_y+10, cengine_color_green, cengine_color_black);
+            } else {
+                cEngineRenderLabelWithParams(raster2d, file_dirs[i], 0, offset_y-file_cursor_y+10, cengine_color_white, cengine_color_black);
+            }
+        }
+        offset_y++;
+    }
+}
+
+
 int saveProject(struct CSynthContext *synth) {
     
+    file_editor = true;
+    /*
     cJSON *root = cSynthSaveProject(synth);
     if(root != NULL) {
     
@@ -116,6 +305,7 @@ int saveProject(struct CSynthContext *synth) {
         
         cJSON_Delete(root);
     }
+     */
     return 0;
 }
 
@@ -123,6 +313,7 @@ int saveProject(struct CSynthContext *synth) {
 int openProject(struct CSynthContext *synth) {
     
     //TODO: need correct outPath.
+    /*
     char *outPath = "out path";
     
         FILE *fp = NULL;
@@ -147,7 +338,7 @@ int openProject(struct CSynthContext *synth) {
             printf("file pointer is null\n");
         }
         
-    
+    */
     return 0;
 }
 
@@ -200,9 +391,24 @@ static void updateAndRenderInfo(double dt) {
 
 static void setup_data(void)
 {
+    int r = 0;
+    
+    for(r = 0; r < file_path_max_length; r++) {
+        file_cursor_y_saved[r] = 0;
+    }
+    
+    file_path_list = (char**) cAllocatorAlloc((file_path_max_length * sizeof(char*)), "file path array");
+    for(r = 0; r < file_path_max_length; r++) {
+        file_path_list[r] = NULL;
+    }
+    
+    file_dirs = (char**) cAllocatorAlloc((file_dir_max_length * sizeof(char*)), "file dir array");
+    for(r = 0; r < file_dir_max_length; r++) {
+        file_dirs[r] = NULL;
+    }
+    
     // contains an integer for every color/pixel on the screen.
     raster = (unsigned int *) cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
-    int r = 0;
     for(r = 0; r < s_width*s_height; r++) {
         raster[r] = 0;
     }
@@ -282,6 +488,8 @@ static void quitGame(int code)
     input = cInputCleanup(input);
     infoTimer = cAllocatorFree(infoTimer);
     
+    file_dirs = cAllocatorFree(file_dirs);
+    file_path_list = cAllocatorFree(file_path_list);
     printf("quit game\n");
 }
 
@@ -694,192 +902,198 @@ void handleEffectKeys( SDL_Keysym* keysym ) {
 void handle_key_down( SDL_Keysym* keysym )
 {
     
-    switch( keysym->sym ) {
-        case SDLK_PLUS:
-            if(instrument_editor) {
-                
-            } else if(pattern_editor) {
-                changeParam(true);
-            }
-            break;
-        case SDLK_MINUS:
-            
-            if(instrument_editor) {
-                
-            } else if(pattern_editor) {
-                changeParam(false);
-            }
-            break;
-        case SDLK_o:
-            if(modifier) {
-                openProject(synth);
-            }
-            break;
-        case SDLK_s:
-            if(modifier) {
-                saveProject(synth);
-            }
-            break;
-        case SDLK_TAB:
-            if(instrument_editor) {
-                struct CInstrument *ins = synth->instruments[selected_instrument_id];
-                selected_instrument_node_index++;
-                if(selected_instrument_node_index >= ins->adsr_nodes) {
-                    selected_instrument_node_index = 0;
-                }
-                
-                printf("selected_instrument_node_index:%i", selected_instrument_node_index);
-            } else {
-                if(pattern_editor) {
-                    pattern_editor = false;
-                } else {
-                    pattern_editor = true;
-                }
-            }
-            break;
-        case SDLK_LGUI:
-            modifier = true;
-            //printf("modifier on");
-            break;
-        case SDLK_ESCAPE:
-            quit = true;
-            break;
-        case SDLK_RETURN:
-            if(playing == 0) {
-                playing = true;
-                if(pattern_editor) {
-                    printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
-                    cSynthResetTrackProgress(synth, pattern_cursor_y-1);
-                } else {
-                    cSynthResetTrackProgress(synth, synth->current_track);
-                    printf("playing from pattern:%d\n", synth->current_track);
-                }
-            } else {
-                playing = 0;
-            }
-            break;
-            
-        case SDLK_LEFT:
-            pressed_left = true;
-            if(instrument_editor) {
-                
-            } else {
-                if(modifier) {
-                    octave--;
-                    if(octave < 0) {
-                        octave = 0;
-                    }
-                    setInfoTimerWithInt("octave", octave);
+    
+    if(file_editor) {
+        handle_key_down_file(keysym);
+    } else {
+    
+        switch( keysym->sym ) {
+            case SDLK_PLUS:
+                if(instrument_editor) {
+                    
                 } else if(pattern_editor) {
-                    pattern_cursor_x--;
-                    checkPatternCursorBounds();
-                } else {
-                    visual_cursor_x--;
-                    checkVisualCursorBounds();
+                    changeParam(true);
                 }
-            }
-            break;
-        case SDLK_RIGHT:
-            pressed_right = true;
-            if(instrument_editor) {
+                break;
+            case SDLK_MINUS:
                 
-            } else {
-                if(modifier) {
-                    octave++;
-                    if(octave > 7) {
-                        octave = 7;
-                    }
-                    setInfoTimerWithInt("octave", octave);
+                if(instrument_editor) {
+                    
                 } else if(pattern_editor) {
-                    pattern_cursor_x++;
-                    checkPatternCursorBounds();
-                } else {
-                    visual_cursor_x++;
-                    checkVisualCursorBounds();
+                    changeParam(false);
                 }
-            }
-            break;
-        case SDLK_UP:
-            pressed_up = true;
-            if(instrument_editor) {
-                
-            } else {
-                if(pattern_editor) {
-                    pattern_cursor_y--;
-                    checkPatternCursorBounds();
-                } else {
-                    visual_cursor_y--;
-                    checkVisualCursorBounds();
+                break;
+            case SDLK_o:
+                if(modifier) {
+                    openProject(synth);
                 }
-            }
-            break;
-        case SDLK_DOWN:
-            pressed_down = true;
-            if(instrument_editor) {
-                
-            } else {
-                if(pattern_editor) {
-                    pattern_cursor_y++;
-                    checkPatternCursorBounds();
-                } else {
-                    visual_cursor_y++;
-                    checkVisualCursorBounds();
+                break;
+            case SDLK_s:
+                if(modifier) {
+                    saveProject(synth);
                 }
-            }
-            break;
-        case SDLK_BACKSPACE:
-            if(instrument_editor) {}
-            else if(pattern_editor) {}
-            else if(editing) {
-                int x_count = visual_cursor_x%5;
-                if(x_count == 0) {
-                    cSynthRemoveTrackNode(synth, synth->track_cursor_x, synth->track_cursor_y);
-                } else if(x_count == 1) {
-                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
-                } else if(x_count == 2) {
-                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
-                } else if(x_count == 3) {
-                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
-                } else if(x_count == 4) {
-                    cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
-                }
-            }
-            break;
-        case SDLK_SPACE:
-            if(instrument_editor) {
-                instrument_editor = false;
-            } else {
-                if(pattern_editor) {
-                    if(pattern_cursor_y == 17 || pattern_cursor_y == 18) {
-                        int ins_nr = pattern_cursor_x;
-                        // instruments
-                        if(pattern_cursor_y == 18) {
-                            ins_nr += 6;
-                        }
-                        selected_instrument_id = ins_nr;
-                        printf("selected instrument:%d\n", ins_nr);
-                        if(instrument_editor) {
-                            instrument_editor = false;
-                            printf("instrument editor false\n");
-                        } else {
-                            instrument_editor = true;
-                            printf("instrument editor true\n");
-                        }
+                break;
+            case SDLK_TAB:
+                if(instrument_editor) {
+                    struct CInstrument *ins = synth->instruments[selected_instrument_id];
+                    selected_instrument_node_index++;
+                    if(selected_instrument_node_index >= ins->adsr_nodes) {
+                        selected_instrument_node_index = 0;
                     }
+                    
+                    printf("selected_instrument_node_index:%i", selected_instrument_node_index);
                 } else {
-                    if(editing == true) {
-                        editing = false;
-                        setInfoTimer("editing off");
+                    if(pattern_editor) {
+                        pattern_editor = false;
                     } else {
-                        editing = true;
-                        setInfoTimer("editing on");
+                        pattern_editor = true;
                     }
                 }
-            }
-            break;
-            
-        default:
-            break;
+                break;
+            case SDLK_LGUI:
+                modifier = true;
+                //printf("modifier on");
+                break;
+            case SDLK_ESCAPE:
+                quit = true;
+                break;
+            case SDLK_RETURN:
+                if(playing == 0) {
+                    playing = true;
+                    if(pattern_editor) {
+                        printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
+                        cSynthResetTrackProgress(synth, pattern_cursor_y-1);
+                    } else {
+                        cSynthResetTrackProgress(synth, synth->current_track);
+                        printf("playing from pattern:%d\n", synth->current_track);
+                    }
+                } else {
+                    playing = 0;
+                }
+                break;
+                
+            case SDLK_LEFT:
+                pressed_left = true;
+                if(instrument_editor) {
+                    
+                } else {
+                    if(modifier) {
+                        octave--;
+                        if(octave < 0) {
+                            octave = 0;
+                        }
+                        setInfoTimerWithInt("octave", octave);
+                    } else if(pattern_editor) {
+                        pattern_cursor_x--;
+                        checkPatternCursorBounds();
+                    } else {
+                        visual_cursor_x--;
+                        checkVisualCursorBounds();
+                    }
+                }
+                break;
+            case SDLK_RIGHT:
+                pressed_right = true;
+                if(instrument_editor) {
+                    
+                } else {
+                    if(modifier) {
+                        octave++;
+                        if(octave > 7) {
+                            octave = 7;
+                        }
+                        setInfoTimerWithInt("octave", octave);
+                    } else if(pattern_editor) {
+                        pattern_cursor_x++;
+                        checkPatternCursorBounds();
+                    } else {
+                        visual_cursor_x++;
+                        checkVisualCursorBounds();
+                    }
+                }
+                break;
+            case SDLK_UP:
+                pressed_up = true;
+                if(instrument_editor) {
+                    
+                } else {
+                    if(pattern_editor) {
+                        pattern_cursor_y--;
+                        checkPatternCursorBounds();
+                    } else {
+                        visual_cursor_y--;
+                        checkVisualCursorBounds();
+                    }
+                }
+                break;
+            case SDLK_DOWN:
+                pressed_down = true;
+                if(instrument_editor) {
+                    
+                } else {
+                    if(pattern_editor) {
+                        pattern_cursor_y++;
+                        checkPatternCursorBounds();
+                    } else {
+                        visual_cursor_y++;
+                        checkVisualCursorBounds();
+                    }
+                }
+                break;
+            case SDLK_BACKSPACE:
+                if(instrument_editor) {}
+                else if(pattern_editor) {}
+                else if(editing) {
+                    int x_count = visual_cursor_x%5;
+                    if(x_count == 0) {
+                        cSynthRemoveTrackNode(synth, synth->track_cursor_x, synth->track_cursor_y);
+                    } else if(x_count == 1) {
+                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                    } else if(x_count == 2) {
+                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                    } else if(x_count == 3) {
+                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                    } else if(x_count == 4) {
+                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                    }
+                }
+                break;
+            case SDLK_SPACE:
+                if(instrument_editor) {
+                    instrument_editor = false;
+                } else {
+                    if(pattern_editor) {
+                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18) {
+                            int ins_nr = pattern_cursor_x;
+                            // instruments
+                            if(pattern_cursor_y == 18) {
+                                ins_nr += 6;
+                            }
+                            selected_instrument_id = ins_nr;
+                            printf("selected instrument:%d\n", ins_nr);
+                            if(instrument_editor) {
+                                instrument_editor = false;
+                                printf("instrument editor false\n");
+                            } else {
+                                instrument_editor = true;
+                                printf("instrument editor true\n");
+                            }
+                        }
+                    } else {
+                        if(editing == true) {
+                            editing = false;
+                            setInfoTimer("editing off");
+                        } else {
+                            editing = true;
+                            setInfoTimer("editing on");
+                        }
+                    }
+                }
+                break;
+                
+            default:
+                break;
+        }
     }
     
     int x_count = visual_cursor_x%5;
@@ -1512,6 +1726,11 @@ void renderTrack(void) {
         return;
     }
     
+    if(file_editor) {
+        listDirectory(file_default_dir);
+        return;
+    }
+    
     drawWaveTypes();
     
     int x_count = 0;
@@ -1631,11 +1850,8 @@ SDL_GLContext context;
 void setupSDL() {
     
     SDL_Init(SDL_INIT_VIDEO);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     
-    window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_OPENGL);
+    window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
     context = SDL_GL_CreateContext(window);
     if(context == NULL) {
         printf("\nFailed to create context: %s\n", SDL_GetError());
@@ -1816,8 +2032,6 @@ void mainLoop() {
 
 int main(int argc, char ** argv)
 {
-    
-    listDirectory();
     
     setupCSynth();
     setupSDL();
