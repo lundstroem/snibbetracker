@@ -22,6 +22,9 @@
 		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
 		0399B2F717F35C1D005ACCBE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0399B2F617F35C1D005ACCBE /* main.c */; };
 		03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */ = {isa = PBXBuildFile; fileRef = 03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */; };
+		03D930E51AA48D33000251CC /* SDL2_image.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03D930E41AA48D33000251CC /* SDL2_image.framework */; };
+		03D930E61AA48D33000251CC /* SDL2_image.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 03D930E41AA48D33000251CC /* SDL2_image.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		03D930E91AA491AC000251CC /* groundtiles.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D930E81AA491AC000251CC /* groundtiles.png */; };
 		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
 		03F0ADE71A80EE8500884785 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDD1A80EE8500884785 /* LICENSE */; };
 		03F0ADE81A80EE8500884785 /* README in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDE1A80EE8500884785 /* README */; };
@@ -44,6 +47,7 @@
 			dstSubfolderSpec = 10;
 			files = (
 				03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */,
+				03D930E61AA48D33000251CC /* SDL2_image.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,6 +87,8 @@
 		03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAllocator.c; sourceTree = "<group>"; };
 		03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAllocator.h; sourceTree = "<group>"; };
 		03C75C971A96370E00DA3DE7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		03D930E41AA48D33000251CC /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
+		03D930E81AA491AC000251CC /* groundtiles.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = groundtiles.png; sourceTree = "<group>"; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
 		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
 		03F0ADDD1A80EE8500884785 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -103,6 +109,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */,
+				03D930E51AA48D33000251CC /* SDL2_image.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -146,6 +153,8 @@
 		0399B2DE17F35C1D005ACCBE = {
 			isa = PBXGroup;
 			children = (
+				03D930E71AA491AC000251CC /* res */,
+				03D930E41AA48D33000251CC /* SDL2_image.framework */,
 				03420CCD1A077D3500B4EF5D /* cengine */,
 				03FCECB917F625B50045D4FB /* game */,
 				0399B2F017F35C1D005ACCBE /* SDL2_template */,
@@ -189,6 +198,14 @@
 				0399B2F317F35C1D005ACCBE /* InfoPlist.strings */,
 			);
 			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		03D930E71AA491AC000251CC /* res */ = {
+			isa = PBXGroup;
+			children = (
+				03D930E81AA491AC000251CC /* groundtiles.png */,
+			);
+			path = res;
 			sourceTree = "<group>";
 		};
 		03F0ADDA1A80EE8500884785 /* cJSON */ = {
@@ -277,6 +294,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03D930E91AA491AC000251CC /* groundtiles.png in Resources */,
 				03F0ADED1A80EE8500884785 /* test4 in Resources */,
 				03F0ADEC1A80EE8500884785 /* test3 in Resources */,
 				03F0ADEE1A80EE8500884785 /* test5 in Resources */,

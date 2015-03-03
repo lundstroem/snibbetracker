@@ -1,5 +1,6 @@
 
 #include <SDL2/SDL.h>
+#include <SDL2_image/SDL_image.h>
 #include <stdbool.h>
 #include "Game.h"
 #include "CInput.h"
@@ -71,6 +72,7 @@ int selected_instrument_node_index = 0;
 
 // file editor
 bool file_editor = false;
+bool file_editor_save = false;
 int file_cursor_x = 0;
 int file_cursor_y = 0;
 int file_pos_in_list = 0;
@@ -84,6 +86,8 @@ int file_path_max_length = 256;
 int file_path_pos = 0;
 int file_cursor_y_saved[256];
 bool reload_dirs = true;
+char *file_name = NULL;
+char file_path_delimiter = '/';
 
 bool pressed_left = false;
 bool pressed_right = false;
@@ -97,53 +101,78 @@ char *infoString = NULL;
 
 bool show_tips = true;
 
-static void recreateWindow(void);
+
+
+static void handle_key_down_file(SDL_Keysym* keysym);
+static void exitFileEditor();
+static int getDirectoryListPosix(char *dir_string);
 static void listDirectory();
-static void getDirectoryListPosix(char *dir_string);
-
-/********* file handling **********/
-// open mode
-// [file list] [open]
-
-
-// save mode
-// [file list] [filename]
-//             [save]
-
-// filename entering needs to override other keyboard input.
-// separate platform specific dir listings to prepare for win version.
-
-// - first task, enter/exit file mode
-// - scroll in dir list.
+static void addFilenameChar(char c);
+static void removeFilenameChar();
+static void loadProjectFile(char *path);
+static void saveProjectFile();
+static void setInfoTimer(char *string);
+static void setInfoTimerWithInt(char *string, int data);
 
 
-void handle_key_down_file( SDL_Keysym* keysym) {
+/*
+ 
+ TODO: file handling
+ 
+ - change colors to make more sense.
+ - test file name limits so not to crash the program.
+ - preserve path after save/load to make it default next time when entering.
+ - adjust placement of labels to the infoLabel.
+ - make flags to diff posix/win and write template code for win.
+ 
+ */
+
+static void handle_key_down_file(SDL_Keysym* keysym) {
    
+    char c = 0;
     switch( keysym->sym ) {
+        case SDLK_a: c = 'a'; addFilenameChar(c); break;
+        case SDLK_b: c = 'b'; addFilenameChar(c); break;
+        case SDLK_c: c = 'c'; addFilenameChar(c); break;
+        case SDLK_d: c = 'd'; addFilenameChar(c); break;
+        case SDLK_e: c = 'e'; addFilenameChar(c); break;
+        case SDLK_f: c = 'f'; addFilenameChar(c); break;
+        case SDLK_g: c = 'g'; addFilenameChar(c); break;
+        case SDLK_h: c = 'h'; addFilenameChar(c); break;
+        case SDLK_i: c = 'i'; addFilenameChar(c); break;
+        case SDLK_j: c = 'j'; addFilenameChar(c); break;
+        case SDLK_k: c = 'k'; addFilenameChar(c); break;
+        case SDLK_l: c = 'l'; addFilenameChar(c); break;
+        case SDLK_m: c = 'm'; addFilenameChar(c); break;
+        case SDLK_n: c = 'n'; addFilenameChar(c); break;
+        case SDLK_o: c = 'o'; addFilenameChar(c); break;
+        case SDLK_p: c = 'p'; addFilenameChar(c); break;
+        case SDLK_q: c = 'q'; addFilenameChar(c); break;
+        case SDLK_r: c = 'r'; addFilenameChar(c); break;
+        case SDLK_s: c = 's'; addFilenameChar(c); break;
+        case SDLK_t: c = 't'; addFilenameChar(c); break;
+        case SDLK_u: c = 'u'; addFilenameChar(c); break;
+        case SDLK_v: c = 'v'; addFilenameChar(c); break;
+        case SDLK_w: c = 'w'; addFilenameChar(c); break;
+        case SDLK_x: c = 'x'; addFilenameChar(c); break;
+        case SDLK_y: c = 'y'; addFilenameChar(c); break;
+        case SDLK_z: c = 'z'; addFilenameChar(c); break;
+        case SDLK_0: c = '0'; addFilenameChar(c); break;
+        case SDLK_1: c = '1'; addFilenameChar(c); break;
+        case SDLK_2: c = '2'; addFilenameChar(c); break;
+        case SDLK_3: c = '3'; addFilenameChar(c); break;
+        case SDLK_4: c = '4'; addFilenameChar(c); break;
+        case SDLK_5: c = '5'; addFilenameChar(c); break;
+        case SDLK_6: c = '6'; addFilenameChar(c); break;
+        case SDLK_7: c = '7'; addFilenameChar(c); break;
+        case SDLK_8: c = '8'; addFilenameChar(c); break;
+        case SDLK_9: c = '9'; addFilenameChar(c); break;
         case SDLK_PLUS:
             break;
         case SDLK_MINUS:
             break;
-        case SDLK_o:
-            break;
-        case SDLK_s:
-            break;
         case SDLK_TAB:
-            for (int i = 0; i < file_dir_max_length; i++) {
-                if (file_dirs[i] != NULL) {
-                    cAllocatorFree(file_dirs[i]);
-                    file_dirs[i] = NULL;
-                }
-            }
-            for (int i = 0; i < file_path_max_length; i++) {
-                if (file_path_list[i] != NULL) {
-                    cAllocatorFree(file_path_list[i]);
-                    file_path_list[i] = NULL;
-                }
-            }
-            cAllocatorFree(file_path);
-            file_editor = false;
-            reload_dirs = true;
+            exitFileEditor();
             break;
         case SDLK_LGUI:
             break;
@@ -151,26 +180,35 @@ void handle_key_down_file( SDL_Keysym* keysym) {
             break;
         case SDLK_RETURN:
             // activate another node in the path.
-            if(file_path_pos < file_path_max_length) {
-                file_cursor_y_saved[file_path_pos] = file_cursor_y;
-                file_path_pos++;
-                if(file_path_list[file_path_pos] != NULL) {
-                    cAllocatorFree(file_path_list[file_path_pos]);
-                    file_path_list[file_path_pos] = NULL;
+            if(file_cursor_x == 1) {
+                saveProjectFile();
+            } else if(file_cursor_x == 0) {
+                if(file_path_pos < file_path_max_length) {
+                    file_cursor_y_saved[file_path_pos] = file_cursor_y;
+                    file_path_pos++;
+                    if(file_path_list[file_path_pos] != NULL) {
+                        file_path_list[file_path_pos] = cAllocatorFree(file_path_list[file_path_pos]);
+                    }
+                    char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
+                    sprintf(path, "%s", file_dirs[file_cursor_y]);
+                    file_path_list[file_path_pos] = path;
+                    file_cursor_y = 0;
+                    printf("adding another to path:%s path_pos:%d\n", path, file_path_pos);
+                    reload_dirs = true;
+                } else {
+                    printf("file path max nodes reached, cannot go deeper\n");
                 }
-                char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
-                sprintf(path, "%s", file_dirs[file_cursor_y]);
-                file_path_list[file_path_pos] = path;
-                file_cursor_y = 0;
-                printf("adding another to path:%s path_pos:%d\n", path, file_path_pos);
-                reload_dirs = true;
-            } else {
-                printf("file path max nodes reached, cannot go deeper\n");
             }
             break;
         case SDLK_LEFT:
+            if(file_editor_save && file_cursor_x > 0) {
+                file_cursor_x--;
+            }
             break;
         case SDLK_RIGHT:
+            if (file_editor_save && file_cursor_x < 1) {
+                file_cursor_x++;
+            }
             break;
         case SDLK_UP:
             file_cursor_y--;
@@ -186,35 +224,56 @@ void handle_key_down_file( SDL_Keysym* keysym) {
             }
             break;
         case SDLK_BACKSPACE:
-            if(file_path_pos > 0) {
-                if(file_path_list[file_path_pos] != NULL) {
-                    cAllocatorFree(file_path_list[file_path_pos]);
-                    file_path_list[file_path_pos] = NULL;
+            if(file_cursor_x == 0) {
+                if(file_path_pos > 0) {
+                    if(file_path_list[file_path_pos] != NULL) {
+                        file_path_list[file_path_pos] = cAllocatorFree(file_path_list[file_path_pos]);
+                    }
+                    file_path_pos--;
+                    file_cursor_y = file_cursor_y_saved[file_path_pos];
+                    reload_dirs = true;
+                } else {
+                    printf("cannot go further back.\n");
                 }
-                file_path_pos--;
-                file_cursor_y = file_cursor_y_saved[file_path_pos];
-                reload_dirs = true;
-            } else {
-                printf("cannot go further back.\n");
+            } else if(file_editor_save) {
+                // TODO: erase a character from the filename.
             }
             break;
         case SDLK_SPACE:
+            removeFilenameChar();
             break;
         default:
             break;
     }
 }
 
+static void exitFileEditor() {
+    for (int i = 0; i < file_dir_max_length; i++) {
+        if (file_dirs[i] != NULL) {
+            file_dirs[i] = cAllocatorFree(file_dirs[i]);
+        }
+    }
+    for (int i = 0; i < file_path_max_length; i++) {
+        if (file_path_list[i] != NULL) {
+            file_path_list[i] = cAllocatorFree(file_path_list[i]);
+        }
+    }
+    file_path = cAllocatorFree(file_path);
+    file_name = cAllocatorFree(file_name);
+    file_editor = false;
+    file_editor_save = false;
+    reload_dirs = true;
+    file_cursor_x = 0;
+}
 
 static DIR *d = NULL;
-static void getDirectoryListPosix(char *dir_string) {
+static int getDirectoryListPosix(char *dir_string) {
     // POSIX only. Need another solution for win.
     
     // Clear out all stored directories
     for (int i = 0; i < file_dir_max_length; i++) {
         if (file_dirs[i] != NULL) {
-            cAllocatorFree(file_dirs[i]);
-            file_dirs[i] = NULL;
+            file_dirs[i] = cAllocatorFree(file_dirs[i]);
         }
     }
     
@@ -231,8 +290,10 @@ static void getDirectoryListPosix(char *dir_string) {
         }
         closedir(d);
     } else {
+        return 0;
         printf("dir is null.\n");
     }
+    return 1;
 }
 
 static void listDirectory() {
@@ -263,14 +324,32 @@ static void listDirectory() {
         
         // Set the new path
         if(file_path != NULL) {
-            cAllocatorFree(file_path);
-            file_path = NULL;
+            file_path = cAllocatorFree(file_path);
         }
         file_path = path;
         
         printf("path:%s path_pos:%d\n", path, file_path_pos);
         
-        getDirectoryListPosix(file_path);
+        int status = getDirectoryListPosix(file_path);
+        if(status == 0) {
+            
+            //Directories returnes 0, check if name ends in .json, in that case try to load!
+            int len = (int)strlen(file_path);
+            if(len > 4) {
+                if(file_path[len-1] == 'n'
+                   && file_path[len-2] == 'o'
+                   && file_path[len-3] == 's'
+                   && file_path[len-4] == 'j'
+                   && file_path[len-5] == '.') {
+                   loadProjectFile(file_path);
+                } else {
+                    printf("filename does not contain .json\n");
+                }
+            } else {
+                printf("filename is not 5 chars or longer\n");
+            }
+        }
+        
         reload_dirs = false;
     }
     
@@ -285,39 +364,60 @@ static void listDirectory() {
         }
         offset_y++;
     }
-}
-
-
-int saveProject(struct CSynthContext *synth) {
     
-    file_editor = true;
-    /*
-    cJSON *root = cSynthSaveProject(synth);
-    if(root != NULL) {
+    int offset_x = 20;
     
-        // TODO: need to get correct savepath.
-        char *savePath = "path to save";
-    
-        FILE * fp;
-        fp = fopen (savePath, "w+");
-        fprintf(fp, "%s", cJSON_PrintUnformatted(root));
-        fclose(fp);
-        
-        cJSON_Delete(root);
+    if(file_path != NULL) {
+        cEngineRenderLabelWithParams(raster2d, "path:", offset_x, 23, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
     }
-     */
-    return 0;
+    
+    if(file_editor_save) {
+        if(file_cursor_x == 0) {
+            cEngineRenderLabelWithParams(raster2d, "save to file:", offset_x, 22, cengine_color_red, cengine_color_black);
+            if(file_name != NULL) {
+                cEngineRenderLabelWithParams(raster2d, file_name, offset_x+13, 22, cengine_color_red, cengine_color_black);
+            }
+        } else if(file_cursor_x == 1) {
+            cEngineRenderLabelWithParams(raster2d, "save to file:", offset_x, 22, cengine_color_green, cengine_color_black);
+            if(file_name != NULL) {
+                cEngineRenderLabelWithParams(raster2d, file_name, offset_x+13, 22, cengine_color_green, cengine_color_black);
+            }
+        }
+    }
 }
 
+static void addFilenameChar(char c) {
+    
+    if(file_cursor_x == 1) {
+        if(file_name == NULL) {
+            file_name = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file name chars");
+        }
+        
+        int len = (int)strlen(file_name);
+        if(len < file_name_max_length) {
+            sprintf(file_name, "%s%c", file_name, c);
+        }
+    }
+}
 
-int openProject(struct CSynthContext *synth) {
+static void removeFilenameChar() {
     
-    //TODO: need correct outPath.
-    /*
-    char *outPath = "out path";
+    if(file_name == NULL) {
+        file_name = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file name chars");
+    }
     
+    int len = (int)strlen(file_name);
+    if(len > 2) {
+        file_name[len-2] = '\0';
+    }
+}
+
+static void loadProjectFile(char *path) {
+    
+    if(path != NULL) {
         FILE *fp = NULL;
-        fp = fopen(outPath, "rb");
+        fp = fopen(path, "rb");
         if(fp != NULL) {
             fseek(fp, 0L, SEEK_END);
             long sz = ftell(fp);
@@ -325,11 +425,17 @@ int openProject(struct CSynthContext *synth) {
             char *b = malloc(sizeof(char)*sz);
             fseek(fp, 0, SEEK_SET);
             fread(b, sz, 1, fp);
-            
+         
             if(b != NULL) {
                 printf("json_str:%s\n", b);
-                cSynthLoadProject(synth, b);
+                int status = cSynthLoadProject(synth, b);
                 free(b);
+                if(status == 0) {
+                    setInfoTimer("error: could not load song");
+                } else {
+                    setInfoTimer(path);
+                    exitFileEditor();
+                }
             } else {
                 printf("buffer is null\n");
             }
@@ -337,22 +443,46 @@ int openProject(struct CSynthContext *synth) {
         } else {
             printf("file pointer is null\n");
         }
-        
-    */
-    return 0;
+    } else {
+        printf("cannot load, path is null\n");
+    }
 }
 
+static void saveProjectFile() {
+    // TODO: set delimiter based on POSIX/WIN.
+    // save the '.json' in a separate char array so it can easily be swapped for something else.
+    
+    if(file_name != NULL && file_path != NULL) {
+        char *save_path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "save_path chars");
+        sprintf(save_path, "%s%c%s.json", file_path, file_path_delimiter, file_name);
+        
+        cJSON *root = cSynthSaveProject(synth);
+        if(root != NULL) {
+            FILE * fp;
+            fp = fopen (save_path, "w+");
+            fprintf(fp, "%s", cJSON_PrintUnformatted(root));
+            fclose(fp);
+            cJSON_Delete(root);
+        }
 
+        sprintf(save_path, "saved file:%s", save_path);
+        setInfoTimer(save_path);
+        save_path = cAllocatorFree(save_path);
+        exitFileEditor();
+    } else {
+        printf("cannot save, filename or path is null\n");
+    }
+}
 
 static void setInfoTimer(char *string) {
     if(string != NULL) {
-        int max_size = 20;
+        int max_size = file_name_max_length;
         int len = (int)strlen(string);
         if(len < max_size) {
-            char *info = (char *)malloc(max_size * sizeof(char));
+            char *info = (char *)cAllocatorAlloc(max_size * sizeof(char), "info timer string");
             sprintf(info, "%s", string);
             if(infoString != NULL) {
-                free(infoString);
+                infoString = cAllocatorFree(infoString);
             }
             infoString = info;
             cTimerReset(infoTimer);
@@ -364,13 +494,13 @@ static void setInfoTimer(char *string) {
 
 static void setInfoTimerWithInt(char *string, int data) {
     if(string != NULL) {
-        int max_size = 20;
+        int max_size = file_name_max_length;
         int len = (int)strlen(string);
         if(len < max_size) {
-            char *info = (char *)malloc(max_size * sizeof(char));
+            char *info = (char *)cAllocatorAlloc(max_size * sizeof(char), "info timer with int");
             sprintf(info, "%s:%d", string, data);
             if(infoString != NULL) {
-                free(infoString);
+                infoString = cAllocatorFree(infoString);
             }
             infoString = info;
             cTimerReset(infoTimer);
@@ -411,12 +541,6 @@ static void setup_data(void)
     raster = (unsigned int *) cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
     for(r = 0; r < s_width*s_height; r++) {
         raster[r] = 0;
-    }
-    
-    // contains an integer for every color/pixel on the sheet.
-    raw_sheet = (unsigned int *) cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw sheet 1");
-    for(r = 0; r < s_width*s_height; r++) {
-        raw_sheet[r] = 0;
     }
     
     raster2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c raster 2");
@@ -461,7 +585,7 @@ static void setup_data(void)
         }
     }
     
-    infoTimer = cTimerNew(1000);
+    infoTimer = cTimerNew(3000);
     cTimerReset(infoTimer);
     
 }
@@ -487,9 +611,9 @@ static void quitGame(int code)
     cEngineCleanup();
     input = cInputCleanup(input);
     infoTimer = cAllocatorFree(infoTimer);
-    
     file_dirs = cAllocatorFree(file_dirs);
     file_path_list = cAllocatorFree(file_path_list);
+    
     printf("quit game\n");
 }
 
@@ -905,6 +1029,7 @@ void handle_key_down( SDL_Keysym* keysym )
     
     if(file_editor) {
         handle_key_down_file(keysym);
+        return;
     } else {
     
         switch( keysym->sym ) {
@@ -925,12 +1050,13 @@ void handle_key_down( SDL_Keysym* keysym )
                 break;
             case SDLK_o:
                 if(modifier) {
-                    openProject(synth);
+                    file_editor = true;
                 }
                 break;
             case SDLK_s:
                 if(modifier) {
-                    saveProject(synth);
+                    file_editor = true;
+                    file_editor_save = true;
                 }
                 break;
             case SDLK_TAB:
@@ -1727,7 +1853,7 @@ void renderTrack(void) {
     }
     
     if(file_editor) {
-        listDirectory(file_default_dir);
+        listDirectory();
         return;
     }
     
@@ -1887,7 +2013,6 @@ void destroySDL() {
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
-    
 }
 
 int setupSDLAudio() {
@@ -1956,29 +2081,33 @@ void setupCSynth() {
     
     cEngineInit(c);
     
-    //printf("\n unsigned int chars_gfx[16384] = [");
+    // load char gfx from png and store in source. Remove this step before release to get rid of depencency.
+    char * filename = "groundtiles.png";
+    SDL_Surface * image = IMG_Load(filename);
+    raw_sheet = image->pixels;
+    printf("\n unsigned int chars_gfx[16384] = {");
     // print label gfx to store in code instead.
+    for (int i = 0; i< 16384; i++) {
+        printf("%d,", raw_sheet[i]);
+    }
+    printf("};\n");
+    
+    // load gfx from source.
     for (int i = 0; i < c->sheet_size*16; i++) {
         raw_sheet[i] = chars_gfx[i];
     }
     cEngineWritePixelData(raw_sheet);
-    //printf("];\n");
-    
-    
-    cAllocatorFree(raw_sheet);
-    
     synth = cSynthContextNew();
     cSynthInit(synth);
-    
     visual_track_height = synth->track_height;
-    
+    SDL_FreeSurface(image);
 }
 
 void cleanupSynth() {
     printf("allocs before cleanup:\n");
     cAllocatorPrintAllocationCount();
     
-    cSynthSaveProject(synth);
+    //cSynthSaveProject(synth);
     
     quitGame(0);
     
