@@ -73,13 +73,10 @@ int selected_instrument_node_index = 0;
 // file editor
 bool file_editor = false;
 bool file_editor_save = false;
-int file_cursor_x = 0;
 int file_cursor_y = 0;
-int file_pos_in_list = 0;
 char **file_dirs = NULL;
 int file_dir_max_length = 1024;
 int file_name_max_length = 256;
-char *file_default_dir = "/";
 char **file_path_list = NULL;
 char *file_path = NULL;
 int file_path_max_length = 256;
@@ -87,7 +84,8 @@ int file_path_pos = 0;
 int file_cursor_y_saved[256];
 bool reload_dirs = true;
 char *file_name = NULL;
-char file_path_delimiter = '/';
+int file_name_limit = 20;
+bool file_enter_pressed = false;
 
 bool pressed_left = false;
 bool pressed_right = false;
@@ -101,12 +99,16 @@ char *infoString = NULL;
 
 bool show_tips = true;
 
-
-
 static void handle_key_down_file(SDL_Keysym* keysym);
+static void exitDir();
+static void enterDir();
 static void exitFileEditor();
 static int getDirectoryListPosix(char *dir_string);
+static void initDefaultDirIfNull();
+static int peekDir(char *dir_name);
+static int getDirectoryList(char *dir_string);
 static void listDirectory();
+static void renderFiles();
 static void addFilenameChar(char c);
 static void removeFilenameChar();
 static void loadProjectFile(char *path);
@@ -119,12 +121,16 @@ static void setInfoTimerWithInt(char *string, int data);
  
  TODO: file handling
  
+ - persistent default dir, need to research platform differences?
+
  - change colors to make more sense.
- - test file name limits so not to crash the program.
- - preserve path after save/load to make it default next time when entering.
- - adjust placement of labels to the infoLabel.
  - make flags to diff posix/win and write template code for win.
  
+ //done
+ - preserve path after save/load to make it default next time when entering.
+ - test file name limits so not to crash the program.
+ - adjust placement of labels to the infoLabel.
+ - use escape overall to move back, remove esc as way to close program.
  */
 
 static void handle_key_down_file(SDL_Keysym* keysym) {
@@ -172,43 +178,26 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
         case SDLK_MINUS:
             break;
         case SDLK_TAB:
-            exitFileEditor();
             break;
         case SDLK_LGUI:
             break;
         case SDLK_ESCAPE:
+                exitFileEditor();
             break;
         case SDLK_RETURN:
             // activate another node in the path.
-            if(file_cursor_x == 1) {
+            if(file_editor_save) {
                 saveProjectFile();
-            } else if(file_cursor_x == 0) {
-                if(file_path_pos < file_path_max_length) {
-                    file_cursor_y_saved[file_path_pos] = file_cursor_y;
-                    file_path_pos++;
-                    if(file_path_list[file_path_pos] != NULL) {
-                        file_path_list[file_path_pos] = cAllocatorFree(file_path_list[file_path_pos]);
-                    }
-                    char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
-                    sprintf(path, "%s", file_dirs[file_cursor_y]);
-                    file_path_list[file_path_pos] = path;
-                    file_cursor_y = 0;
-                    printf("adding another to path:%s path_pos:%d\n", path, file_path_pos);
-                    reload_dirs = true;
-                } else {
-                    printf("file path max nodes reached, cannot go deeper\n");
-                }
+            } else {
+                file_enter_pressed = true;
+                enterDir();
             }
             break;
         case SDLK_LEFT:
-            if(file_editor_save && file_cursor_x > 0) {
-                file_cursor_x--;
-            }
+            exitDir();
             break;
         case SDLK_RIGHT:
-            if (file_editor_save && file_cursor_x < 1) {
-                file_cursor_x++;
-            }
+            enterDir();
             break;
         case SDLK_UP:
             file_cursor_y--;
@@ -224,26 +213,53 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             }
             break;
         case SDLK_BACKSPACE:
-            if(file_cursor_x == 0) {
-                if(file_path_pos > 0) {
-                    if(file_path_list[file_path_pos] != NULL) {
-                        file_path_list[file_path_pos] = cAllocatorFree(file_path_list[file_path_pos]);
-                    }
-                    file_path_pos--;
-                    file_cursor_y = file_cursor_y_saved[file_path_pos];
-                    reload_dirs = true;
-                } else {
-                    printf("cannot go further back.\n");
-                }
-            } else if(file_editor_save) {
-                // TODO: erase a character from the filename.
+            if(file_editor_save) {
+                removeFilenameChar();
             }
             break;
         case SDLK_SPACE:
-            removeFilenameChar();
             break;
         default:
             break;
+    }
+}
+
+static void exitDir() {
+    if(file_path_pos > 0) {
+        if(file_path_list[file_path_pos] != NULL) {
+            file_path_list[file_path_pos] = cAllocatorFree(file_path_list[file_path_pos]);
+        }
+        file_path_pos--;
+        file_cursor_y = file_cursor_y_saved[file_path_pos];
+        reload_dirs = true;
+    } else {
+        printf("cannot go further back.\n");
+    }
+}
+
+static void enterDir() {
+    
+    if(file_path_pos < file_path_max_length) {
+        int ret_status = peekDir(file_dirs[file_cursor_y]);
+        printf("== peek status:%d\n", ret_status);
+        if(ret_status == 2) {
+            // advance directory
+            file_cursor_y_saved[file_path_pos] = file_cursor_y;
+            file_path_pos++;
+            if(file_path_list[file_path_pos] != NULL) {
+                file_path_list[file_path_pos] = cAllocatorFree(file_path_list[file_path_pos]);
+            }
+            char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
+            sprintf(path, "%s", file_dirs[file_cursor_y]);
+            file_path_list[file_path_pos] = path;
+            file_cursor_y = 0;
+            printf("adding another to path:%s path_pos:%d\n", path, file_path_pos);
+            reload_dirs = true;
+        } else {
+            file_enter_pressed = false;
+        }
+    } else {
+        printf("file path max nodes reached, cannot go deeper\n");
     }
 }
 
@@ -253,23 +269,17 @@ static void exitFileEditor() {
             file_dirs[i] = cAllocatorFree(file_dirs[i]);
         }
     }
-    for (int i = 0; i < file_path_max_length; i++) {
-        if (file_path_list[i] != NULL) {
-            file_path_list[i] = cAllocatorFree(file_path_list[i]);
-        }
-    }
+    
     file_path = cAllocatorFree(file_path);
     file_name = cAllocatorFree(file_name);
     file_editor = false;
     file_editor_save = false;
     reload_dirs = true;
-    file_cursor_x = 0;
 }
 
 static DIR *d = NULL;
 static int getDirectoryListPosix(char *dir_string) {
-    // POSIX only. Need another solution for win.
-    
+ 
     // Clear out all stored directories
     for (int i = 0; i < file_dir_max_length; i++) {
         if (file_dirs[i] != NULL) {
@@ -282,7 +292,6 @@ static int getDirectoryListPosix(char *dir_string) {
     d = opendir(dir_string);
     if (d) {
         while ((dir = readdir(d)) != NULL) {
-            //printf("%s\n", dir->d_name);
             char *dir_name_chars = cAllocatorAlloc(sizeof(char)*file_name_max_length, "dir name chars");
             sprintf(dir_name_chars, "%s", dir->d_name);
             file_dirs[pos] = dir_name_chars;
@@ -296,18 +305,114 @@ static int getDirectoryListPosix(char *dir_string) {
     return 1;
 }
 
+static char *getDefaultDir() {
+    //TODO windows
+    
+    // posix
+    return "/";
+}
+
+static void initDefaultDirIfNull() {
+    if(file_path_list[0] == NULL) {
+        printf("setting up file path defaults.\n");
+        char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
+        sprintf(path, "%s", getDefaultDir());
+        file_path_list[0] = path;
+        file_path_pos = 0;
+    }
+}
+
+static char getFilePathDelimiter() {
+    return '/';
+}
+
+static int peekDir(char *dir_name) {
+    /* return codes
+    
+     0 null and no .json ending.
+     1 null but has .json ending.
+     2 not null.
+     */
+    
+    int return_code = 0;
+    
+    initDefaultDirIfNull();
+    
+    // append the dir names to the path.
+    char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "dir name chars");
+    for(int i = 0; i < file_path_pos+1; i++) {
+        if(file_path_list[i] != NULL) {
+            if(i < 2) {
+                sprintf(path, "%s%s", path, file_path_list[i]);
+            } else {
+                // Also append delimiter.
+                sprintf(path, "%s%c%s", path, getFilePathDelimiter(), file_path_list[i]);
+            }
+        }
+    }
+    
+    // append suggested dir name
+    if(file_path_pos < 1) {
+        sprintf(path, "%s%s", path, dir_name);
+    } else {
+        // Also append slash.
+        sprintf(path, "%s/%s", path, dir_name);
+    }
+    
+    printf("peek path:%s\n", path);
+    int status = 0;
+    d = opendir(path);
+    if(d) {
+        status = 1;
+        closedir(d);
+    }
+    
+    if(status == 0 && !file_editor_save && file_enter_pressed) {
+        //Directories returnes 0, check if name ends in .json, in that case try to load!
+        int len = (int)strlen(path);
+        if(len > 4) {
+            if(path[len-1] == 'n'
+               && path[len-2] == 'o'
+               && path[len-3] == 's'
+               && path[len-4] == 'j'
+               && path[len-5] == '.') {
+                // this is a eligble file if entered with 'enter key'
+                
+                loadProjectFile(path);
+                file_enter_pressed = false;
+                
+                return_code = 1;
+            } else {
+                printf("peek filename does not contain .json\n");
+                return_code = 0;
+            }
+        } else {
+            printf("filename is not 5 chars or longer\n");
+            return_code = 0;
+        }
+    } else if(status == 1 && !file_enter_pressed) {
+        // dirs exist
+        return_code = 2;
+    }
+    
+    if(path != NULL) {
+        path = cAllocatorFree(path);
+    }
+    
+    return return_code;
+}
+
+static int getDirectoryList(char *dir_string) {
+    //TODO windows
+    return getDirectoryListPosix(dir_string);
+}
+
 static void listDirectory() {
     
     // Set default values
     if(reload_dirs) {
-        if(file_path_list[0] == NULL) {
-            printf("setting up file path defaults.\n");
-            char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file path name chars");
-            sprintf(path, "%s", file_default_dir);
-            file_path_list[0] = path;
-            file_path_pos = 0;
-            // TODO: need to cleanup file_path_list on exit.
-        }
+        
+        initDefaultDirIfNull();
         
         // append the dir names to the path.
         char *path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "dir name chars");
@@ -330,28 +435,14 @@ static void listDirectory() {
         
         printf("path:%s path_pos:%d\n", path, file_path_pos);
         
-        int status = getDirectoryListPosix(file_path);
-        if(status == 0) {
-            
-            //Directories returnes 0, check if name ends in .json, in that case try to load!
-            int len = (int)strlen(file_path);
-            if(len > 4) {
-                if(file_path[len-1] == 'n'
-                   && file_path[len-2] == 'o'
-                   && file_path[len-3] == 's'
-                   && file_path[len-4] == 'j'
-                   && file_path[len-5] == '.') {
-                   loadProjectFile(file_path);
-                } else {
-                    printf("filename does not contain .json\n");
-                }
-            } else {
-                printf("filename is not 5 chars or longer\n");
-            }
-        }
-        
+        getDirectoryList(file_path);
         reload_dirs = false;
     }
+    
+    renderFiles();
+}
+
+static void renderFiles() {
     
     int offset_y = 0;
     for (int i = 0; i < file_dir_max_length; i++) {
@@ -365,39 +456,30 @@ static void listDirectory() {
         offset_y++;
     }
     
-    int offset_x = 20;
+    int offset_x = 0;
     
     if(file_path != NULL) {
-        cEngineRenderLabelWithParams(raster2d, "path:", offset_x, 23, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, "path:                                                                                            ", offset_x, 23, cengine_color_red, cengine_color_black);
         cEngineRenderLabelWithParams(raster2d, file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
     }
     
     if(file_editor_save) {
-        if(file_cursor_x == 0) {
-            cEngineRenderLabelWithParams(raster2d, "save to file:", offset_x, 22, cengine_color_red, cengine_color_black);
-            if(file_name != NULL) {
-                cEngineRenderLabelWithParams(raster2d, file_name, offset_x+13, 22, cengine_color_red, cengine_color_black);
-            }
-        } else if(file_cursor_x == 1) {
-            cEngineRenderLabelWithParams(raster2d, "save to file:", offset_x, 22, cengine_color_green, cengine_color_black);
-            if(file_name != NULL) {
-                cEngineRenderLabelWithParams(raster2d, file_name, offset_x+13, 22, cengine_color_green, cengine_color_black);
-            }
+        cEngineRenderLabelWithParams(raster2d, "save to file:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+        if(file_name != NULL) {
+            cEngineRenderLabelWithParams(raster2d, file_name, offset_x+13, 22, cengine_color_red, cengine_color_black);
         }
     }
 }
 
 static void addFilenameChar(char c) {
     
-    if(file_cursor_x == 1) {
-        if(file_name == NULL) {
-            file_name = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file name chars");
-        }
+    if(file_name == NULL) {
+        file_name = cAllocatorAlloc(sizeof(char)*file_name_max_length, "file name chars");
+    }
         
-        int len = (int)strlen(file_name);
-        if(len < file_name_max_length) {
-            sprintf(file_name, "%s%c", file_name, c);
-        }
+    int len = (int)strlen(file_name);
+    if(len < file_name_limit) {
+        sprintf(file_name, "%s%c", file_name, c);
     }
 }
 
@@ -408,8 +490,8 @@ static void removeFilenameChar() {
     }
     
     int len = (int)strlen(file_name);
-    if(len > 2) {
-        file_name[len-2] = '\0';
+    if(len > 0) {
+        file_name[len-1] = '\0';
     }
 }
 
@@ -431,7 +513,7 @@ static void loadProjectFile(char *path) {
                 int status = cSynthLoadProject(synth, b);
                 free(b);
                 if(status == 0) {
-                    setInfoTimer("error: could not load song");
+                    setInfoTimer("error: could not load project");
                 } else {
                     setInfoTimer(path);
                     exitFileEditor();
@@ -454,7 +536,7 @@ static void saveProjectFile() {
     
     if(file_name != NULL && file_path != NULL) {
         char *save_path = cAllocatorAlloc(sizeof(char)*file_name_max_length, "save_path chars");
-        sprintf(save_path, "%s%c%s.json", file_path, file_path_delimiter, file_name);
+        sprintf(save_path, "%s%c%s.json", file_path, getFilePathDelimiter(), file_name);
         
         cJSON *root = cSynthSaveProject(synth);
         if(root != NULL) {
@@ -465,7 +547,7 @@ static void saveProjectFile() {
             cJSON_Delete(root);
         }
 
-        sprintf(save_path, "saved file:%s", save_path);
+        //sprintf(save_path, "saved file:%s", save_path);
         setInfoTimer(save_path);
         save_path = cAllocatorFree(save_path);
         exitFileEditor();
@@ -591,8 +673,7 @@ static void setup_data(void)
 }
 
 
-void convertInput(int x, int y)
-{
+void convertInput(int x, int y) {
     input->mouse_x = x/4;
     input->mouse_y = y/4;
 }
@@ -600,8 +681,7 @@ void convertInput(int x, int y)
 
 int quit = 0;
 
-static void quitGame(int code)
-{
+static void quitGame(int code) {
     raster = cAllocatorFree(raster);
     for(int i = 0; i < s_width; i++) {
         raster2d[i] = cAllocatorFree(raster2d[i]);
@@ -612,7 +692,15 @@ static void quitGame(int code)
     input = cInputCleanup(input);
     infoTimer = cAllocatorFree(infoTimer);
     file_dirs = cAllocatorFree(file_dirs);
+
+    for (int i = 0; i < file_path_max_length; i++) {
+        if (file_path_list[i] != NULL) {
+            file_path_list[i] = cAllocatorFree(file_path_list[i]);
+        }
+    }
+
     file_path_list = cAllocatorFree(file_path_list);
+    infoString = cAllocatorFree(infoString);
     
     printf("quit game\n");
 }
@@ -1051,12 +1139,14 @@ void handle_key_down( SDL_Keysym* keysym )
             case SDLK_o:
                 if(modifier) {
                     file_editor = true;
+                    return;
                 }
                 break;
             case SDLK_s:
                 if(modifier) {
                     file_editor = true;
                     file_editor_save = true;
+                    return;
                 }
                 break;
             case SDLK_TAB:
@@ -1081,7 +1171,7 @@ void handle_key_down( SDL_Keysym* keysym )
                 //printf("modifier on");
                 break;
             case SDLK_ESCAPE:
-                quit = true;
+                //quit = true;
                 break;
             case SDLK_RETURN:
                 if(playing == 0) {
