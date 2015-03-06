@@ -38,7 +38,7 @@ int old_time = 0;
 #define cengine_color_bg5 0xFF333322
 #define cengine_color_bg6 0xFF223333
 
-char *title = "snibbetracker";
+char *title = "snibbetracker BETA";
 
 struct CInput *input = NULL;
 
@@ -68,7 +68,7 @@ int pattern_cursor_y = 0;
 
 bool instrument_editor = false;
 int selected_instrument_id = 0;
-int selected_instrument_node_index = 0;
+int selected_instrument_node_index = 1;
 
 // file editor
 bool file_editor = false;
@@ -732,7 +732,9 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 0) {
                 cSynthAddTrackNode(synth, x, y, editing, true, value+(octave*12));
                 if(editing) {
-                    visual_cursor_y++;
+                    if(!playing) {
+                        visual_cursor_y++;
+                    }
                     checkVisualCursorBounds();
                 }
             }
@@ -741,24 +743,44 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, value, -1, -1, -1);
                 printf("change instrument value:%d\n", value);
                 synth->current_instrument = value;
+                
+                if(!playing) {
+                    visual_cursor_y++;
+                    checkVisualCursorBounds();
+                }
             }
             
             if(x_count == 2 && editing) {
                 // change effect
                 cSynthAddTrackNodeParams(synth, x, y, -1, value, -1, -1);
                 printf("change effect value:%d\n", value);
+                
+                if(!playing) {
+                    visual_cursor_y++;
+                    checkVisualCursorBounds();
+                }
             }
             
             if(x_count == 3 && editing) {
                 // change param2
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, value, -1);
                 printf("change param1 value:%d\n", value);
+                
+                if(!playing) {
+                    visual_cursor_y++;
+                    checkVisualCursorBounds();
+                }
             }
             
             if(x_count == 4 && editing) {
                 // change param1
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, value);
                 printf("change param2 value:%d\n", value);
+                
+                if(!playing) {
+                    visual_cursor_y++;
+                    checkVisualCursorBounds();
+                }
             }
         }
     }
@@ -1154,7 +1176,7 @@ void handle_key_down( SDL_Keysym* keysym )
                     struct CInstrument *ins = synth->instruments[selected_instrument_id];
                     selected_instrument_node_index++;
                     if(selected_instrument_node_index >= ins->adsr_nodes) {
-                        selected_instrument_node_index = 0;
+                        selected_instrument_node_index = 1;
                     }
                     
                     printf("selected_instrument_node_index:%i", selected_instrument_node_index);
@@ -1184,6 +1206,10 @@ void handle_key_down( SDL_Keysym* keysym )
                         printf("playing from pattern:%d\n", synth->current_track);
                     }
                 } else {
+                    // note off to all voices when stopping playing.
+                    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
+                        synth->voices[v_i]->note_on = false;
+                    }
                     playing = 0;
                 }
                 break;
@@ -1932,17 +1958,13 @@ static void drawWaveTypes(void) {
 
 void renderTrack(void) {
     
-    if(instrument_editor) {
+    if(instrument_editor && !file_editor) {
         renderInstrumentEditor();
         return;
-    }
-    
-    if(pattern_editor) {
+    } else if(pattern_editor && !file_editor) {
         renderPatternMapping();
         return;
-    }
-    
-    if(file_editor) {
+    } else if(file_editor) {
         listDirectory();
         return;
     }
