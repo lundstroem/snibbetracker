@@ -350,10 +350,12 @@ static void exitFileEditor(void) {
 
 
 static char *getDefaultDir(void) {
-    //TODO windows
-    
-    // posix
-    return "/";
+    #if defined(platform_osx)
+        return "/";
+    #elif defined(platform_windows)
+        return "C:\";
+    #endif
+
 }
 
 static void initDefaultDirIfNull(void) {
