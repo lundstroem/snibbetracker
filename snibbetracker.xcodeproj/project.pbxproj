@@ -16,6 +16,7 @@
 		03420CE81A077D3500B4EF5D /* CListQueue.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CDB1A077D3500B4EF5D /* CListQueue.c */; };
 		03420CE91A077D3500B4EF5D /* CTimer.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CDD1A077D3500B4EF5D /* CTimer.c */; };
 		03420CEA1A077D3500B4EF5D /* CTouch.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CDF1A077D3500B4EF5D /* CTouch.c */; };
+		035B60591AADA84700E41249 /* dir_posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 035B60571AADA84700E41249 /* dir_posix.c */; };
 		0360E0941AA9A305006B4276 /* readme.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0360E0931AA9A305006B4276 /* readme.txt */; };
 		037D46EC1A1DE73300EA2179 /* CSynth.c in Sources */ = {isa = PBXBuildFile; fileRef = 037D46EA1A1DE73300EA2179 /* CSynth.c */; };
 		038D21961A08D11100CD39F5 /* CInput.c in Sources */ = {isa = PBXBuildFile; fileRef = 038D21941A08D11100CD39F5 /* CInput.c */; };
@@ -73,6 +74,9 @@
 		03420CDE1A077D3500B4EF5D /* CTimer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTimer.h; sourceTree = "<group>"; };
 		03420CDF1A077D3500B4EF5D /* CTouch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CTouch.c; sourceTree = "<group>"; };
 		03420CE01A077D3500B4EF5D /* CTouch.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CTouch.h; sourceTree = "<group>"; };
+		035B60571AADA84700E41249 /* dir_posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_posix.c; sourceTree = "<group>"; };
+		035B60581AADA84700E41249 /* dir_posix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_posix.h; sourceTree = "<group>"; };
+		035B605A1AADAA3100E41249 /* file_settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = file_settings.h; sourceTree = "<group>"; };
 		0360E0931AA9A305006B4276 /* readme.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = readme.txt; sourceTree = "<group>"; };
 		03758DED1A9C7451005882C2 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		037D46EA1A1DE73300EA2179 /* CSynth.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CSynth.c; sourceTree = "<group>"; };
@@ -186,6 +190,9 @@
 				0399B2F617F35C1D005ACCBE /* main.c */,
 				0399B2F117F35C1D005ACCBE /* Supporting Files */,
 				033AC4891A99DEC000183CD7 /* chars_gfx.h */,
+				035B60571AADA84700E41249 /* dir_posix.c */,
+				035B60581AADA84700E41249 /* dir_posix.h */,
+				035B605A1AADAA3100E41249 /* file_settings.h */,
 			);
 			path = SDL2_template;
 			sourceTree = "<group>";
@@ -327,6 +334,7 @@
 				03420CE71A077D3500B4EF5D /* CLabel.c in Sources */,
 				03420CE41A077D3500B4EF5D /* CButton.c in Sources */,
 				03420CE51A077D3500B4EF5D /* CEngine.c in Sources */,
+				035B60591AADA84700E41249 /* dir_posix.c in Sources */,
 				0399B2F717F35C1D005ACCBE /* main.c in Sources */,
 				03420CE61A077D3500B4EF5D /* CEntity.c in Sources */,
 				03FCECD417F625B50045D4FB /* Game.c in Sources */,
