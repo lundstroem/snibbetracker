@@ -37,7 +37,6 @@
 		03F0ADEE1A80EE8500884785 /* test5 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE51A80EE8500884785 /* test5 */; };
 		03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; };
 		03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		03FCECD417F625B50045D4FB /* Game.c in Sources */ = {isa = PBXBuildFile; fileRef = 03FCECC217F625B50045D4FB /* Game.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -103,8 +102,6 @@
 		03F0ADE31A80EE8500884785 /* test3 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test3; sourceTree = "<group>"; };
 		03F0ADE41A80EE8500884785 /* test4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4; sourceTree = "<group>"; };
 		03F0ADE51A80EE8500884785 /* test5 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test5; sourceTree = "<group>"; };
-		03FCECC217F625B50045D4FB /* Game.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = Game.c; sourceTree = "<group>"; };
-		03FCECC317F625B50045D4FB /* Game.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Game.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -159,7 +156,6 @@
 				03D930E71AA491AC000251CC /* res */,
 				03D930E41AA48D33000251CC /* SDL2_image.framework */,
 				03420CCD1A077D3500B4EF5D /* cengine */,
-				03FCECB917F625B50045D4FB /* game */,
 				0399B2F017F35C1D005ACCBE /* SDL2_template */,
 				0399B2E917F35C1D005ACCBE /* Frameworks */,
 				0399B2E817F35C1D005ACCBE /* Products */,
@@ -238,15 +234,6 @@
 				03F0ADE51A80EE8500884785 /* test5 */,
 			);
 			path = tests;
-			sourceTree = "<group>";
-		};
-		03FCECB917F625B50045D4FB /* game */ = {
-			isa = PBXGroup;
-			children = (
-				03FCECC217F625B50045D4FB /* Game.c */,
-				03FCECC317F625B50045D4FB /* Game.h */,
-			);
-			path = game;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -337,7 +324,6 @@
 				035B60591AADA84700E41249 /* dir_posix.c in Sources */,
 				0399B2F717F35C1D005ACCBE /* main.c in Sources */,
 				03420CE61A077D3500B4EF5D /* CEntity.c in Sources */,
-				03FCECD417F625B50045D4FB /* Game.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +409,7 @@
 				GCC_C_LANGUAGE_STANDARD = c89;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "";
+				GCC_WARN_PEDANTIC = NO;
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				PRODUCT_NAME = snibbetracker;
@@ -441,6 +428,7 @@
 				GCC_C_LANGUAGE_STANDARD = c89;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "";
+				GCC_WARN_PEDANTIC = NO;
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
 				PRODUCT_NAME = snibbetracker;
