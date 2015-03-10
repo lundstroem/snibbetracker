@@ -9,6 +9,9 @@
 *.swp
 *~.nib
 
+# mingw
+*.o
+
 # Xcode
 #
 build/

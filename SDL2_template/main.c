@@ -1,8 +1,9 @@
 
-#include <SDL2/SDL.h>
+
 //#include <SDL2_image/SDL_image.h>
 #include <stdbool.h>
-#include "Game.h"
+//#include "Game.h"
+#include "CEngine.h"
 #include "CInput.h"
 #include "CTouch.h"
 #include "CSynth.h"
@@ -12,7 +13,7 @@
 #include "cJSON.h"
 #include <stdio.h>
 #include "file_settings.h"
-
+#include <SDL2/SDL.h>
 
 
 #ifdef _WIN64
@@ -351,9 +352,9 @@ static void exitFileEditor(void) {
 
 static char *getDefaultDir(void) {
     #if defined(platform_osx)
-        return "/";
+        return "/\0";
     #elif defined(platform_windows)
-        return "C:\";
+        return "C:\\0";
     #endif
 
 }
