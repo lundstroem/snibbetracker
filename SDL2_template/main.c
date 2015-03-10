@@ -644,8 +644,10 @@ void convertInput(int x, int y) {
 int quit = 0;
 
 static void quitGame(int code) {
+    int i;
+    
     raster = cAllocatorFree(raster);
-    for(int i = 0; i < s_width; i++) {
+    for(i = 0; i < s_width; i++) {
         raster2d[i] = cAllocatorFree(raster2d[i]);
     }
     raster2d = cAllocatorFree(raster2d);
@@ -656,7 +658,7 @@ static void quitGame(int code) {
     
     file_settings->file_dirs = cAllocatorFree(file_settings->file_dirs);
 
-    for (int i = 0; i < file_settings->file_path_max_length; i++) {
+    for (i = 0; i < file_settings->file_path_max_length; i++) {
         if (file_settings->file_path_list[i] != NULL) {
             file_settings->file_path_list[i] = cAllocatorFree(file_settings->file_path_list[i]);
         }
@@ -1789,8 +1791,9 @@ static void renderInstrumentEditor(void) {
 
     double amp_factor = 100;
     double pos_factor = 400;
+    int i;
     
-    for(int i = 0; i < 2000; i++) {
+    for(i = 0; i < 2000; i++) {
         double g_pos = (i*(pos_factor*0.001)) + inset_x;
         int top_line_y = amp_factor + inset_y;
         int bottom_line_y = 0 + inset_y;
@@ -1798,7 +1801,7 @@ static void renderInstrumentEditor(void) {
         ADSRInvertYRender(g_pos, bottom_line_y, cengine_color_white);
     }
     
-    for(int i = 0; i < max_nodes-1; i++) {
+    for(i = 0; i < max_nodes-1; i++) {
         struct CadsrNode *node = ins->adsr[i];
         struct CadsrNode *node2 = ins->adsr[i+1];
         double g_amp = (node->amp*amp_factor) + inset_y;
@@ -1809,7 +1812,7 @@ static void renderInstrumentEditor(void) {
     }
     
     // render dots for nodes
-    for(int i = 0; i < max_nodes; i++) {
+    for(i = 0; i < max_nodes; i++) {
         struct CadsrNode *node = ins->adsr[i];
         double g_amp = (node->amp*amp_factor) + inset_y;
         double g_pos = (node->pos*pos_factor) + inset_x;

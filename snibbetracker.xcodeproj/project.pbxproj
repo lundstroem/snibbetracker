@@ -420,6 +420,7 @@
 					/Library/Frameworks,
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
 				);
+				GCC_C_LANGUAGE_STANDARD = c89;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "";
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
@@ -437,6 +438,7 @@
 					/Library/Frameworks,
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
 				);
+				GCC_C_LANGUAGE_STANDARD = c89;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "";
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
