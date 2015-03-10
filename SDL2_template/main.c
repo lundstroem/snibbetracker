@@ -14,6 +14,8 @@
 #include <stdio.h>
 #include "file_settings.h"
 #include <SDL2/SDL.h>
+#include <string.h>
+#include <math.h>
 
 
 #ifdef _WIN64
@@ -132,6 +134,7 @@ static void saveProjectFile(void);
 static void setInfoTimer(char *string);
 static void setInfoTimerWithInt(char *string, int data);
 static void initFileSettings(void);
+static void debug_log(char *str);
 
 /*
  
@@ -479,14 +482,14 @@ static void loadProjectFile(char *path) {
             fseek(fp, 0L, SEEK_END);
             long sz = ftell(fp);
             printf("file size:%ld\n", sz);
-            char *b = malloc(sizeof(char)*sz);
+            char *b = cAllocatorAlloc(sizeof(char)*sz, "load project chars");
             fseek(fp, 0, SEEK_SET);
             fread(b, sz, 1, fp);
          
             if(b != NULL) {
                 printf("json_str:%s\n", b);
                 int status = cSynthLoadProject(synth, b);
-                free(b);
+                cAllocatorFree(b);
                 if(status == 0) {
                     setInfoTimer("error: could not load project");
                 } else {
@@ -1441,7 +1444,7 @@ static int getDelta(void) {
 //const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
-Uint16 bufferSize = 64; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
+Uint16 bufferSize = 4096; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
@@ -1476,7 +1479,7 @@ Sint16 last_sample = 0;
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
    
     memset(byteStream, 0, byteStreamLength);
-    
+    	
     if(quit) {
         return;
     }
@@ -2112,7 +2115,7 @@ int setupSDLAudio(void) {
     want.samples = bufferSize;
     want.callback = audioCallback;
     
-    AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_FORMAT_CHANGE);
+    AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, 0);
     
     printf("   audioSpec\n");
     printf("----------------\n");
@@ -2122,19 +2125,54 @@ int setupSDLAudio(void) {
     printf("buffer size:%d\n", audioSpec.size);
     printf("----------------\n");
     
-    
+	
     if (AudioDevice == 0) {
-        printf("\nFailed to open audio: %s\n", SDL_GetError());
+        //printf("\nFailed to open audio: %s\n", SDL_GetError());
+			char *info = NULL;
+			info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
+			sprintf(info,"\nFailed to open audio: %s\n", SDL_GetError());
+			debug_log(info);
+			cAllocatorFree(info);
+	
         return 1;
     }
     
     
     if (audioSpec.format != want.format) {
-        printf("\nCouldn't get Float32 audio format.\n");
+        //printf("\nCouldn't get audio format.\n");
+			char *info = NULL;
+			info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
+			sprintf(info,"\nCouldn't get audio format.\n");
+			debug_log(info);
+			cAllocatorFree(info);
         return 2;
     }
     
     
+	/****** log/*/
+	char *info = NULL;
+	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
+    sprintf(info,"sample rate:%d\n", want.freq);
+	debug_log(info);
+	cAllocatorFree(info);
+	
+	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
+    sprintf(info,"channels:%d\n", audioSpec.channels);
+	debug_log(info);
+	cAllocatorFree(info);
+	
+	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
+    sprintf(info,"samples:%d\n", audioSpec.samples);
+	debug_log(info);
+	cAllocatorFree(info);
+	
+	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
+    sprintf(info,"buffer size:%d\n", audioSpec.size);
+	debug_log(info);
+	cAllocatorFree(info);
+	
+	/***********/
+	
     //int sampleRate = synth->sample_rate;
     int frameRate = synth->frame_rate;
     
@@ -2257,25 +2295,53 @@ void mainLoop(void) {
 }
 
 
+/*
+int main(int argc, char* argv[]) {
+    // Start SDL2
+    SDL_Init(SDL_INIT_EVERYTHING);
+ 
+    // Create a Window in the middle of the screen
+    SDL_Window *window = 0;
+ 
+    window = SDL_CreateWindow("Hello World!",
+                              SDL_WINDOWPOS_CENTERED,
+                              SDL_WINDOWPOS_CENTERED,
+                              640, 480,
+                              SDL_WINDOW_SHOWN);
+ 
+    // Delay so that we can see the window appear
+    SDL_Delay(2000);
+ 
+    // Cleanup and Quit
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+ 
+    return 0;
+}*/
 
+static void debug_log(char *str) {
+	FILE * fp;
+	fp = fopen ("log.txt", "a");
+	fprintf(fp, "%s\n", str);
+	fclose(fp);
+}
 
-
-int main(int argc, char ** argv)
+int main(int argc, char* argv[])
 {
-    
     setupCSynth();
     setupSDL();
     setupSDLAudio();
-            
+        
+		
     if (texture != NULL) {
         while (!quit) {
             mainLoop();
         }
     }
 
+
     cleanupSynth();
             
-    //SDL_GL_DeleteContext(mainGLContext);
     destroySDL();
     
     SDL_CloseAudioDevice(AudioDevice);
