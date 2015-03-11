@@ -9,15 +9,20 @@ RM=rm
 
 # Include paths
 INCLUDE_PATHS = -IC:\Downloads\SDL2-devel-2.0.3-mingw\i686-w64-mingw32\include -IC:\Documents\cengine -IC:\Documents\cengine\cJSON -IC:\Documents\csynth\SDL2_template
+#INCLUDE_PATHS = -IC:\Downloads\SDL2-devel-2.0.3-mingw\x86_64-w64-mingw32\include -IC:\Documents\cengine -IC:\Documents\cengine\cJSON -IC:\Documents\csynth\SDL2_template
+
 
 # Library paths
 LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.3-mingw\i686-w64-mingw32\lib
+#LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.3-mingw\x86_64-w64-mingw32\lib
 
 # Compiler flags
 COMPILER_FLAGS = -Wall -std=c99
 
 # Linker flags
-LINKER_FLAGS = -static -lmingw32 -lSDL2main -lSDL2 -mwindows -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
+#LINKER_FLAGS = -static -lmingw32 -lSDL2main -lSDL2 -mwindows -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
+
+LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2
 
 # Executable file
 EXE = snibbetracker.exe
