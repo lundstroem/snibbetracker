@@ -72,7 +72,7 @@ int old_time = 0;
 #define cengine_color_bg5 0xFF333322
 #define cengine_color_bg6 0xFF223333
 
-char *title = "snibbetracker BETA";
+char *title = "snibbetracker test";
 
 struct CInput *input = NULL;
 

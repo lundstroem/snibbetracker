@@ -1,11 +1,16 @@
-snibbetracker BETA
+snibbetracker 
 ----------------
+ 
+changelog
+----------------
+build 1 - first test release.
+
  
 introduction
 ----------------
-Functionality may change significantly during the BETA phase, and there will be no focus on preserving
+Functionality may change significantly during the test phase, and there will be no focus on preserving
 backwards compatibility (projects made with previous builds may not work as expected).
-Subsequent BETA builds will have an accompanying changelog as a part of this document.
+Subsequent test builds will have an accompanying changelog as a part of this document.
 No warranty either implicit or implied is included. Use at your own risk.
  
 track view
@@ -42,6 +47,7 @@ global controls
 - modifier+s: go to save view
 - modifier+o: go to load view
 
+///////////////////////////////////////////// no windows version with save/load yet!
 save view
 ----------------
 - arrow keys: navigate file system.
@@ -56,7 +62,7 @@ load view
 - escape: exit load view.
 
 * modfier key is cmd on OSX and ctrl on win.
-
+/////////////////////////////////////////////
 
 effects
 ----------------
