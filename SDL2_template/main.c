@@ -45,6 +45,8 @@
 #endif
 
 bool load_gfx = false;
+bool log_file_enabled = true;
+bool release_build = false;
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -119,6 +121,7 @@ bool show_tips = true;
 
 struct FileSettings *file_settings = NULL;
 
+
 static void handle_key_down_file(SDL_Keysym* keysym);
 static void exitDir(void);
 static void enterDir(void);
@@ -129,12 +132,15 @@ static void listDirectory(void);
 static void renderFiles(void);
 static void addFilenameChar(char c);
 static void removeFilenameChar(void);
+static char *loadFile(char *path);
 static void loadProjectFile(char *path);
 static void saveProjectFile(void);
 static void setInfoTimer(char *string);
 static void setInfoTimerWithInt(char *string, int data);
 static void initFileSettings(void);
 static void debug_log(char *str);
+static int get_buffer_size_from_index(int i);
+static void load_config();
 
 /*
  
@@ -234,6 +240,8 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
         case SDLK_TAB:
             break;
         case SDLK_LGUI:
+            break;
+        case SDLK_LCTRL:
             break;
         case SDLK_ESCAPE:
                 exitFileEditor();
@@ -354,12 +362,22 @@ static void exitFileEditor(void) {
 
 
 static char *getDefaultDir(void) {
+    /*
     #if defined(platform_osx)
-        return "/\0";
+        return "/";
     #elif defined(platform_windows)
         return "C:\\0";
     #endif
-
+     */
+    #if defined(platform_osx)
+        if(release_build) {
+            return "../";
+        } else {
+            return "/";
+        }
+    #elif defined(platform_windows)
+        return "C:\\0";
+    #endif
 }
 
 static void initDefaultDirIfNull(void) {
@@ -369,6 +387,30 @@ static void initDefaultDirIfNull(void) {
         sprintf(path, "%s", getDefaultDir());
         file_settings->file_path_list[0] = path;
         file_settings->file_path_pos = 0;
+        
+        //TODO: remove this later, only for testing.
+        if(!release_build) {
+            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
+            sprintf(path, "%s", "Users");
+            file_settings->file_path_list[1] = path;
+            file_settings->file_path_pos++;
+            
+            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
+            sprintf(path, "%s", "d");
+            file_settings->file_path_list[2] = path;
+            file_settings->file_path_pos++;
+            
+            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
+            sprintf(path, "%s", "Documents");
+            file_settings->file_path_list[3] = path;
+            file_settings->file_path_pos++;
+            
+            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
+            sprintf(path, "%s", "snibbetracker-workspace");
+            file_settings->file_path_list[4] = path;
+            file_settings->file_path_pos++;
+        }
+
     }
 }
 
@@ -473,8 +515,7 @@ static void removeFilenameChar(void) {
     }
 }
 
-static void loadProjectFile(char *path) {
-    
+static char *loadFile(char *path) {
     if(path != NULL) {
         FILE *fp = NULL;
         fp = fopen(path, "rb");
@@ -482,20 +523,12 @@ static void loadProjectFile(char *path) {
             fseek(fp, 0L, SEEK_END);
             long sz = ftell(fp);
             printf("file size:%ld\n", sz);
-            char *b = cAllocatorAlloc(sizeof(char)*sz, "load project chars");
+            char *b = cAllocatorAlloc(sizeof(char)*sz, "load file chars");
             fseek(fp, 0, SEEK_SET);
             fread(b, sz, 1, fp);
-         
+            
             if(b != NULL) {
-                printf("json_str:%s\n", b);
-                int status = cSynthLoadProject(synth, b);
-                cAllocatorFree(b);
-                if(status == 0) {
-                    setInfoTimer("error: could not load project");
-                } else {
-                    setInfoTimer(path);
-                    exitFileEditor();
-                }
+                return b;
             } else {
                 printf("buffer is null\n");
             }
@@ -505,6 +538,26 @@ static void loadProjectFile(char *path) {
         }
     } else {
         printf("cannot load, path is null\n");
+    }
+    
+    return NULL;
+}
+
+static void loadProjectFile(char *path) {
+    
+    char *b = loadFile(path);
+    if(b != NULL) {
+        printf("json_str:%s\n", b);
+        int status = cSynthLoadProject(synth, b);
+        cAllocatorFree(b);
+        if(status == 0) {
+            setInfoTimer("error: could not load project");
+        } else {
+            setInfoTimer(path);
+            exitFileEditor();
+        }
+    } else {
+        printf("could not load file.\n");
     }
 }
 
@@ -591,6 +644,7 @@ static void setup_data(void)
         raster[r] = 0;
     }
     
+    
     raster2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c raster 2");
     if(raster2d == NULL) {
         fprintf(stderr, "out of memory\n");
@@ -675,7 +729,6 @@ static void quitGame(int code) {
     if(!load_gfx) {
         cAllocatorFree(raw_sheet);
     }
-    
     
     printf("quit game\n");
 }
@@ -832,7 +885,9 @@ void handle_key_up( SDL_Keysym* keysym )
     switch( keysym->sym ) {
         case SDLK_LGUI:
             modifier = false;
-            //printf("modifier off");
+            break;
+        case SDLK_LCTRL:
+            modifier = false;
             break;
         case SDLK_LEFT:
             pressed_left = false;
@@ -1134,17 +1189,21 @@ void handle_key_down( SDL_Keysym* keysym )
                 }
                 break;
             case SDLK_o:
-                if(modifier) {
-                    file_editor = true;
-                    return;
-                }
+                #if defined(platform_osx)
+                    if(modifier) {
+                        file_editor = true;
+                        return;
+                    }
+                #endif
                 break;
             case SDLK_s:
-                if(modifier) {
-                    file_editor = true;
-                    file_settings->file_editor_save = true;
-                    return;
-                }
+                #if defined(platform_osx)
+                    if(modifier) {
+                        file_editor = true;
+                        file_settings->file_editor_save = true;
+                        return;
+                    }
+                #endif
                 break;
             case SDLK_TAB:
                 if(instrument_editor) {
@@ -1165,7 +1224,9 @@ void handle_key_down( SDL_Keysym* keysym )
                 break;
             case SDLK_LGUI:
                 modifier = true;
-                //printf("modifier on");
+                break;
+            case SDLK_LCTRL:
+                modifier = true;
                 break;
             case SDLK_ESCAPE:
                 //quit = true;
@@ -1444,7 +1505,9 @@ static int getDelta(void) {
 //const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
-Uint16 bufferSize = 4096; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
+// 256, 512, 1024, 2048, 4096, 8192
+
+Uint16 bufferSize = 8192; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
@@ -1472,31 +1535,22 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
 int testSchedule = 0;
 int testScheduleSwitch = 0;
 
-//int count = -1;
-//int f_limit = 100;
-Sint16 last_sample = 0;
 
-void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
-   
-    memset(byteStream, 0, byteStreamLength);
-    	
-    if(quit) {
-        return;
-    }
 
-    Sint16 *s_byteStream = (Sint16 *)byteStream;
-    int remain = byteStreamLength / 2;
-    
+
+void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
     if(synth == NULL) {
         printf("audioCallback: synthContext is null, returning.");
         return;
     }
     
+    Uint32 i;
+    
     for(int v_i = 0; v_i < synth->max_voices; v_i++) {
         struct CVoice *voice = synth->voices[v_i];
         struct CInstrument *ins = voice->instrument;
         if(voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
-            Uint32 i;
+            
             double d_sampleRate = synth->sample_rate;
             double d_waveformLength = voice->waveform_length;
             
@@ -1506,11 +1560,11 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
             double delta_phi = (double) (cSynthGetFrequency((double)voice->tone_with_fx) / d_sampleRate * (double)d_waveformLength);
             
             
-            for (i = 0; i < remain; i+=2) {
+            for (i = begin; i < end; i+=2) {
                 if(voice->note_on) {
                     
                     double amp = 0;
-
+                    
                     if(voice->waveform == synth->noise_table) {
                         voice->phase_double+=voice->tone_with_fx*2;
                         voice->phase_int = (int)voice->phase_double;
@@ -1540,7 +1594,7 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
                     voice->adsr_cursor += 0.00001;
                     
                     if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
-                       
+                        
                         if(voice->lowpass_sweep_up) {
                             cSynthVoiceApplyLowpassSweep(synth, voice, true);
                         }
@@ -1582,8 +1636,31 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
         }
     }
     
+    //printf("i:%d remain:%d", i, remain);
+    
     if(playing == 1) {
-        cSynthAdvanceTrack(synth, remain);
+        cSynthAdvanceTrack(synth, length);
+    }
+}
+
+void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
+    
+    memset(byteStream, 0, byteStreamLength);
+    
+    if(quit) {
+        return;
+    }
+    
+    Sint16 *s_byteStream = (Sint16 *)byteStream;
+    int remain = byteStreamLength / 2;
+    
+    int chunk_size = 64;
+    int iterations = remain/chunk_size;
+    
+    for(int i = 0; i < iterations; i++) {
+        int begin = i*chunk_size;
+        int end = (i*chunk_size) + chunk_size;
+        renderAudio(s_byteStream, begin, end, chunk_size);
     }
 }
 
@@ -1991,12 +2068,6 @@ void renderTrack(void) {
             }
             
             int pos_y = inset_y+y-track_progress_int;
-            if(bg_color == cengine_color_green) {
-                // TODO: For some reason, it flips to 7 for a few frames randomly. Needs more investigation. Can it have something with threading to do?
-                if (pos_y == 7) {
-                    pos_y = 6;
-                }
-            }
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 node_x = floor(x/5);
@@ -2106,8 +2177,8 @@ void destroySDL(void) {
 int setupSDLAudio(void) {
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
     SDL_AudioSpec want;
-    SDL_zero(want);// btw, I have no idea what this is...
-    SDL_zero(audioSpec);// btw, I have no idea what this is...
+    SDL_zero(want);
+    SDL_zero(audioSpec);
     
     want.freq = synth->sample_rate;
     want.format = AUDIO_S16LSB;
@@ -2115,19 +2186,26 @@ int setupSDLAudio(void) {
     want.samples = bufferSize;
     want.callback = audioCallback;
     
-    AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, 0);
-    
-    printf("   audioSpec\n");
+    printf("audioSpec want\n");
     printf("----------------\n");
     printf("sample rate:%d\n", want.freq);
+    printf("channels:%d\n", want.channels);
+    printf("samples:%d\n", want.samples);
+    printf("----------------\n\n");
+    
+    AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, 0);
+    
+    printf("audioSpec get\n");
+    printf("----------------\n");
+    printf("sample rate:%d\n", audioSpec.freq);
     printf("channels:%d\n", audioSpec.channels);
     printf("samples:%d\n", audioSpec.samples);
-    printf("buffer size:%d\n", audioSpec.size);
+    printf("size:%d\n", audioSpec.size);
     printf("----------------\n");
     
 	
     if (AudioDevice == 0) {
-        //printf("\nFailed to open audio: %s\n", SDL_GetError());
+        printf("\nFailed to open audio: %s\n", SDL_GetError());
 			char *info = NULL;
 			info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
 			sprintf(info,"\nFailed to open audio: %s\n", SDL_GetError());
@@ -2139,7 +2217,7 @@ int setupSDLAudio(void) {
     
     
     if (audioSpec.format != want.format) {
-        //printf("\nCouldn't get audio format.\n");
+        printf("\nCouldn't get audio format.\n");
 			char *info = NULL;
 			info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
 			sprintf(info,"\nCouldn't get audio format.\n");
@@ -2152,22 +2230,22 @@ int setupSDLAudio(void) {
 	/****** log/*/
 	char *info = NULL;
 	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"sample rate:%d\n", want.freq);
+    sprintf(info,"------------\nsample rate:%d", want.freq);
 	debug_log(info);
 	cAllocatorFree(info);
 	
 	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"channels:%d\n", audioSpec.channels);
+    sprintf(info,"channels:%d", audioSpec.channels);
 	debug_log(info);
 	cAllocatorFree(info);
 	
 	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"samples:%d\n", audioSpec.samples);
+    sprintf(info,"samples:%d", audioSpec.samples);
 	debug_log(info);
 	cAllocatorFree(info);
 	
 	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"buffer size:%d\n", audioSpec.size);
+    sprintf(info,"buffer size:%d\n------------", audioSpec.size);
 	debug_log(info);
 	cAllocatorFree(info);
 	
@@ -2182,7 +2260,6 @@ int setupSDLAudio(void) {
     msPerFrame = 1000/frameRate;
     audioMainLeftOff = samplesPerFrame*8;
     SDL_AtomicSet(&audioCallbackLeftOff, 0);
-    
     SDL_PauseAudioDevice(AudioDevice, 0);// unpause audio.
     
     return 0;
@@ -2246,8 +2323,6 @@ void cleanupSynth(void) {
     printf("allocs before cleanup:\n");
     cAllocatorPrintAllocationCount();
     
-    //cSynthSaveProject(synth);
-    
     quitGame(0);
     
     printf("allocs after cleanup:\n");
@@ -2260,6 +2335,8 @@ void cleanupSynth(void) {
 
 int error_freq = 0;
 void mainLoop(void) {
+    
+    SDL_LockAudioDevice(AudioDevice);
     checkSDLEvents(event);
     
     for (int r_x = 0; r_x < s_width; r_x++) {
@@ -2271,9 +2348,6 @@ void mainLoop(void) {
     double dt = (double)getDelta();
     cEngineGameloop(dt, raster2d, input);
     
-    
-    //renderStuff
-    
     for(int x = 0; x < s_width; x++) {
         for(int y = 0; y < s_height; y++) {
             raster2d[x][y] = 0;
@@ -2281,17 +2355,13 @@ void mainLoop(void) {
     }
     
     renderTrack();
-    
     updateAndRenderInfo(dt);
-    
     SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
     SDL_RenderClear(renderer);
-    
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    
+    SDL_UnlockAudioDevice(AudioDevice);
     SDL_Delay(16);
-    
 }
 
 
@@ -2320,33 +2390,95 @@ int main(int argc, char* argv[]) {
 }*/
 
 static void debug_log(char *str) {
-	FILE * fp;
-	fp = fopen ("log.txt", "a");
-	fprintf(fp, "%s\n", str);
-	fclose(fp);
+    if(log_file_enabled) {
+        FILE * fp;
+        fp = fopen ("log.txt", "a");
+        fprintf(fp, "%s\n", str);
+        fclose(fp);
+    }
+}
+
+static int get_buffer_size_from_index(int i) {
+    switch (i) {
+        case 1:
+            return 256;
+            break;
+        case 2:
+            return 512;
+            break;
+        case 3:
+            return 1024;
+            break;
+        case 4:
+            return 2048;
+            break;
+        case 5:
+            return 4096;
+            break;
+        case 6:
+            return 8192;
+            break;
+        case 7:
+            return 16384;
+            break;
+        default:
+            return 4096;
+            break;
+    }
+
+}
+
+static void load_config() {
+    
+    char *param_buffer_size = "buffer_size";
+    char *config_file_name = "config.json";
+    cJSON *root = NULL;
+    cJSON *object = NULL;
+    bool success = false;
+    char *b = loadFile(config_file_name);
+    if(b != NULL) {
+        root = cJSON_Parse(b);
+        if(root != NULL) {
+            object = cJSON_GetObjectItem(root, param_buffer_size);
+            if(object != NULL) {
+                int buffer_index_value = object->valueint;
+                bufferSize = get_buffer_size_from_index(buffer_index_value);
+                printf("setting buffersize from config:%d\n", bufferSize);
+                success = true;
+            }
+            cJSON_Delete(root);
+        }
+        b = cAllocatorFree(b);
+    }
+    
+    if(!success) {
+        printf("could not find config file. Writing config.json.\n");
+        bufferSize = 4096;
+        FILE * fp;
+        fp = fopen ("config.json", "w+");
+        fprintf(fp, "%s", "{\"buffer_size\" : 5}");
+        fclose(fp);
+    }
 }
 
 int main(int argc, char* argv[])
 {
+    load_config();
+    
     setupCSynth();
     setupSDL();
     setupSDLAudio();
-        
-		
+    
     if (texture != NULL) {
         while (!quit) {
             mainLoop();
         }
     }
 
-
     cleanupSynth();
-            
     destroySDL();
-    
     SDL_CloseAudioDevice(AudioDevice);
     SDL_Quit();
-
     
     return 0;
 }

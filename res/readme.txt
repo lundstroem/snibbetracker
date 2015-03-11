@@ -6,9 +6,7 @@ introduction
 Functionality may change significantly during the BETA phase, and there will be no focus on preserving
 backwards compatibility (projects made with previous builds may not work as expected).
 Subsequent BETA builds will have an accompanying changelog as a part of this document.
-
 No warranty either implicit or implied is included. Use at your own risk.
-
  
 track view
 ----------------
@@ -18,6 +16,7 @@ controls:
 - arrow keys: move cursor.
 - tab: go to pattern view.
 - modifier+plus/minus: change octave up/down.
+- character keys: play notes or edit effects.
 
 track format where a = note, b = instrument number, ccc = effects.
 a b ccc
