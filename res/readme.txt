@@ -12,7 +12,12 @@ Functionality may change significantly during the test phase, and there will be 
 backwards compatibility (projects made with previous builds may not work as expected).
 Subsequent test builds will have an accompanying changelog as a part of this document.
 No warranty either implicit or implied is included. Use at your own risk.
- 
+
+
+controls overview
+----------------
+* modfier key is cmd on OSX and ctrl on win.
+
 track view
 ----------------
 controls:
@@ -61,7 +66,6 @@ load view
 - enter: load the file.
 - escape: exit load view.
 
-* modfier key is cmd on OSX and ctrl on win.
 /////////////////////////////////////////////
 
 effects
@@ -73,7 +77,8 @@ Bxx - lowpass sweep down (linear, sweep) Works best on noise channel. Choose eit
 Cxx - lowpass sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
- 
+dxx - ends pattern.
+
 BPM - beats per minute.
 Active - number of active pattern rows.
 Rows - number of active rows in patterns.
