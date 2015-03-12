@@ -122,11 +122,14 @@ bool show_tips = true;
 struct FileSettings *file_settings = NULL;
 
 
+static void initFileSettings(void);
 static void handle_key_down_file(SDL_Keysym* keysym);
 static void exitDir(void);
 static void enterDir(void);
 static void exitFileEditor(void);
+static char *getDefaultDir(void);
 static void initDefaultDirIfNull(void);
+static char getFilePathDelimiter(void);
 static int getDirectoryList(char *dir_string);
 static void listDirectory(void);
 static void renderFiles(void);
@@ -137,10 +140,44 @@ static void loadProjectFile(char *path);
 static void saveProjectFile(void);
 static void setInfoTimer(char *string);
 static void setInfoTimerWithInt(char *string, int data);
-static void initFileSettings(void);
+static void updateAndRenderInfo(double dt);
+static void setup_data(void);
+static void convertInput(int x, int y);
+static void cleanup_data(void);
+static void addTrackNodeWithOctave(int x, int y, bool editing, int value);
+static void checkVisualCursorBounds(void);
+static void checkPatternCursorBounds(void);
+static bool checkScreenBounds(int x, int y);
+void handle_key_up(SDL_Keysym* keysym);
+void handle_key_down(SDL_Keysym* keysym);
+static void handleNoteKeys(SDL_Keysym* keysym);
+static void handlePatternKeys(SDL_Keysym* keysym);
+static void handleInstrumentKeys(SDL_Keysym* keysym);
+static void handleEffectKeys(SDL_Keysym* keysym);
+static void checkSDLEvents(SDL_Event event);
+static int getDelta(void);
+static void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
+static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length);
+void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength);
+static void changeWaveform(int plus);
+static void changeParam(bool plus);
+static void drawLine(int x0, int y0, int x1, int y1);
+static void renderInstrumentEditor(void);
+static void ADSRInvertYRender(double x, double y, int color);
+static void renderPatternMapping(void);
+static char *getWaveTypeAsChar(int type);
+static void drawWaveTypes(void);
+static void renderTrack(void);
+static void setupSDL(void);
+static void destroySDL(void);
+static int setupSDLAudio(void);
+static void setup_cengine(void);
+static void cleanupSynth(void);
+static void mainLoop(void);
 static void debug_log(char *str);
 static int get_buffer_size_from_index(int i);
 static void load_config();
+static void st_log(char *message);
 
 /*
  
@@ -644,13 +681,12 @@ static void setup_data(void)
         raster[r] = 0;
     }
     
-    
     raster2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c raster 2");
     if(raster2d == NULL) {
         fprintf(stderr, "out of memory\n");
     } else {
         for(int i = 0; i < s_width; i++) {
-            raster2d[i] = cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c raster 3");
+            raster2d[i] = (unsigned int *) cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c raster 3");
             if(raster2d[i] == NULL)
             {
                 fprintf(stderr, "out of memory\n");
@@ -689,11 +725,10 @@ static void setup_data(void)
     
     infoTimer = cTimerNew(3000);
     cTimerReset(infoTimer);
-    
 }
 
 
-void convertInput(int x, int y) {
+static void convertInput(int x, int y) {
     input->mouse_x = x/4;
     input->mouse_y = y/4;
 }
@@ -701,7 +736,7 @@ void convertInput(int x, int y) {
 
 int quit = 0;
 
-static void quitGame(int code) {
+static void cleanup_data(void) {
     int i;
     
     raster = cAllocatorFree(raster);
@@ -780,7 +815,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             
             if(x_count == 2 && editing) {
                 // change effect
-                cSynthAddTrackNodeParams(synth, x, y, -1, value, -1, -1);
+                cSynthAddTrackNodeParams(synth, x, y, -1, (char)value, -1, -1);
                 printf("change effect value:%d\n", value);
                 
                 if(!playing) {
@@ -791,7 +826,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             
             if(x_count == 3 && editing) {
                 // change param2
-                cSynthAddTrackNodeParams(synth, x, y, -1, -1, value, -1);
+                cSynthAddTrackNodeParams(synth, x, y, -1, -1, (char)value, -1);
                 printf("change param1 value:%d\n", value);
                 
                 if(!playing) {
@@ -802,7 +837,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             
             if(x_count == 4 && editing) {
                 // change param1
-                cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, value);
+                cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, (char)value);
                 printf("change param2 value:%d\n", value);
                 
                 if(!playing) {
@@ -880,7 +915,7 @@ static bool checkScreenBounds(int x, int y) {
     }
 }
 
-void handle_key_up( SDL_Keysym* keysym )
+void handle_key_up(SDL_Keysym* keysym)
 {
     switch( keysym->sym ) {
         case SDLK_LGUI:
@@ -904,274 +939,13 @@ void handle_key_up( SDL_Keysym* keysym )
     }
 }
 
-void handleNoteKeys( SDL_Keysym* keysym ) {
-    
-    switch( keysym->sym ) {
-        case SDLK_z:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
-            break;
-        case SDLK_s:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
-            break;
-        case SDLK_x:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
-            break;
-        case SDLK_d:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
-            break;
-        case SDLK_c:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 16);
-            break;
-        case SDLK_v:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 17);
-            break;
-        case SDLK_g:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 18);
-            break;
-        case SDLK_b:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 19);
-            break;
-        case SDLK_h:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 20);
-            break;
-        case SDLK_n:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 21);
-            break;
-        case SDLK_j:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 22);
-            break;
-        case SDLK_m:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 23);
-            break;
-        case SDLK_COMMA:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
-            break;
-        case SDLK_l:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
-            break;
-        case SDLK_PERIOD:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
-            break;
-            
-            //upper keyboard
-        case SDLK_q:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
-            break;
-        case SDLK_2:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
-            break;
-        case SDLK_w:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
-            break;
-        case SDLK_3:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 27);
-            break;
-        case SDLK_e:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 28);
-            break;
-        case SDLK_r:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 29);
-            break;
-        case SDLK_5:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 30);
-            break;
-        case SDLK_t:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 31);
-            break;
-        case SDLK_6:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 32);
-            break;
-        case SDLK_y:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 33);
-            break;
-        case SDLK_7:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 34);
-            break;
-        case SDLK_u:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 35);
-            break;
-        case SDLK_i:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 36);
-            break;
-        case SDLK_9:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 37);
-            break;
-        case SDLK_o:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 38);
-            break;
-        case SDLK_0:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 39);
-            break;
-        case SDLK_p:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 40);
-            break;
-            
-        default:
-            break;
-    }
-}
-
-
-
-
-void handlePatternKeys( SDL_Keysym* keysym ) {
-    
-    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-        // pattern nr.
-        int pattern = 0;
-
-        switch( keysym->sym ) {
-            case SDLK_0:
-                pattern = 0;
-                break;
-            case SDLK_1:
-                pattern = 1;
-                break;
-            case SDLK_2:
-                pattern = 2;
-                break;
-            case SDLK_3:
-                pattern = 3;
-                break;
-            case SDLK_4:
-                pattern = 4;
-                break;
-            case SDLK_5:
-                pattern = 5;
-                break;
-            case SDLK_6:
-                pattern = 6;
-                break;
-            case SDLK_7:
-                pattern = 7;
-                break;
-            case SDLK_8:
-                pattern = 8;
-                break;
-            case SDLK_9:
-                pattern = 9;
-                break;
-            default:
-                return;
-                break;
-        }
-        
-        if(pattern > 9) {
-            pattern = 9;
-        } else if(pattern < 0){
-            pattern = 0;
-        }
-        
-        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
-    }
-}
-
-
-
-void handleInstrumentKeys( SDL_Keysym* keysym ) {
-    
-    switch( keysym->sym ) {
-        case SDLK_0:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
-            break;
-        case SDLK_1:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
-            break;
-        case SDLK_2:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
-            break;
-        case SDLK_3:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
-            break;
-        case SDLK_4:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
-            break;
-        case SDLK_5:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
-            break;
-        case SDLK_6:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
-            break;
-        case SDLK_7:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
-            break;
-        case SDLK_8:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
-            break;
-        case SDLK_9:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
-            break;
-        default:
-            break;
-    }
-}
-
-void handleEffectKeys( SDL_Keysym* keysym ) {
-    
-    switch( keysym->sym ) {
-        case SDLK_a:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
-            break;
-        case SDLK_b:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
-            break;
-        case SDLK_c:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
-            break;
-        case SDLK_d:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
-            break;
-        case SDLK_e:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
-            break;
-        case SDLK_f:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
-            break;
-        case SDLK_0:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
-            break;
-        case SDLK_1:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
-            break;
-        case SDLK_2:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
-            break;
-        case SDLK_3:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
-            break;
-        case SDLK_4:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
-            break;
-        case SDLK_5:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
-            break;
-        case SDLK_6:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
-            break;
-        case SDLK_7:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
-            break;
-        case SDLK_8:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
-            break;
-        case SDLK_9:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
-            break;
-        default:
-            break;
-    }
-}
-
-
-void handle_key_down( SDL_Keysym* keysym )
+void handle_key_down(SDL_Keysym* keysym)
 {
-    
-    
     if(file_editor) {
         handle_key_down_file(keysym);
         return;
     } else {
-    
+        
         switch( keysym->sym ) {
             case SDLK_PLUS:
                 if(instrument_editor) {
@@ -1189,21 +963,21 @@ void handle_key_down( SDL_Keysym* keysym )
                 }
                 break;
             case SDLK_o:
-                #if defined(platform_osx)
-                    if(modifier) {
-                        file_editor = true;
-                        return;
-                    }
-                #endif
+#if defined(platform_osx)
+                if(modifier) {
+                    file_editor = true;
+                    return;
+                }
+#endif
                 break;
             case SDLK_s:
-                #if defined(platform_osx)
-                    if(modifier) {
-                        file_editor = true;
-                        file_settings->file_editor_save = true;
-                        return;
-                    }
-                #endif
+#if defined(platform_osx)
+                if(modifier) {
+                    file_editor = true;
+                    file_settings->file_editor_save = true;
+                    return;
+                }
+#endif
                 break;
             case SDLK_TAB:
                 if(instrument_editor) {
@@ -1390,6 +1164,266 @@ void handle_key_down( SDL_Keysym* keysym )
     }
 }
 
+static void handleNoteKeys(SDL_Keysym* keysym) {
+    
+    switch( keysym->sym ) {
+        case SDLK_z:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            break;
+        case SDLK_s:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            break;
+        case SDLK_x:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            break;
+        case SDLK_d:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            break;
+        case SDLK_c:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 16);
+            break;
+        case SDLK_v:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 17);
+            break;
+        case SDLK_g:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 18);
+            break;
+        case SDLK_b:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 19);
+            break;
+        case SDLK_h:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 20);
+            break;
+        case SDLK_n:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 21);
+            break;
+        case SDLK_j:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 22);
+            break;
+        case SDLK_m:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 23);
+            break;
+        case SDLK_COMMA:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            break;
+        case SDLK_l:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            break;
+        case SDLK_PERIOD:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            break;
+            
+            //upper keyboard
+        case SDLK_q:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            break;
+        case SDLK_2:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            break;
+        case SDLK_w:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            break;
+        case SDLK_3:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 27);
+            break;
+        case SDLK_e:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 28);
+            break;
+        case SDLK_r:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 29);
+            break;
+        case SDLK_5:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 30);
+            break;
+        case SDLK_t:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 31);
+            break;
+        case SDLK_6:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 32);
+            break;
+        case SDLK_y:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 33);
+            break;
+        case SDLK_7:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 34);
+            break;
+        case SDLK_u:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 35);
+            break;
+        case SDLK_i:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 36);
+            break;
+        case SDLK_9:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 37);
+            break;
+        case SDLK_o:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 38);
+            break;
+        case SDLK_0:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 39);
+            break;
+        case SDLK_p:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 40);
+            break;
+            
+        default:
+            break;
+    }
+}
+
+
+
+
+static void handlePatternKeys(SDL_Keysym* keysym) {
+    
+    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+        // pattern nr.
+        int pattern = 0;
+
+        switch( keysym->sym ) {
+            case SDLK_0:
+                pattern = 0;
+                break;
+            case SDLK_1:
+                pattern = 1;
+                break;
+            case SDLK_2:
+                pattern = 2;
+                break;
+            case SDLK_3:
+                pattern = 3;
+                break;
+            case SDLK_4:
+                pattern = 4;
+                break;
+            case SDLK_5:
+                pattern = 5;
+                break;
+            case SDLK_6:
+                pattern = 6;
+                break;
+            case SDLK_7:
+                pattern = 7;
+                break;
+            case SDLK_8:
+                pattern = 8;
+                break;
+            case SDLK_9:
+                pattern = 9;
+                break;
+            default:
+                return;
+                break;
+        }
+        
+        if(pattern > 9) {
+            pattern = 9;
+        } else if(pattern < 0){
+            pattern = 0;
+        }
+        
+        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
+    }
+}
+
+
+
+void handleInstrumentKeys(SDL_Keysym* keysym) {
+    
+    switch( keysym->sym ) {
+        case SDLK_0:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            break;
+        case SDLK_1:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            break;
+        case SDLK_2:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            break;
+        case SDLK_3:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            break;
+        case SDLK_4:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            break;
+        case SDLK_5:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            break;
+        case SDLK_6:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            break;
+        case SDLK_7:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            break;
+        case SDLK_8:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            break;
+        case SDLK_9:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            break;
+        default:
+            break;
+    }
+}
+
+static void handleEffectKeys(SDL_Keysym* keysym) {
+    
+    switch( keysym->sym ) {
+        case SDLK_a:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            break;
+        case SDLK_b:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            break;
+        case SDLK_c:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            break;
+        case SDLK_d:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            break;
+        case SDLK_e:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            break;
+        case SDLK_f:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            break;
+        case SDLK_0:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            break;
+        case SDLK_1:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            break;
+        case SDLK_2:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            break;
+        case SDLK_3:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            break;
+        case SDLK_4:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            break;
+        case SDLK_5:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            break;
+        case SDLK_6:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            break;
+        case SDLK_7:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            break;
+        case SDLK_8:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            break;
+        case SDLK_9:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            break;
+        default:
+            break;
+    }
+}
+
+
+
 
 
 
@@ -1523,8 +1557,7 @@ SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
 
-
-void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
+static void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     printf("\n\nwaveform data:\n\n");
     Uint32 i=0;
     for (i=0; i<floatStreamLength; i+=increment)
@@ -1532,15 +1565,9 @@ void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment)
     printf("\n\n");
 }
 
-int testSchedule = 0;
-int testScheduleSwitch = 0;
-
-
-
-
-void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
+static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
     if(synth == NULL) {
-        printf("audioCallback: synthContext is null, returning.");
+        printf("audioCallback: synthContext is null, returning.\n");
         return;
     }
     
@@ -1606,11 +1633,11 @@ void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                         if(voice->lowpass_next_sample) {
                             if(voice->waveform == synth->noise_table) {
                                 if(voice->phase_int < synth->noise_length) {
-                                    voice->lowpass_last_sample = voice->waveform[voice->phase_int]*amp;
+                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]*amp);
                                 }
                             } else {
                                 if(voice->phase_int < synth->wave_length) {
-                                    voice->lowpass_last_sample = voice->waveform[voice->phase_int]*amp;
+                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]*amp);
                                 }
                             }
                             
@@ -1635,8 +1662,6 @@ void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
             }
         }
     }
-    
-    //printf("i:%d remain:%d", i, remain);
     
     if(playing == 1) {
         cSynthAdvanceTrack(synth, length);
@@ -1876,7 +1901,7 @@ static void renderInstrumentEditor(void) {
     
     for(i = 0; i < 2000; i++) {
         double g_pos = (i*(pos_factor*0.001)) + inset_x;
-        int top_line_y = amp_factor + inset_y;
+        int top_line_y = (int)(amp_factor + inset_y);
         int bottom_line_y = 0 + inset_y;
         ADSRInvertYRender(g_pos, top_line_y, cengine_color_white);
         ADSRInvertYRender(g_pos, bottom_line_y, cengine_color_white);
@@ -2009,7 +2034,7 @@ static void drawWaveTypes(void) {
     }
 }
 
-void renderTrack(void) {
+static void renderTrack(void) {
     
     if(instrument_editor && !file_editor) {
         renderInstrumentEditor();
@@ -2070,7 +2095,7 @@ void renderTrack(void) {
             int pos_y = inset_y+y-track_progress_int;
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
-                node_x = floor(x/5);
+                node_x = (int)floor(x/5);
                 int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
                 
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
@@ -2127,12 +2152,13 @@ void renderTrack(void) {
         }
     }
 }
+
 SDL_Window *window = NULL;
-SDL_Texture *texture;
-SDL_Renderer *renderer;
+SDL_Texture *texture = NULL;
+SDL_Renderer *renderer = NULL;
 SDL_GLContext context;
 
-void setupSDL(void) {
+static void setupSDL(void) {
     
     SDL_Init(SDL_INIT_VIDEO);
     
@@ -2141,40 +2167,36 @@ void setupSDL(void) {
     if(context == NULL) {
         printf("\nFailed to create context: %s\n", SDL_GetError());
     }
-    SDL_GL_MakeCurrent(window, context);
+    //SDL_GL_MakeCurrent(window, context);
     
     if (window != NULL) {
-        
         renderer = SDL_CreateRenderer(window, -1, 0);
         if (renderer != NULL) {
-        
             texture = SDL_CreateTexture(renderer,
                                         SDL_PIXELFORMAT_ARGB8888,
                                         SDL_TEXTUREACCESS_STREAMING,
                                         s_width, s_height);
             
             SDL_GL_SetSwapInterval(1);
-            
             char title_string[40];
             sprintf(title_string, "%s (build:%d)", title, synth->build_number);
             SDL_SetWindowTitle(window, title_string);
-            
             visual_track_height = synth->track_height;
         } else {
-            printf("renderer is null");
+            printf("Failed to create renderer: %s", SDL_GetError());
         }
     } else {
-        printf("window is null");
+        printf("Failed to create window:%s", SDL_GetError());
     }
 }
 
-void destroySDL(void) {
+static void destroySDL(void) {
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 }
 
-int setupSDLAudio(void) {
+static int setupSDLAudio(void) {
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
     SDL_AudioSpec want;
     SDL_zero(want);
@@ -2186,7 +2208,7 @@ int setupSDLAudio(void) {
     want.samples = bufferSize;
     want.callback = audioCallback;
     
-    printf("audioSpec want\n");
+    printf("\naudioSpec want\n");
     printf("----------------\n");
     printf("sample rate:%d\n", want.freq);
     printf("channels:%d\n", want.channels);
@@ -2195,7 +2217,7 @@ int setupSDLAudio(void) {
     
     AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, 0);
     
-    printf("audioSpec get\n");
+    printf("\naudioSpec get\n");
     printf("----------------\n");
     printf("sample rate:%d\n", audioSpec.freq);
     printf("channels:%d\n", audioSpec.channels);
@@ -2206,52 +2228,16 @@ int setupSDLAudio(void) {
 	
     if (AudioDevice == 0) {
         printf("\nFailed to open audio: %s\n", SDL_GetError());
-			char *info = NULL;
-			info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-			sprintf(info,"\nFailed to open audio: %s\n", SDL_GetError());
-			debug_log(info);
-			cAllocatorFree(info);
-	
         return 1;
     }
     
     
     if (audioSpec.format != want.format) {
-        printf("\nCouldn't get audio format.\n");
-			char *info = NULL;
-			info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-			sprintf(info,"\nCouldn't get audio format.\n");
-			debug_log(info);
-			cAllocatorFree(info);
+        printf("\nCouldn't get requested audio format.\n");
         return 2;
     }
     
-    
-	/****** log/*/
-	char *info = NULL;
-	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"------------\nsample rate:%d", want.freq);
-	debug_log(info);
-	cAllocatorFree(info);
-	
-	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"channels:%d", audioSpec.channels);
-	debug_log(info);
-	cAllocatorFree(info);
-	
-	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"samples:%d", audioSpec.samples);
-	debug_log(info);
-	cAllocatorFree(info);
-	
-	info = (char *)cAllocatorAlloc(1024 * sizeof(char), "log string");
-    sprintf(info,"buffer size:%d\n------------", audioSpec.size);
-	debug_log(info);
-	cAllocatorFree(info);
-	
-	/***********/
-	
-    //int sampleRate = synth->sample_rate;
+
     int frameRate = synth->frame_rate;
     
     int sampleRate = audioSpec.freq;
@@ -2265,8 +2251,8 @@ int setupSDLAudio(void) {
     return 0;
 }
 
-void setupCSynth(void) {
-    setup_data();
+static void setup_cengine(void) {
+    
     struct CEngineContext *c = cEngineContextNew();
     c->width = s_width;
     c->height = s_height;
@@ -2319,12 +2305,10 @@ void setupCSynth(void) {
     }
 }
 
-void cleanupSynth(void) {
+static void cleanupSynth(void) {
     printf("allocs before cleanup:\n");
     cAllocatorPrintAllocationCount();
-    
-    quitGame(0);
-    
+    cleanup_data();
     printf("allocs after cleanup:\n");
     cAllocatorPrintAllocations();
     cAllocatorPrintAllocationCount();
@@ -2333,8 +2317,7 @@ void cleanupSynth(void) {
     cAllocatorCleanup();
 }
 
-int error_freq = 0;
-void mainLoop(void) {
+static void mainLoop(void) {
     
     SDL_LockAudioDevice(AudioDevice);
     checkSDLEvents(event);
@@ -2442,13 +2425,13 @@ static void load_config() {
             object = cJSON_GetObjectItem(root, param_buffer_size);
             if(object != NULL) {
                 int buffer_index_value = object->valueint;
-                bufferSize = get_buffer_size_from_index(buffer_index_value);
+                bufferSize = (uint16_t)get_buffer_size_from_index(buffer_index_value);
                 printf("setting buffersize from config:%d\n", bufferSize);
                 success = true;
             }
             cJSON_Delete(root);
         }
-        b = cAllocatorFree(b);
+        cAllocatorFree(b);
     }
     
     if(!success) {
@@ -2461,13 +2444,23 @@ static void load_config() {
     }
 }
 
+static void st_log(char *message) {
+    printf("*** %s \n", message);
+}
+
 int main(int argc, char* argv[])
 {
-    load_config();
+    //load_config();
+    st_log("started executing.");
     
-    setupCSynth();
+    setup_data();
+    st_log("setup data successful.");
+    setup_cengine();
+    st_log("setup cengine successful.");
     setupSDL();
+    st_log("setup SDL successful.");
     setupSDLAudio();
+    st_log("setup SDL audio successful.");
     
     if (texture != NULL) {
         while (!quit) {
@@ -2476,9 +2469,15 @@ int main(int argc, char* argv[])
     }
 
     cleanupSynth();
+    st_log("synth cleanup successful.");
+    
     destroySDL();
+    st_log("SDL cleanup successful.");
+    
     SDL_CloseAudioDevice(AudioDevice);
+    st_log("SDL audio cleanup successful.");
     SDL_Quit();
+    st_log("SDL quit successful.");
     
     return 0;
 }
