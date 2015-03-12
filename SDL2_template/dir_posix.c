@@ -94,6 +94,9 @@ struct PeekDirResult *peekDirPosix(char *dir_name, struct FileSettings *f) {
                 // save path to load the file.
                 char *s_path = cAllocatorAlloc(sizeof(char)*f->file_path_max_length, "file path chars dir_posix");
                 sprintf(s_path, "%s", path);
+                if(path != NULL) {
+                    path = cAllocatorFree(path);
+                }
                 result->path = s_path;
                 
                 f->file_enter_pressed = false;
