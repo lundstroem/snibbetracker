@@ -24,6 +24,7 @@
 #elif _WIN32
 //define something for Windows (32-bit)
     #define platform_windows
+	#include "dir_win.h"
 #elif __APPLE__
     #include "TargetConditionals.h"
     #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
@@ -345,14 +346,14 @@ static void enterDir(void) {
         
         #if defined(platform_osx)
             result = peekDirPosix(file_settings->file_dirs[file_settings->file_cursor_y], file_settings);
-            if(result->status == 1) {
-                if(result->path != NULL){
-                    loadProjectFile(result->path);
-                }
-            }
-        #elif defined(platform_windows)
-            // TODO
-        #endif
+		#elif defined(platform_windows)        
+			result = peekDirWin(file_settings->file_dirs[file_settings->file_cursor_y], file_settings);
+		#endif
+		if(result->status == 1) {
+			if(result->path != NULL){
+				loadProjectFile(result->path);
+			}
+		}
         
         printf("== peek status:%d\n", result->status);
         if(result != NULL && result->status == 2) {
@@ -414,7 +415,7 @@ static char *getDefaultDir(void) {
             return "/";
         }
     #elif defined(platform_windows)
-        return "C:\\0";
+        return ".\\";
     #endif
 }
 
@@ -461,7 +462,7 @@ static int getDirectoryList(char *dir_string) {
     #if defined(platform_osx)
         return getDirectoryListPosix(dir_string, file_settings);
     #elif defined(platform_windows)
-        return 0;
+        return getDirectoryListWin(dir_string, file_settings);
     #endif
 }
 
@@ -765,8 +766,6 @@ static void cleanup_data(void) {
     if(!load_gfx) {
         cAllocatorFree(raw_sheet);
     }
-    
-    //printf("quit game\n");
 }
 
 
@@ -964,21 +963,21 @@ void handle_key_down(SDL_Keysym* keysym)
                 }
                 break;
             case SDLK_o:
-#if defined(platform_osx)
+//#if defined(platform_osx)
                 if(modifier) {
                     file_editor = true;
                     return;
                 }
-#endif
+//#endif
                 break;
             case SDLK_s:
-#if defined(platform_osx)
+//#if defined(platform_osx)
                 if(modifier) {
                     file_editor = true;
                     file_settings->file_editor_save = true;
                     return;
                 }
-#endif
+//#endif
                 break;
             case SDLK_TAB:
                 if(instrument_editor) {
