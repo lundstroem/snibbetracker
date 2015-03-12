@@ -46,7 +46,7 @@
 
 bool load_gfx = false;
 bool log_file_enabled = true;
-bool release_build = false;
+bool release_build = true;
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -178,6 +178,7 @@ static void debug_log(char *str);
 static int get_buffer_size_from_index(int i);
 static void load_config();
 static void st_log(char *message);
+static void st_pause(void);
 
 /*
  
@@ -765,7 +766,7 @@ static void cleanup_data(void) {
         cAllocatorFree(raw_sheet);
     }
     
-    printf("quit game\n");
+    //printf("quit game\n");
 }
 
 
@@ -782,13 +783,13 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     int x_count = visual_cursor_x%5;
     
     if(instrument_editor || pattern_editor || !editing) {
-        printf("not editing\n");
+        //printf("not editing\n");
         // only allow preview of notes in editor
         cSynthAddTrackNode(synth, x, y, false, true, value+(octave*12));
     } else {
         
         if(!editing) {
-            printf("not editing\n");
+            //printf("not editing\n");
             cSynthAddTrackNode(synth, x, y, false, true, value+(octave*12));
         } else {
             
@@ -804,7 +805,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             
             if(x_count == 1 && editing) {
                 cSynthAddTrackNodeParams(synth, x, y, value, -1, -1, -1);
-                printf("change instrument value:%d\n", value);
+                //printf("change instrument value:%d\n", value);
                 synth->current_instrument = value;
                 
                 if(!playing) {
@@ -816,7 +817,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 2 && editing) {
                 // change effect
                 cSynthAddTrackNodeParams(synth, x, y, -1, (char)value, -1, -1);
-                printf("change effect value:%d\n", value);
+                //printf("change effect value:%d\n", value);
                 
                 if(!playing) {
                     visual_cursor_y++;
@@ -827,7 +828,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 3 && editing) {
                 // change param2
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, (char)value, -1);
-                printf("change param1 value:%d\n", value);
+                //printf("change param1 value:%d\n", value);
                 
                 if(!playing) {
                     visual_cursor_y++;
@@ -838,7 +839,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 4 && editing) {
                 // change param1
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, (char)value);
-                printf("change param2 value:%d\n", value);
+                //printf("change param2 value:%d\n", value);
                 
                 if(!playing) {
                     visual_cursor_y++;
@@ -904,7 +905,7 @@ static void checkPatternCursorBounds(void) {
         pattern_cursor_y = synth->patterns_and_voices_height-1;
     }
     
-    printf("pattern cursor y:%d\n", pattern_cursor_y);
+    //printf("pattern cursor y:%d\n", pattern_cursor_y);
 }
 
 static bool checkScreenBounds(int x, int y) {
@@ -987,7 +988,7 @@ void handle_key_down(SDL_Keysym* keysym)
                         selected_instrument_node_index = 1;
                     }
                     
-                    printf("selected_instrument_node_index:%i", selected_instrument_node_index);
+                    //printf("selected_instrument_node_index:%i", selected_instrument_node_index);
                 } else {
                     if(pattern_editor) {
                         pattern_editor = false;
@@ -1009,11 +1010,11 @@ void handle_key_down(SDL_Keysym* keysym)
                 if(playing == 0) {
                     playing = true;
                     if(pattern_editor) {
-                        printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
+                        //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
                         cSynthResetTrackProgress(synth, pattern_cursor_y-1);
                     } else {
                         cSynthResetTrackProgress(synth, synth->current_track);
-                        printf("playing from pattern:%d\n", synth->current_track);
+                        //printf("playing from pattern:%d\n", synth->current_track);
                     }
                 } else {
                     // note off to all voices when stopping playing.
@@ -1122,13 +1123,13 @@ void handle_key_down(SDL_Keysym* keysym)
                                 ins_nr += 6;
                             }
                             selected_instrument_id = ins_nr;
-                            printf("selected instrument:%d\n", ins_nr);
+                            //printf("selected instrument:%d\n", ins_nr);
                             if(instrument_editor) {
                                 instrument_editor = false;
-                                printf("instrument editor false\n");
+                                //printf("instrument editor false\n");
                             } else {
                                 instrument_editor = true;
-                                printf("instrument editor true\n");
+                                //printf("instrument editor true\n");
                             }
                         }
                     } else {
@@ -1473,7 +1474,7 @@ static void checkSDLEvents(SDL_Event event) {
                     input->touches[0]->active = true;
                     input->touches[0]->x = event.motion.x/4;
                     input->touches[0]->y = event.motion.y/4;
-                    printf("mouse 1 x:%i y:%i\n", input->touches[0]->x, input->touches[0]->y);
+                    //printf("mouse 1 x:%i y:%i\n", input->touches[0]->x, input->touches[0]->y);
                     
                 }
                 
@@ -1541,7 +1542,7 @@ const double Tao = 6.283185307179586476925;
 
 // 256, 512, 1024, 2048, 4096, 8192
 
-Uint16 bufferSize = 8192; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
+Uint16 bufferSize = 4096; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
@@ -2162,14 +2163,30 @@ static void setupSDL(void) {
     
     SDL_Init(SDL_INIT_VIDEO);
     
+	// Get current display mode of all displays.
+	int i;
+	SDL_DisplayMode current;
+	for(i = 0; i < SDL_GetNumVideoDisplays(); ++i) {
+		int should_be_zero = SDL_GetCurrentDisplayMode(i, &current);
+		if(should_be_zero != 0) {
+			// In case of error...
+			SDL_Log("Could not get display mode for video display #%d: %s", i, SDL_GetError());
+			st_pause();
+		} else {
+			// On success, print the current display mode.
+			SDL_Log("Display #%d: current display mode is %dx%dpx @ %dhz. \n", i, current.w, current.h, current.refresh_rate);
+		}
+	}
+	
     window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
-    context = SDL_GL_CreateContext(window);
-    if(context == NULL) {
-        printf("\nFailed to create context: %s\n", SDL_GetError());
-    }
-    //SDL_GL_MakeCurrent(window, context);
-    
-    if (window != NULL) {
+	if(window != NULL) {
+		
+		context = SDL_GL_CreateContext(window);
+		if(context == NULL) {
+			printf("\nFailed to create context: %s\n", SDL_GetError());
+			st_pause();
+		}
+
         renderer = SDL_CreateRenderer(window, -1, 0);
         if (renderer != NULL) {
             texture = SDL_CreateTexture(renderer,
@@ -2184,19 +2201,23 @@ static void setupSDL(void) {
             visual_track_height = synth->track_height;
         } else {
             printf("Failed to create renderer: %s", SDL_GetError());
+			st_pause();
         }
-    } else {
+	} else {
         printf("Failed to create window:%s", SDL_GetError());
+		st_pause();
     }
 }
 
 static void destroySDL(void) {
+	
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 }
 
 static int setupSDLAudio(void) {
+	
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
     SDL_AudioSpec want;
     SDL_zero(want);
@@ -2228,12 +2249,14 @@ static int setupSDLAudio(void) {
 	
     if (AudioDevice == 0) {
         printf("\nFailed to open audio: %s\n", SDL_GetError());
+		st_pause();
         return 1;
     }
     
     
     if (audioSpec.format != want.format) {
         printf("\nCouldn't get requested audio format.\n");
+		st_pause();
         return 2;
     }
     
@@ -2282,7 +2305,7 @@ static void setup_cengine(void) {
         printf("};\n");
          */
     } else {
-        // contains an integer for every color/pixel on the screen.
+        // contains an integer for every color/pixel on the sheet.
         raw_sheet = (unsigned int *) cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
         for(int r = 0; r < sheet_width*sheet_height; r++) {
             raw_sheet[r] = 0;
@@ -2339,7 +2362,7 @@ static void mainLoop(void) {
     
     renderTrack();
     updateAndRenderInfo(dt);
-    SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (Uint32));
+    SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (unsigned int));
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
@@ -2444,6 +2467,9 @@ static void load_config() {
     }
 }
 
+static void st_pause(void) {
+	SDL_Delay(5000);
+}
 static void st_log(char *message) {
     printf("*** %s \n", message);
 }
@@ -2478,7 +2504,8 @@ int main(int argc, char* argv[])
     st_log("SDL audio cleanup successful.");
     SDL_Quit();
     st_log("SDL quit successful.");
-    
+	st_log("closing in 5 seconds");
+    st_pause();
     return 0;
 }
 
