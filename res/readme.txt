@@ -9,9 +9,9 @@ build 6 - 2015-03-13 15.26
 - fixed memory leak when using more than 16 rows.
 - minimum amount of rows set to 1 instead of 16.
 - spacebar is now used for controlling playback.
-- enter(return) key is now used for toggling edit 
-		and enter/exit instrument view.
+- enter(return) key is now used for toggling edit and enter/exit instrument view.
 - showing current pattern and track in lower right corner (p:0 t:0).
+- cursor is now advanced down a row when removing notes and params with backspace.
  
 build 5 
 - test release.
