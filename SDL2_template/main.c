@@ -55,6 +55,7 @@ int fps_print_interval = 0;
 int old_time = 0;
 
 int current_pattern = 0;
+int current_track = 0;
 
 #define MAX_TOUCHES 8
 #define sheet_width 1024
@@ -91,7 +92,8 @@ int s_height = 144*2;
 bool playing = false;
 bool editing = false;
 bool modifier = false;
-bool follow = false;
+
+bool follow = true;
 
 int octave = 2;
 
@@ -810,7 +812,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 0) {
                 cSynthAddTrackNode(synth, x, y, editing, true, value+(octave*12));
                 if(editing) {
-                    if(!follow) {
+                    if(!playing) {
                         visual_cursor_y++;
                     }
                     checkVisualCursorBounds();
@@ -822,7 +824,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 //printf("change instrument value:%d\n", value);
                 synth->current_instrument = value;
                 
-                if(!follow) {
+                if(!playing) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -833,7 +835,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, -1, (char)value, -1, -1);
                 //printf("change effect value:%d\n", value);
                 
-                if(!follow) {
+                if(!playing) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -844,7 +846,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, (char)value, -1);
                 //printf("change param1 value:%d\n", value);
                 
-                if(!follow) {
+                if(!playing) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -855,7 +857,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, (char)value);
                 //printf("change param2 value:%d\n", value);
                 
-                if(!follow) {
+                if(!playing) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -1022,6 +1024,7 @@ void handle_key_down(SDL_Keysym* keysym)
                 }
                 break;
             case SDLK_f:
+                /*
                 if(modifier) {
                     if(follow) {
                         follow = false;
@@ -1031,7 +1034,7 @@ void handle_key_down(SDL_Keysym* keysym)
                         setInfoTimer("follow: true");
                     }
                     return;
-                }
+                }*/
                 break;
             case SDLK_TAB:
                 if(instrument_editor) {
@@ -1146,7 +1149,7 @@ void handle_key_down(SDL_Keysym* keysym)
                     } else if(x_count == 4) {
                         cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     }
-                    if(!follow) {
+                    if(!playing) {
                         visual_cursor_y++;
                         checkVisualCursorBounds();
                     }
