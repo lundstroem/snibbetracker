@@ -3,16 +3,21 @@ snibbetracker
  
 changelog
 ----------------
-build 1 - first test release.
-
+build 5 - test release.
  
 introduction
 ----------------
-Functionality may change significantly during the test phase, and there will be no focus on preserving
-backwards compatibility (projects made with previous builds may not work as expected).
-Subsequent test builds will have an accompanying changelog as a part of this document.
+This is a test version, please do not re-distribute! Functionality may change significantly 
+during the test phase, and there will be no focus on preserving backwards compatibility 
+(projects made with previous builds may not work as expected). Subsequent test builds will 
+have an accompanying changelog as a part of this document.
 No warranty either implicit or implied is included. Use at your own risk.
+snibbetracker (c) Palestone Software.
 
+contact
+----------------
+palestonesoftware@gmail.com
+http://www.palestonesoftware.com/snibbetracker.html
 
 controls overview
 ----------------
@@ -52,7 +57,6 @@ global controls
 - modifier+s: go to save view
 - modifier+o: go to load view
 
-///////////////////////////////////////////// no windows version with save/load yet!
 save view
 ----------------
 - arrow keys: navigate file system.
@@ -66,7 +70,6 @@ load view
 - enter: load the file.
 - escape: exit load view.
 
-/////////////////////////////////////////////
 
 effects
 ----------------
