@@ -221,12 +221,12 @@ static void initFileSettings(void) {
         file_settings->file_cursor_y_saved[r] = 0;
     }
     
-    file_settings->file_path_list = (char**) cAllocatorAlloc((file_settings->file_path_max_length * sizeof(char*)), "file path array");
+    file_settings->file_path_list = cAllocatorAlloc((file_settings->file_path_max_length * sizeof(char*)), "file path array");
     for(r = 0; r < file_settings->file_path_max_length; r++) {
         file_settings->file_path_list[r] = NULL;
     }
     
-    file_settings->file_dirs = (char**) cAllocatorAlloc((file_settings->file_dir_max_length * sizeof(char*)), "file dir array");
+    file_settings->file_dirs = cAllocatorAlloc((file_settings->file_dir_max_length * sizeof(char*)), "file dir array");
     for(r = 0; r < file_settings->file_dir_max_length; r++) {
         file_settings->file_dirs[r] = NULL;
     }
@@ -631,7 +631,7 @@ static void setInfoTimer(char *string) {
         int max_size = file_settings->file_name_max_length;
         int len = (int)strlen(string);
         if(len < max_size) {
-            char *info = (char *)cAllocatorAlloc(max_size * sizeof(char), "info timer string");
+            char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer string");
             sprintf(info, "%s", string);
             if(infoString != NULL) {
                 infoString = cAllocatorFree(infoString);
@@ -649,7 +649,7 @@ static void setInfoTimerWithInt(char *string, int data) {
         int max_size = file_settings->file_name_max_length;
         int len = (int)strlen(string);
         if(len < max_size) {
-            char *info = (char *)cAllocatorAlloc(max_size * sizeof(char), "info timer with int");
+            char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer with int");
             sprintf(info, "%s:%d", string, data);
             if(infoString != NULL) {
                 infoString = cAllocatorFree(infoString);
@@ -678,7 +678,7 @@ static void setup_data(void)
     initFileSettings();
     
     // contains an integer for every color/pixel on the screen.
-    raster = (unsigned int *) cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
+    raster = cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
     for(r = 0; r < s_width*s_height; r++) {
         raster[r] = 0;
     }
@@ -688,7 +688,7 @@ static void setup_data(void)
         fprintf(stderr, "out of memory\n");
     } else {
         for(int i = 0; i < s_width; i++) {
-            raster2d[i] = (unsigned int *) cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c raster 3");
+            raster2d[i] = cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c raster 3");
             if(raster2d[i] == NULL)
             {
                 fprintf(stderr, "out of memory\n");
@@ -2305,7 +2305,7 @@ static void setup_cengine(void) {
          */
     } else {
         // contains an integer for every color/pixel on the sheet.
-        raw_sheet = (unsigned int *) cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
+        raw_sheet = cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
         for(int r = 0; r < sheet_width*sheet_height; r++) {
             raw_sheet[r] = 0;
         }
