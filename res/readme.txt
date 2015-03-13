@@ -3,11 +3,22 @@ snibbetracker
  
 changelog
 ----------------
-build 5 - test release.
+build 6 - 2015-03-13 15.26
+- hopefully prevented crashes when saving (directory browsing is disabled for now).
+- clear track nodes before loading new project.
+- fixed memory leak when using more than 16 rows.
+- minimum amount of rows set to 1 instead of 16.
+- spacebar is now used for controlling playback.
+- enter(return) key is now used for toggling edit 
+		and enter/exit instrument view.
+- showing current pattern and track in lower right corner (p:0 t:0).
+ 
+build 5 
+- test release.
  
 introduction
 ----------------
-This is a test version, please do not re-distribute! Functionality may change significantly 
+This is a test version, please do not re-distribute. Functionality may change significantly 
 during the test phase, and there will be no focus on preserving backwards compatibility 
 (projects made with previous builds may not work as expected). Subsequent test builds will 
 have an accompanying changelog as a part of this document.

@@ -304,10 +304,14 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             }
             break;
         case SDLK_LEFT:
-            exitDir();
+			#if defined(platform_osx)
+				exitDir();
+			#endif
             break;
         case SDLK_RIGHT:
-            enterDir();
+			#if defined(platform_osx)
+				enterDir();
+			#endif
             break;
         case SDLK_UP:
             file_settings->file_cursor_y--;
@@ -595,7 +599,7 @@ static void loadProjectFile(char *path) {
     
     char *b = loadFile(path);
     if(b != NULL) {
-        printf("json_str:%s\n", b);
+        //printf("json_str:%s\n", b);
         cSynthReset(synth);
         int status = cSynthLoadProject(synth, b);
         cAllocatorFree(b);
@@ -2212,7 +2216,7 @@ static void renderTrack(void) {
         current_pattern = pattern_at_cursor;
         char cval[20];
         sprintf(cval, "p:%d t:%d", current_pattern, synth->current_track);
-        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, cengine_color_white, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
         
     }
 }
