@@ -54,6 +54,8 @@ int screen_height = 720;
 int fps_print_interval = 0;
 int old_time = 0;
 
+int current_pattern = 0;
+
 #define MAX_TOUCHES 8
 #define sheet_width 1024
 #define sheet_height 1024
@@ -89,6 +91,7 @@ int s_height = 144*2;
 bool playing = false;
 bool editing = false;
 bool modifier = false;
+bool follow = false;
 
 int octave = 2;
 
@@ -149,6 +152,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value);
 static void checkVisualCursorBounds(void);
 static void checkPatternCursorBounds(void);
 static bool checkScreenBounds(int x, int y);
+static void toggle_playback(void);
+static void toggle_editing(void);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
 static void handleNoteKeys(SDL_Keysym* keysym);
@@ -589,6 +594,7 @@ static void loadProjectFile(char *path) {
     char *b = loadFile(path);
     if(b != NULL) {
         printf("json_str:%s\n", b);
+        cSynthReset(synth);
         int status = cSynthLoadProject(synth, b);
         cAllocatorFree(b);
         if(status == 0) {
@@ -804,7 +810,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 0) {
                 cSynthAddTrackNode(synth, x, y, editing, true, value+(octave*12));
                 if(editing) {
-                    if(!playing) {
+                    if(!follow) {
                         visual_cursor_y++;
                     }
                     checkVisualCursorBounds();
@@ -816,7 +822,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 //printf("change instrument value:%d\n", value);
                 synth->current_instrument = value;
                 
-                if(!playing) {
+                if(!follow) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -827,7 +833,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, -1, (char)value, -1, -1);
                 //printf("change effect value:%d\n", value);
                 
-                if(!playing) {
+                if(!follow) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -838,7 +844,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, (char)value, -1);
                 //printf("change param1 value:%d\n", value);
                 
-                if(!playing) {
+                if(!follow) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -849,7 +855,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, (char)value);
                 //printf("change param2 value:%d\n", value);
                 
-                if(!playing) {
+                if(!follow) {
                     visual_cursor_y++;
                     checkVisualCursorBounds();
                 }
@@ -924,6 +930,37 @@ static bool checkScreenBounds(int x, int y) {
     }
 }
 
+static void toggle_playback(void) {
+    
+    if(playing == false) {
+        playing = true;
+        if(pattern_editor) {
+            //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
+            cSynthResetTrackProgress(synth, pattern_cursor_y-1);
+        } else {
+            cSynthResetTrackProgress(synth, synth->current_track);
+            //printf("playing from pattern:%d\n", synth->current_track);
+        }
+    } else {
+        // note off to all voices when stopping playing.
+        for(int v_i = 0; v_i < synth->max_voices; v_i++) {
+            synth->voices[v_i]->note_on = false;
+        }
+        playing = false;
+    }
+}
+
+static void toggle_editing(void) {
+    
+    if(editing == true) {
+        editing = false;
+        setInfoTimer("editing off");
+    } else {
+        editing = true;
+        setInfoTimer("editing on");
+    }
+}
+
 void handle_key_up(SDL_Keysym* keysym)
 {
     switch( keysym->sym ) {
@@ -972,21 +1009,29 @@ void handle_key_down(SDL_Keysym* keysym)
                 }
                 break;
             case SDLK_o:
-//#if defined(platform_osx)
                 if(modifier) {
                     file_editor = true;
                     return;
                 }
-//#endif
                 break;
             case SDLK_s:
-//#if defined(platform_osx)
                 if(modifier) {
                     file_editor = true;
                     file_settings->file_editor_save = true;
                     return;
                 }
-//#endif
+                break;
+            case SDLK_f:
+                if(modifier) {
+                    if(follow) {
+                        follow = false;
+                        setInfoTimer("follow: false");
+                    } else {
+                        follow = true;
+                        setInfoTimer("follow: true");
+                    }
+                    return;
+                }
                 break;
             case SDLK_TAB:
                 if(instrument_editor) {
@@ -1014,25 +1059,9 @@ void handle_key_down(SDL_Keysym* keysym)
             case SDLK_ESCAPE:
                 //quit = true;
                 break;
-            case SDLK_RETURN:
-                if(playing == 0) {
-                    playing = true;
-                    if(pattern_editor) {
-                        //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
-                        cSynthResetTrackProgress(synth, pattern_cursor_y-1);
-                    } else {
-                        cSynthResetTrackProgress(synth, synth->current_track);
-                        //printf("playing from pattern:%d\n", synth->current_track);
-                    }
-                } else {
-                    // note off to all voices when stopping playing.
-                    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
-                        synth->voices[v_i]->note_on = false;
-                    }
-                    playing = 0;
-                }
+            case SDLK_SPACE:
+                toggle_playback();
                 break;
-                
             case SDLK_LEFT:
                 pressed_left = true;
                 if(instrument_editor) {
@@ -1117,9 +1146,13 @@ void handle_key_down(SDL_Keysym* keysym)
                     } else if(x_count == 4) {
                         cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     }
+                    if(!follow) {
+                        visual_cursor_y++;
+                        checkVisualCursorBounds();
+                    }
                 }
                 break;
-            case SDLK_SPACE:
+            case SDLK_RETURN:
                 if(instrument_editor) {
                     instrument_editor = false;
                 } else {
@@ -1141,13 +1174,15 @@ void handle_key_down(SDL_Keysym* keysym)
                             }
                         }
                     } else {
+                        /*
                         if(editing == true) {
                             editing = false;
                             setInfoTimer("editing off");
                         } else {
                             editing = true;
                             setInfoTimer("editing on");
-                        }
+                        }*/
+                        toggle_editing();
                     }
                 }
                 break;
@@ -1672,7 +1707,7 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
         }
     }
     
-    if(playing == 1) {
+    if(playing == true) {
         cSynthAdvanceTrack(synth, length);
     }
 }
@@ -1788,8 +1823,8 @@ static void changeParam(bool plus) {
             visual_track_height = track_height;
         } else {
             track_height--;
-            if(track_height < 16) {
-                track_height = 16;
+            if(track_height < 1) {
+                track_height = 1;
             }
             synth->track_height = track_height;
             visual_track_height = track_height;
@@ -1867,14 +1902,14 @@ static void renderInstrumentEditor(void) {
     
     if(selected_instrument_node_index > 0) {
         if (pressed_left) {
-                double pos1 = ins->adsr[selected_instrument_node_index-1]->pos;
-                double pos2 = ins->adsr[selected_instrument_node_index]->pos;
-                if(pos2 > pos1) {
-                    ins->adsr[selected_instrument_node_index]->pos -= speed;
-                }
-                if(pos2 < pos1) {
-                    ins->adsr[selected_instrument_node_index]->pos = pos1;
-                }
+            double pos1 = ins->adsr[selected_instrument_node_index-1]->pos;
+            double pos2 = ins->adsr[selected_instrument_node_index]->pos;
+            if(pos2 > pos1) {
+                ins->adsr[selected_instrument_node_index]->pos -= speed;
+            }
+            if(pos2 < pos1) {
+                ins->adsr[selected_instrument_node_index]->pos = pos1;
+            }
         } else if(pressed_right) {
             if(selected_instrument_node_index < max_nodes-1) {
                 double pos1 = ins->adsr[selected_instrument_node_index]->pos;
@@ -2068,11 +2103,11 @@ static void renderTrack(void) {
     cSynthUpdateTrackCursor(synth, cursor_x, visual_cursor_y);
     int track_progress_int = synth->track_progress_int;
     
-    if(playing == false) {
-        track_progress_int = visual_cursor_y;
-    } else {
+    if(follow && playing) {
         visual_cursor_y = track_progress_int;
         checkVisualCursorBounds();
+    } else {
+        track_progress_int = visual_cursor_y;
     }
     
     int node_x = -1;
@@ -2106,7 +2141,6 @@ static void renderTrack(void) {
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 node_x = (int)floor(x/5);
                 int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
-                
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL && t->tone_active) {
                     int tone = t->tone;
@@ -2159,6 +2193,13 @@ static void renderTrack(void) {
                 x_count = 0;
             }
         }
+        
+        int pattern_at_cursor = synth->patterns_and_voices[cursor_x][synth->current_track+1];
+        current_pattern = pattern_at_cursor;
+        char cval[20];
+        sprintf(cval, "p:%d t:%d", current_pattern, synth->current_track);
+        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, cengine_color_white, cengine_color_black);
+        
     }
 }
 
