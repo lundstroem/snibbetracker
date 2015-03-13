@@ -2,7 +2,6 @@
 
 //#include <SDL2_image/SDL_image.h>
 #include <stdbool.h>
-//#include "Game.h"
 #include "CEngine.h"
 #include "CInput.h"
 #include "CTouch.h"
@@ -16,7 +15,7 @@
 #include <SDL2/SDL.h>
 #include <string.h>
 #include <math.h>
-
+#include <unistd.h>
 
 #ifdef _WIN64
 //define something for Windows (64-bit)
@@ -48,6 +47,7 @@
 bool load_gfx = false;
 bool log_file_enabled = true;
 bool release_build = true;
+bool run_with_sdl = true;
 
 int screen_width = 1280;
 int screen_height = 720;
@@ -170,6 +170,8 @@ static char *getWaveTypeAsChar(int type);
 static void drawWaveTypes(void);
 static void renderTrack(void);
 static void setupSDL(void);
+static void setup_synth(void);
+static void setup_texture(void);
 static void destroySDL(void);
 static int setupSDLAudio(void);
 static void setup_cengine(void);
@@ -671,23 +673,25 @@ static void updateAndRenderInfo(double dt) {
     }
 }
 
-static void setup_data(void)
-{
-    int r = 0;
+static void setup_data(void) {
+    
+    int i = 0;
+    int r_x = 0;
+    int r_y = 0;
     
     initFileSettings();
     
     // contains an integer for every color/pixel on the screen.
     raster = cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
-    for(r = 0; r < s_width*s_height; r++) {
-        raster[r] = 0;
+    for(i = 0; i < s_width*s_height; i++) {
+        raster[i] = 0;
     }
     
     raster2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c raster 2");
     if(raster2d == NULL) {
         fprintf(stderr, "out of memory\n");
     } else {
-        for(int i = 0; i < s_width; i++) {
+        for(i = 0; i < s_width; i++) {
             raster2d[i] = cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c raster 3");
             if(raster2d[i] == NULL)
             {
@@ -696,13 +700,22 @@ static void setup_data(void)
         }
     }
     
+    for(r_x = 0; r_x < s_width; r_x++) {
+        for(r_y = 0; r_y < s_height; r_y++) {
+            if(raster2d != NULL && raster2d[r_x] != NULL) {
+                raster2d[r_x][r_y] = 0;
+            }
+        }
+    }
+    
+    
     input = cInputNew();
     
     input->touches = cAllocatorAlloc(MAX_TOUCHES * sizeof(struct CTouch*), "main.c touches");
     if(input->touches == NULL) {
         fprintf(stderr, "touchlist out of memory\n");
     }
-    int i;
+    
     for(i = 0; i < MAX_TOUCHES; i++) {
         if(input->touches != NULL) {
             input->touches[i] = cTouchNew();
@@ -739,7 +752,7 @@ static void convertInput(int x, int y) {
 int quit = 0;
 
 static void cleanup_data(void) {
-    int i;
+    int i = 0;
     
     raster = cAllocatorFree(raster);
     for(i = 0; i < s_width; i++) {
@@ -762,10 +775,6 @@ static void cleanup_data(void) {
     file_settings->file_path_list = cAllocatorFree(file_settings->file_path_list);
     infoString = cAllocatorFree(infoString);
     file_settings = cAllocatorFree(file_settings);
-    
-    if(!load_gfx) {
-        cAllocatorFree(raw_sheet);
-    }
 }
 
 
@@ -2208,6 +2217,52 @@ static void setupSDL(void) {
     }
 }
 
+static void setup_synth(void) {
+    
+    synth = cSynthContextNew();
+    cSynthInit(synth);
+    visual_track_height = synth->track_height;
+}
+
+static void setup_texture(void) {
+    
+    // load char gfx from png and store in source. Remove this step before release to get rid of depencency.
+    SDL_Surface * image = NULL;
+    if(load_gfx) {
+        /*
+         char * filename = "groundtiles.png";
+         SDL_Surface * image = IMG_Load(filename);
+         raw_sheet = image->pixels;
+         printf("\n unsigned int chars_gfx[16384] = {");
+         // print label gfx to store in code instead.
+         for (int i = 0; i< 16384; i++) {
+         printf("%d,", raw_sheet[i]);
+         }
+         printf("};\n");
+         */
+    } else {
+        // contains an integer for every color/pixel on the sheet.
+        raw_sheet = cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
+        for(int r = 0; r < sheet_width*sheet_height; r++) {
+            raw_sheet[r] = 0;
+        }
+    }
+    
+    // load gfx from source.
+    for (int i = 0; i < 1024*16; i++) {
+        raw_sheet[i] = chars_gfx[i];
+    }
+    cEngineWritePixelData(raw_sheet);
+    
+    if(load_gfx) {
+        if(image != NULL) {
+            SDL_FreeSurface(image);
+        }
+    } else {
+        raw_sheet = cAllocatorFree(raw_sheet);
+    }
+}
+
 static void destroySDL(void) {
 	
     SDL_DestroyTexture(texture);
@@ -2289,42 +2344,6 @@ static void setup_cengine(void) {
     
     cEngineInit(c);
     
-    // load char gfx from png and store in source. Remove this step before release to get rid of depencency.
-    SDL_Surface * image = NULL;
-    if(load_gfx) {
-        /*
-        char * filename = "groundtiles.png";
-        SDL_Surface * image = IMG_Load(filename);
-        raw_sheet = image->pixels;
-        printf("\n unsigned int chars_gfx[16384] = {");
-        // print label gfx to store in code instead.
-        for (int i = 0; i< 16384; i++) {
-            printf("%d,", raw_sheet[i]);
-        }
-        printf("};\n");
-         */
-    } else {
-        // contains an integer for every color/pixel on the sheet.
-        raw_sheet = cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
-        for(int r = 0; r < sheet_width*sheet_height; r++) {
-            raw_sheet[r] = 0;
-        }
-    }
-    
-    // load gfx from source.
-    for (int i = 0; i < c->sheet_size*16; i++) {
-        raw_sheet[i] = chars_gfx[i];
-    }
-    cEngineWritePixelData(raw_sheet);
-    synth = cSynthContextNew();
-    cSynthInit(synth);
-    visual_track_height = synth->track_height;
-    
-    if(load_gfx) {
-        if(image != NULL) {
-            SDL_FreeSurface(image);
-        }
-    }
 }
 
 static void cleanupSynth(void) {
@@ -2480,31 +2499,48 @@ int main(int argc, char* argv[])
     
     setup_data();
     st_log("setup data successful.");
+    
     setup_cengine();
     st_log("setup cengine successful.");
-    setupSDL();
-    st_log("setup SDL successful.");
-    setupSDLAudio();
-    st_log("setup SDL audio successful.");
     
-    if (texture != NULL) {
-        while (!quit) {
-            mainLoop();
+    setup_synth();
+    st_log("setup synth successful.");
+    
+    if(run_with_sdl) {
+        setup_texture();
+        st_log("setup texture successful.");
+    
+        setupSDL();
+        st_log("setup SDL successful.");
+    
+        setupSDLAudio();
+        st_log("setup SDL audio successful.");
+    }
+    
+    if(run_with_sdl) {
+        if (texture != NULL) {
+            while (!quit) {
+                mainLoop();
+            }
         }
+    } else {
+        sleep(5);
     }
 
     cleanupSynth();
     st_log("synth cleanup successful.");
     
-    destroySDL();
-    st_log("SDL cleanup successful.");
+    if(run_with_sdl) {
+        destroySDL();
+        st_log("SDL cleanup successful.");
     
-    SDL_CloseAudioDevice(AudioDevice);
-    st_log("SDL audio cleanup successful.");
-    SDL_Quit();
-    st_log("SDL quit successful.");
-	st_log("closing in 5 seconds");
-    st_pause();
+        SDL_CloseAudioDevice(AudioDevice);
+        st_log("SDL audio cleanup successful.");
+        
+        SDL_Quit();
+        st_log("SDL quit successful.");
+    }
+    
     return 0;
 }
 
