@@ -772,17 +772,28 @@ static void cleanup_data(void) {
     input = cInputCleanup(input);
     infoTimer = cAllocatorFree(infoTimer);
     
-    file_settings->file_dirs = cAllocatorFree(file_settings->file_dirs);
-
+    infoString = cAllocatorFree(infoString);
+    
+    // File settings --
     for (i = 0; i < file_settings->file_path_max_length; i++) {
         if (file_settings->file_path_list[i] != NULL) {
             file_settings->file_path_list[i] = cAllocatorFree(file_settings->file_path_list[i]);
         }
     }
-    
     file_settings->file_path_list = cAllocatorFree(file_settings->file_path_list);
-    infoString = cAllocatorFree(infoString);
+    
+    for (int i = 0; i < file_settings->file_dir_max_length; i++) {
+        if (file_settings->file_dirs[i] != NULL) {
+            file_settings->file_dirs[i] = cAllocatorFree(file_settings->file_dirs[i]);
+        }
+    }
+    file_settings->file_dirs = cAllocatorFree(file_settings->file_dirs);
+
+    file_settings->file_path = cAllocatorFree(file_settings->file_path);
+    file_settings->file_name = cAllocatorFree(file_settings->file_name);
+    
     file_settings = cAllocatorFree(file_settings);
+    
 }
 
 

@@ -25,7 +25,7 @@ int getDirectoryListPosix(char *dir_string, struct FileSettings *f) {
     DIR *d = opendir(dir_string);
     if (d) {
         while ((dir = readdir(d)) != NULL) {
-            char *dir_name_chars = cAllocatorAlloc(sizeof(char)*f->file_name_max_length, "dir name chars");
+            char *dir_name_chars = cAllocatorAlloc(sizeof(char)*f->file_name_max_length, "dir name chars 2");
             sprintf(dir_name_chars, "%s", dir->d_name);
             f->file_dirs[pos] = dir_name_chars;
             pos++;
@@ -52,7 +52,7 @@ struct PeekDirResult *peekDirPosix(char *dir_name, struct FileSettings *f) {
     result->path = NULL;
     
     // append the dir names to the path.
-    char *path = cAllocatorAlloc(sizeof(char)*f->file_name_max_length, "dir name chars");
+    char *path = cAllocatorAlloc(sizeof(char)*f->file_name_max_length, "dir name chars 1");
     for(int i = 0; i < f->file_path_pos+1; i++) {
         if(f->file_path_list[i] != NULL) {
             if(i < 2) {
