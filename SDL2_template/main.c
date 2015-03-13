@@ -618,26 +618,51 @@ static void saveProjectFile(void) {
     // TODO: set delimiter based on POSIX/WIN.
     // save the '.json' in a separate char array so it can easily be swapped for something else.
     
-    if(file_settings->file_name != NULL && file_settings->file_path != NULL) {
-        char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
-        sprintf(save_path, "%s%c%s.json", file_settings->file_path, getFilePathDelimiter(), file_settings->file_name);
+	#if defined(platform_osx)
+		if(file_settings->file_name != NULL && file_settings->file_path != NULL) {
+			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
+			sprintf(save_path, "%s%c%s.json", file_settings->file_path, getFilePathDelimiter(), file_settings->file_name);
         
-        cJSON *root = cSynthSaveProject(synth);
-        if(root != NULL) {
-            FILE * fp;
-            fp = fopen (save_path, "w+");
-            fprintf(fp, "%s", cJSON_PrintUnformatted(root));
-            fclose(fp);
-            cJSON_Delete(root);
-        }
+			cJSON *root = cSynthSaveProject(synth);
+			if(root != NULL) {
+				FILE * fp;
+				fp = fopen (save_path, "w+");
+				fprintf(fp, "%s", cJSON_PrintUnformatted(root));
+				fclose(fp);
+				cJSON_Delete(root);
+			}
 
-        //sprintf(save_path, "saved file:%s", save_path);
-        setInfoTimer(save_path);
-        cAllocatorFree(save_path);
-        exitFileEditor();
-    } else {
-        printf("cannot save, filename or path is null\n");
-    }
+			//sprintf(save_path, "saved file:%s", save_path);
+			setInfoTimer(save_path);
+			cAllocatorFree(save_path);
+			exitFileEditor();
+		} else {
+			printf("cannot save, filename or path is null\n");
+		}
+	#elif defined(platform_windows)
+		if(file_settings->file_name != NULL) {
+			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
+			sprintf(save_path, "%s.json", file_settings->file_name);
+        
+			cJSON *root = cSynthSaveProject(synth);
+			if(root != NULL) {
+				FILE * fp;
+				fp = fopen (save_path, "w+");
+				fprintf(fp, "%s", cJSON_PrintUnformatted(root));
+				fclose(fp);
+				cJSON_Delete(root);
+			}
+
+			//sprintf(save_path, "saved file:%s", save_path);
+			setInfoTimer(save_path);
+			cAllocatorFree(save_path);
+			exitFileEditor();
+		} else {
+			printf("cannot save, filename or path is null\n");
+		}
+	#endif
+	
+   
 }
 
 static void setInfoTimer(char *string) {
