@@ -46,7 +46,7 @@
 
 bool load_gfx = false;
 bool log_file_enabled = true;
-bool release_build = true;
+bool release_build = false;
 bool run_with_sdl = true;
 
 int screen_width = 1280;
@@ -627,9 +627,12 @@ static void saveProjectFile(void) {
 			if(root != NULL) {
 				FILE * fp;
 				fp = fopen (save_path, "w+");
-				fprintf(fp, "%s", cJSON_PrintUnformatted(root));
+                //TODO: free memory from the char* returned by printunformatted
+                char *json_print = cJSON_PrintUnformatted(root);
+				fprintf(fp, "%s", json_print);
 				fclose(fp);
 				cJSON_Delete(root);
+                free(json_print);
 			}
 
 			//sprintf(save_path, "saved file:%s", save_path);
@@ -642,15 +645,18 @@ static void saveProjectFile(void) {
 	#elif defined(platform_windows)
 		if(file_settings->file_name != NULL) {
 			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
-			sprintf(save_path, "%s.json", file_settings->file_name);
+			sprintf(save_path, "savedata\%s.json", file_settings->file_name);
         
 			cJSON *root = cSynthSaveProject(synth);
 			if(root != NULL) {
 				FILE * fp;
 				fp = fopen (save_path, "w+");
-				fprintf(fp, "%s", cJSON_PrintUnformatted(root));
+                //TODO: free memory from the char* returned by printunformatted
+                char *json_print = cJSON_PrintUnformatted(root);
+				fprintf(fp, "%s", json_print);
 				fclose(fp);
 				cJSON_Delete(root);
+                free(json_print);
 			}
 
 			//sprintf(save_path, "saved file:%s", save_path);
@@ -2471,31 +2477,6 @@ static void mainLoop(void) {
     SDL_UnlockAudioDevice(AudioDevice);
     SDL_Delay(16);
 }
-
-
-/*
-int main(int argc, char* argv[]) {
-    // Start SDL2
-    SDL_Init(SDL_INIT_EVERYTHING);
- 
-    // Create a Window in the middle of the screen
-    SDL_Window *window = 0;
- 
-    window = SDL_CreateWindow("Hello World!",
-                              SDL_WINDOWPOS_CENTERED,
-                              SDL_WINDOWPOS_CENTERED,
-                              640, 480,
-                              SDL_WINDOW_SHOWN);
- 
-    // Delay so that we can see the window appear
-    SDL_Delay(2000);
- 
-    // Cleanup and Quit
-    SDL_DestroyWindow(window);
-    SDL_Quit();
- 
-    return 0;
-}*/
 
 static void debug_log(char *str) {
     if(log_file_enabled) {
