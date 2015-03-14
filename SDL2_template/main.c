@@ -11,6 +11,7 @@
 #include "chars_gfx.h"
 #include "cJSON.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include "file_settings.h"
 #include <SDL2/SDL.h>
 #include <string.h>
@@ -46,7 +47,7 @@
 
 bool load_gfx = false;
 bool log_file_enabled = true;
-bool release_build = false;
+bool release_build = true;
 bool run_with_sdl = true;
 
 int screen_width = 1280;
@@ -294,16 +295,27 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
         case SDLK_ESCAPE:
                 exitFileEditor();
             break;
-        case SDLK_RETURN:
-            // activate another node in the path.
-            if(file_settings->file_editor_save) {
-                saveProjectFile();
-            } else {
-            #if defined(platform_osx)
-                file_settings->file_enter_pressed = true;
-                enterDir();
-            #endif
-            }
+        case SDLK_RETURN:	
+			#if defined(platform_windows)
+				if(file_settings->file_editor_save) {
+					saveProjectFile();
+				} else {
+					if(file_settings->file_name != NULL) {
+						char *load_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+						sprintf(load_path, "%s.json", file_settings->file_name);
+						loadProjectFile(load_path);
+						cAllocatorFree(load_path);
+					}
+				}
+			#elif defined(platform_osx)
+				if(file_settings->file_editor_save) {
+					saveProjectFile();
+				} else {
+					file_settings->file_enter_pressed = true;
+					enterDir();
+				}
+			#endif
+
             break;
         case SDLK_LEFT:
 			#if defined(platform_osx)
@@ -329,9 +341,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             }
             break;
         case SDLK_BACKSPACE:
-            if(file_settings->file_editor_save) {
                 removeFilenameChar();
-            }
             break;
         case SDLK_SPACE:
             break;
@@ -538,9 +548,16 @@ static void renderFiles(void) {
     if(file_settings->file_editor_save) {
         cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
         if(file_settings->file_name != NULL) {
-            cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+13, 22, cengine_color_red, cengine_color_black);
+            cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
         }
     }
+	
+	#if defined(platform_windows)
+		cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+		if(file_settings->file_name != NULL) {
+			cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
+		}
+	#endif
 }
 
 static void addFilenameChar(char c) {
@@ -611,6 +628,7 @@ static void loadProjectFile(char *path) {
         }
     } else {
         printf("could not load file.\n");
+		setInfoTimer("could not load file.");
     }
 }
 
@@ -645,7 +663,7 @@ static void saveProjectFile(void) {
 	#elif defined(platform_windows)
 		if(file_settings->file_name != NULL) {
 			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
-			sprintf(save_path, "savedata\%s.json", file_settings->file_name);
+			sprintf(save_path, "%s.json", file_settings->file_name);
         
 			cJSON *root = cSynthSaveProject(synth);
 			if(root != NULL) {
