@@ -63,6 +63,48 @@ int current_track = 0;
 #define sheet_height 1024
 #define fullscreen 0
 
+/*
+ 
+ 
+
+ 
+ 
+ */
+
+
+static int color_font = 0xFFCCCCCC;
+static int color_font_bg = 0xFF222222;
+
+static int color_cursor_font = 0xFFCCCCCC;
+static int color_cursor_bg = 0xFF771111;
+
+static int color_cursor_active_font = 0xFFCCCCCC;
+static int color_cursor_active_bg = 0xFF992222;
+
+static int color_playing_row_font = 0xFFCCCCCC;
+static int color_playing_row_bg = 0xFF229922;
+
+//static int color_pattern_row_font = 0xFFCCCCCC;
+//static int color_pattern_row_bg = 0xFF771111;
+
+static int color_active_pattern_row_font = 0xFFCCCCCC;
+static int color_active_pattern_row_bg = 0xFF229922;
+
+static int color_playing_pattern_row_font = 0xFFCCCCCC;
+static int color_playing_pattern_row_bg = 0xFF229922;
+
+static int color_instrument_line = 0xFFCCCCCC;
+static int color_adsr_line = 0xFF229922;
+static int color_adsr_inactive_node = 0xFF771111;
+static int color_adsr_active_node = 0xFF229922;
+static int color_voice_1_bg = 0xFF332222;
+static int color_voice_2_bg = 0xFF223322;
+static int color_voice_3_bg = 0xFF222233;
+static int color_voice_4_bg = 0xFF332233;
+static int color_voice_5_bg = 0xFF333322;
+static int color_voice_6_bg = 0xFF223333;
+static int color_bg = 0xFF000000;
+
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFF992222
 #define cengine_color_green 0xFF229922
@@ -94,7 +136,7 @@ bool playing = false;
 bool editing = false;
 bool modifier = false;
 
-bool follow = true;
+bool follow = false;
 
 int octave = 2;
 
@@ -152,7 +194,7 @@ static void setup_data(void);
 static void convertInput(int x, int y);
 static void cleanup_data(void);
 static void addTrackNodeWithOctave(int x, int y, bool editing, int value);
-static void checkVisualCursorBounds(void);
+static void setVisualCursor(int diff_x, int diff_y, bool user);
 static void checkPatternCursorBounds(void);
 static bool checkScreenBounds(int x, int y);
 static void toggle_playback(void);
@@ -645,7 +687,6 @@ static void saveProjectFile(void) {
 			if(root != NULL) {
 				FILE * fp;
 				fp = fopen (save_path, "w+");
-                //TODO: free memory from the char* returned by printunformatted
                 char *json_print = cJSON_PrintUnformatted(root);
 				fprintf(fp, "%s", json_print);
 				fclose(fp);
@@ -669,7 +710,6 @@ static void saveProjectFile(void) {
 			if(root != NULL) {
 				FILE * fp;
 				fp = fopen (save_path, "w+");
-                //TODO: free memory from the char* returned by printunformatted
                 char *json_print = cJSON_PrintUnformatted(root);
 				fprintf(fp, "%s", json_print);
 				fclose(fp);
@@ -852,8 +892,6 @@ static void cleanup_data(void) {
 
 int sine_scroll = 0;
 static void addTrackNodeWithOctave(int x, int y, bool editing, int tone);
-static void checkVisualCursorBounds(void);
-static void checkPatternCursorBounds(void);
 static bool checkScreenBounds(int x, int y);
 static char *getWaveTypeAsChar(int type);
 static void changeParam(bool plus);
@@ -862,109 +900,147 @@ static void ADSRInvertYRender(double x, double y, int color);
 static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     int x_count = visual_cursor_x%5;
     
+    
+    //TODO remove this
+    //current_track = synth->current_track;
+    
     if(instrument_editor || pattern_editor || !editing) {
         //printf("not editing\n");
         // only allow preview of notes in editor
-        cSynthAddTrackNode(synth, x, y, false, true, value+(octave*12));
+        cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
     } else {
         
         if(!editing) {
             //printf("not editing\n");
-            cSynthAddTrackNode(synth, x, y, false, true, value+(octave*12));
+            cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
         } else {
             
             if(x_count == 0) {
-                cSynthAddTrackNode(synth, x, y, editing, true, value+(octave*12));
+                cSynthAddTrackNode(synth, current_track, x, y, editing, true, value+(octave*12));
                 if(editing) {
-                    if(!playing) {
-                        visual_cursor_y++;
+                    if(!playing || !follow) {
+                        setVisualCursor(0, 1, true);
                     }
-                    checkVisualCursorBounds();
                 }
             }
             
             if(x_count == 1 && editing) {
-                cSynthAddTrackNodeParams(synth, x, y, value, -1, -1, -1);
+                cSynthAddTrackNodeParams(synth, current_track, x, y, value, -1, -1, -1);
                 //printf("change instrument value:%d\n", value);
                 synth->current_instrument = value;
                 
-                if(!playing) {
-                    visual_cursor_y++;
-                    checkVisualCursorBounds();
+                if(!playing || !follow) {
+                    setVisualCursor(0, 1, true);
                 }
             }
             
             if(x_count == 2 && editing) {
                 // change effect
-                cSynthAddTrackNodeParams(synth, x, y, -1, (char)value, -1, -1);
+                cSynthAddTrackNodeParams(synth, current_track, x, y, -1, (char)value, -1, -1);
                 //printf("change effect value:%d\n", value);
                 
-                if(!playing) {
-                    visual_cursor_y++;
-                    checkVisualCursorBounds();
+                if(!playing || !follow) {
+                    setVisualCursor(0, 1, true);
                 }
             }
             
             if(x_count == 3 && editing) {
                 // change param2
-                cSynthAddTrackNodeParams(synth, x, y, -1, -1, (char)value, -1);
+                cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, (char)value, -1);
                 //printf("change param1 value:%d\n", value);
                 
-                if(!playing) {
-                    visual_cursor_y++;
-                    checkVisualCursorBounds();
+                if(!playing || !follow) {
+                    setVisualCursor(0, 1, true);
                 }
             }
             
             if(x_count == 4 && editing) {
                 // change param1
-                cSynthAddTrackNodeParams(synth, x, y, -1, -1, -1, (char)value);
+                cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, -1, (char)value);
                 //printf("change param2 value:%d\n", value);
                 
-                if(!playing) {
-                    visual_cursor_y++;
-                    checkVisualCursorBounds();
+                if(!playing || !follow) {
+                    setVisualCursor(0, 1, true);
                 }
             }
         }
     }
 }
 
-static void checkVisualCursorBounds(void) {
+static void setVisualCursor(int diff_x, int diff_y, bool user) {
     
-    if(visual_cursor_x == visual_track_width) {
-        visual_cursor_x = 0;
-    }
-    
-    if(visual_cursor_x == -1) {
-        visual_cursor_x = visual_track_width-1;
-    }
-    
-    if(visual_cursor_y == visual_track_height) {
-        
-        if(synth->current_track < synth->active_patterns-1) {
-            synth->current_track++;
-        } else {
-            //rewind
-            synth->current_track = 0;
+    visual_cursor_x += diff_x;
+    visual_cursor_y += diff_y;
+    if(user) {
+        if(visual_cursor_x == visual_track_width) {
+            visual_cursor_x = 0;
         }
         
-        visual_cursor_y = 0;
-    }
-    
-    if(visual_cursor_y == -1) {
-        
-        if(synth->current_track > 0) {
-            synth->current_track--;
-        } else {
-            //move to last pattern
-            synth->current_track = synth->active_patterns-1;
+        if(visual_cursor_x == -1) {
+            visual_cursor_x = visual_track_width-1;
         }
         
-        visual_cursor_y = visual_track_height-1;
+        if(visual_cursor_y == visual_track_height) {
+            
+            if(current_track < synth->active_patterns-1) {
+                current_track++;
+            } else {
+                //rewind
+                current_track = 0;
+            }
+            
+            visual_cursor_y = 0;
+        }
+        
+        if(visual_cursor_y == -1) {
+            
+            if(current_track > 0) {
+                current_track--;
+            } else {
+                //move to last pattern
+                current_track = synth->active_patterns-1;
+            }
+            
+            visual_cursor_y = visual_track_height-1;
+        }
+        
+    } else {
+        
+        if(playing && follow) {
+            if(visual_cursor_x == visual_track_width) {
+                visual_cursor_x = 0;
+            }
+            
+            if(visual_cursor_x == -1) {
+                visual_cursor_x = visual_track_width-1;
+            }
+            
+            if(visual_cursor_y == visual_track_height) {
+                
+                if(synth->current_track < synth->active_patterns-1) {
+                    synth->current_track++;
+                } else {
+                    //rewind
+                    synth->current_track = 0;
+                }
+                
+                visual_cursor_y = 0;
+            }
+            
+            if(visual_cursor_y == -1) {
+                
+                if(synth->current_track > 0) {
+                    synth->current_track--;
+                } else {
+                    //move to last pattern
+                    synth->current_track = synth->active_patterns-1;
+                }
+                
+                visual_cursor_y = visual_track_height-1;
+            }
+            current_track = synth->current_track;
+        }
     }
-    
-    //printf("current track:%d", synth->current_track);
 }
 
 static void checkPatternCursorBounds(void) {
@@ -1004,7 +1080,7 @@ static void toggle_playback(void) {
             //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
             cSynthResetTrackProgress(synth, pattern_cursor_y-1);
         } else {
-            cSynthResetTrackProgress(synth, synth->current_track);
+            cSynthResetTrackProgress(synth, current_track);
             //printf("playing from pattern:%d\n", synth->current_track);
         }
     } else {
@@ -1088,7 +1164,6 @@ void handle_key_down(SDL_Keysym* keysym)
                 }
                 break;
             case SDLK_f:
-                /*
                 if(modifier) {
                     if(follow) {
                         follow = false;
@@ -1098,7 +1173,7 @@ void handle_key_down(SDL_Keysym* keysym)
                         setInfoTimer("follow: true");
                     }
                     return;
-                }*/
+                }
                 break;
             case SDLK_TAB:
                 if(instrument_editor) {
@@ -1141,11 +1216,11 @@ void handle_key_down(SDL_Keysym* keysym)
                         }
                         setInfoTimerWithInt("octave", octave);
                     } else if(pattern_editor) {
-                        pattern_cursor_x--;
+                        pattern_cursor_x -= 1;
                         checkPatternCursorBounds();
+                        //setVisualCursor(-1, 1, true);
                     } else {
-                        visual_cursor_x--;
-                        checkVisualCursorBounds();
+                        setVisualCursor(-1, 0, true);
                     }
                 }
                 break;
@@ -1161,11 +1236,10 @@ void handle_key_down(SDL_Keysym* keysym)
                         }
                         setInfoTimerWithInt("octave", octave);
                     } else if(pattern_editor) {
-                        pattern_cursor_x++;
+                        pattern_cursor_x += 1;
                         checkPatternCursorBounds();
                     } else {
-                        visual_cursor_x++;
-                        checkVisualCursorBounds();
+                        setVisualCursor(1, 0, true);
                     }
                 }
                 break;
@@ -1175,11 +1249,13 @@ void handle_key_down(SDL_Keysym* keysym)
                     
                 } else {
                     if(pattern_editor) {
-                        pattern_cursor_y--;
+                        pattern_cursor_y -= 1;
                         checkPatternCursorBounds();
                     } else {
-                        visual_cursor_y--;
-                        checkVisualCursorBounds();
+                        if(playing && follow) {}
+                        else {
+                            setVisualCursor(0, -1, true);
+                        }
                     }
                 }
                 break;
@@ -1189,11 +1265,13 @@ void handle_key_down(SDL_Keysym* keysym)
                     
                 } else {
                     if(pattern_editor) {
-                        pattern_cursor_y++;
+                        pattern_cursor_y += 1;
                         checkPatternCursorBounds();
                     } else {
-                        visual_cursor_y++;
-                        checkVisualCursorBounds();
+                        if(playing && follow) {}
+                        else {
+                            setVisualCursor(0, 1, true);
+                        }
                     }
                 }
                 break;
@@ -1202,20 +1280,23 @@ void handle_key_down(SDL_Keysym* keysym)
                 else if(pattern_editor) {}
                 else if(editing) {
                     int x_count = visual_cursor_x%5;
+                    
+                    //TODO remove this
+                    //current_track = synth->current_track;
+                    
                     if(x_count == 0) {
-                        cSynthRemoveTrackNode(synth, synth->track_cursor_x, synth->track_cursor_y);
+                        cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
                     } else if(x_count == 1) {
-                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
                     } else if(x_count == 2) {
-                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
                     } else if(x_count == 3) {
-                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
                     } else if(x_count == 4) {
-                        cSynthRemoveTrackNodeParams(synth, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     }
                     if(!playing) {
-                        visual_cursor_y++;
-                        checkVisualCursorBounds();
+                        setVisualCursor(0, 1, true);
                     }
                 }
                 break;
@@ -2169,13 +2250,17 @@ static void renderTrack(void) {
     int inset_y = 6;
     
     
+    // TODO remove this
+    //current_track = synth->current_track;
+    
     int cursor_x = visual_cursor_x/5;
     cSynthUpdateTrackCursor(synth, cursor_x, visual_cursor_y);
     int track_progress_int = synth->track_progress_int;
     
     if(follow && playing) {
-        visual_cursor_y = track_progress_int;
-        checkVisualCursorBounds();
+        //visual_cursor_y = track_progress_int;
+        int diff = track_progress_int - visual_cursor_y;
+        setVisualCursor(0, diff, false);
     } else {
         track_progress_int = visual_cursor_y;
     }
@@ -2187,6 +2272,7 @@ static void renderTrack(void) {
         for (int x = 0; x < visual_track_width; x++) {
             
             int bg_color = cengine_color_black;
+            int foreground_color = cengine_color_white;
             if(x >= 0 && x < 5 ) bg_color = cengine_color_bg1;
             if(x >= 5 && x < 10 ) bg_color = cengine_color_bg2;
             if(x >= 10 && x < 15 ) bg_color = cengine_color_bg3;
@@ -2195,7 +2281,9 @@ static void renderTrack(void) {
             if(x >= 25 && x < 30 ) bg_color = cengine_color_bg6;
             
             if(synth->track_progress_int == y && playing == 1) {
-                bg_color = cengine_color_green;
+                if(synth->current_track == current_track) {
+                    bg_color = cengine_color_green;
+                }
             }
             
             if(visual_cursor_x == x && visual_cursor_y == y) {
@@ -2210,7 +2298,7 @@ static void renderTrack(void) {
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 node_x = (int)floor(x/5);
-                int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
+                int pattern = synth->patterns_and_voices[node_x][current_track+1];
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL && t->tone_active) {
                     int tone = t->tone;
@@ -2221,7 +2309,7 @@ static void renderTrack(void) {
                 }
                 offset_x += 3;
             } else {
-                int pattern = synth->patterns_and_voices[node_x][synth->current_track+1];
+                int pattern = synth->patterns_and_voices[node_x][current_track+1];
                 
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL) {
@@ -2264,10 +2352,10 @@ static void renderTrack(void) {
             }
         }
         
-        int pattern_at_cursor = synth->patterns_and_voices[cursor_x][synth->current_track+1];
+        int pattern_at_cursor = synth->patterns_and_voices[cursor_x][current_track+1];
         current_pattern = pattern_at_cursor;
         char cval[20];
-        sprintf(cval, "p:%d t:%d", current_pattern, synth->current_track);
+        sprintf(cval, "p:%d t:%d", current_pattern, current_track);
         cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
         
     }
