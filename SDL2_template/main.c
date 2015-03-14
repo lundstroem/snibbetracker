@@ -299,8 +299,10 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             if(file_settings->file_editor_save) {
                 saveProjectFile();
             } else {
+            #if defined(platform_osx)
                 file_settings->file_enter_pressed = true;
                 enterDir();
+            #endif
             }
             break;
         case SDLK_LEFT:
@@ -510,8 +512,6 @@ static void listDirectory(void) {
         getDirectoryList(file_settings->file_path);
         file_settings->reload_dirs = false;
     }
-    
-    renderFiles();
 }
 
 static void renderFiles(void) {
@@ -536,7 +536,7 @@ static void renderFiles(void) {
     }
     
     if(file_settings->file_editor_save) {
-        cEngineRenderLabelWithParams(raster2d, "save to file:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
         if(file_settings->file_name != NULL) {
             cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+13, 22, cengine_color_red, cengine_color_black);
         }
@@ -2136,7 +2136,10 @@ static void renderTrack(void) {
         renderPatternMapping();
         return;
     } else if(file_editor) {
-        listDirectory();
+        #if defined(platform_osx)
+            listDirectory();
+        #endif
+        renderFiles();
         return;
     }
     
