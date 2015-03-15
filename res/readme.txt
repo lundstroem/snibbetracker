@@ -43,6 +43,7 @@ controls:
 - tab: go to pattern view.
 - modifier+plus/minus: change octave up/down.
 - character keys: play notes or edit effects.
+- modifier+f: toggle play cursor follow.
 
 track format where a = note, b = instrument number, ccc = effects.
 a b ccc
@@ -89,9 +90,10 @@ effects
 4xx - vibrato (speed, depth).
 Bxx - lowpass sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - lowpass sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+Dxx - ends pattern.
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-dxx - ends pattern.
+
 
 BPM - beats per minute.
 Active - number of active pattern rows.

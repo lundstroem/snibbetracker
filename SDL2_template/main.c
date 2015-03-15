@@ -71,6 +71,7 @@ int current_track = 0;
  
  */
 
+/*
 
 static int color_font = 0xFFCCCCCC;
 static int color_font_bg = 0xFF222222;
@@ -105,6 +106,8 @@ static int color_voice_5_bg = 0xFF333322;
 static int color_voice_6_bg = 0xFF223333;
 static int color_bg = 0xFF000000;
 
+ */
+ 
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFF992222
 #define cengine_color_green 0xFF229922
@@ -2272,7 +2275,7 @@ static void renderTrack(void) {
         for (int x = 0; x < visual_track_width; x++) {
             
             int bg_color = cengine_color_black;
-            int foreground_color = cengine_color_white;
+            //int foreground_color = cengine_color_white;
             if(x >= 0 && x < 5 ) bg_color = cengine_color_bg1;
             if(x >= 5 && x < 10 ) bg_color = cengine_color_bg2;
             if(x >= 10 && x < 15 ) bg_color = cengine_color_bg3;
@@ -2698,7 +2701,7 @@ int main(int argc, char* argv[])
             }
         }
     } else {
-        sleep(5);
+        //sleep(5);
     }
 
     cleanupSynth();
