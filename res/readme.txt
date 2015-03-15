@@ -1,8 +1,13 @@
-snibbetracker 
+snibbetracker test
 ----------------
  
 changelog
 ----------------
+build 7 - 2015-03-15 08.59
+- edit cursor disconnected from player cursor. (can be toggled with modifier+F)
+- directory browsing completely disabled for saving and loading files, only uses the directory the exe is in.
+    when loading files, just type the name without the .json and press enter, same as for saving.
+
 build 6 - 2015-03-13 15.26
 - hopefully prevented crashes when saving (directory browsing is disabled for now).
 - clear track nodes before loading new project.
