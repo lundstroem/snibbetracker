@@ -341,7 +341,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                 exitFileEditor();
             break;
         case SDLK_RETURN:	
-			#if defined(platform_windows)
+			//#if defined(platform_windows)
 				if(file_settings->file_editor_save) {
 					saveProjectFile();
 				} else {
@@ -352,25 +352,27 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
 						cAllocatorFree(load_path);
 					}
 				}
-			#elif defined(platform_osx)
+			/*
+            #elif defined(platform_osx)
 				if(file_settings->file_editor_save) {
 					saveProjectFile();
 				} else {
 					file_settings->file_enter_pressed = true;
 					enterDir();
 				}
-			#endif
+            */
+			//#endif
 
             break;
         case SDLK_LEFT:
-			#if defined(platform_osx)
-				exitDir();
-			#endif
+			//#if defined(platform_osx)
+			//	exitDir();
+			//#endif
             break;
         case SDLK_RIGHT:
-			#if defined(platform_osx)
-				enterDir();
-			#endif
+			//#if defined(platform_osx)
+			//	enterDir();
+			//#endif
             break;
         case SDLK_UP:
             file_settings->file_cursor_y--;
@@ -571,6 +573,7 @@ static void listDirectory(void) {
 
 static void renderFiles(void) {
     
+    
     int offset_y = 0;
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
         if (file_settings->file_dirs[i] != NULL) {
@@ -590,19 +593,21 @@ static void renderFiles(void) {
         cEngineRenderLabelWithParams(raster2d, file_settings->file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
     }
     
+    /*
     if(file_settings->file_editor_save) {
         cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
         if(file_settings->file_name != NULL) {
             cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
         }
     }
+     */
 	
-	#if defined(platform_windows)
+	//#if defined(platform_windows)
 		cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
 		if(file_settings->file_name != NULL) {
 			cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
 		}
-	#endif
+	//#endif
 }
 
 static void addFilenameChar(char c) {
@@ -681,7 +686,8 @@ static void saveProjectFile(void) {
     // TODO: set delimiter based on POSIX/WIN.
     // save the '.json' in a separate char array so it can easily be swapped for something else.
     
-	#if defined(platform_osx)
+	//#if defined(platform_osx)
+    /*
 		if(file_settings->file_name != NULL && file_settings->file_path != NULL) {
 			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
 			sprintf(save_path, "%s%c%s.json", file_settings->file_path, getFilePathDelimiter(), file_settings->file_name);
@@ -704,7 +710,8 @@ static void saveProjectFile(void) {
 		} else {
 			printf("cannot save, filename or path is null\n");
 		}
-	#elif defined(platform_windows)
+     */
+	//#elif defined(platform_windows)
 		if(file_settings->file_name != NULL) {
 			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
 			sprintf(save_path, "%s.json", file_settings->file_name);
@@ -727,7 +734,7 @@ static void saveProjectFile(void) {
 		} else {
 			printf("cannot save, filename or path is null\n");
 		}
-	#endif
+	//#endif
 	
    
 }
@@ -2238,9 +2245,9 @@ static void renderTrack(void) {
         renderPatternMapping();
         return;
     } else if(file_editor) {
-        #if defined(platform_osx)
-            listDirectory();
-        #endif
+        //#if defined(platform_osx)
+        //    listDirectory();
+        //#endif
         renderFiles();
         return;
     }
