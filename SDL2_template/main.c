@@ -109,12 +109,15 @@ static int color_bg = 0xFF000000;
  */
  
 #define cengine_color_dull_red 0xFF771111
-#define cengine_color_red 0xFF992222
-#define cengine_color_green 0xFF229922
-#define cengine_color_blue 0xFF0000CC
-#define cengine_color_black 0xFF222222
+#define cengine_color_red 0xFFFF0000
+#define cengine_color_green 0xFF00FF00
+#define cengine_color_blue 0xFF0000FF
+#define cengine_color_black 0xFF000000
 #define cengine_color_white 0xFFCCCCCC
+#define cengine_color_magenta 0xFFFF00FF
+#define cengine_color_dull_green 0xFF117711
 
+#define cengine_color_bg 0xFF111111
 #define cengine_color_bg1 0xFF332222
 #define cengine_color_bg2 0xFF223322
 #define cengine_color_bg3 0xFF222233
@@ -977,6 +980,96 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     }
 }
 
+// only move across active tracks
+//static void setVisualCursor(int diff_x, int diff_y, bool user) {
+//    
+//    visual_cursor_x += diff_x;
+//    visual_cursor_y += diff_y;
+//    if(user) {
+//        if(visual_cursor_x == visual_track_width) {
+//            visual_cursor_x = 0;
+//        }
+//        
+//        if(visual_cursor_x == -1) {
+//            visual_cursor_x = visual_track_width-1;
+//        }
+//        
+//        if(visual_cursor_y == visual_track_height) {
+//            
+//            /*
+//            if(current_track < synth->active_patterns-1) {
+//                current_track++;
+//            } else {
+//                //rewind
+//                current_track = 0;
+//            }*/
+//            current_track = cSynthGetNextActiveTrack(current_track, synth, true);
+//            
+//            visual_cursor_y = 0;
+//        }
+//        
+//        if(visual_cursor_y == -1) {
+//            
+//            /*
+//            if(current_track > 0) {
+//                current_track--;
+//                
+//            } else {
+//                //move to last pattern
+//                current_track = synth->active_patterns-1;
+//            }*/
+//            current_track = cSynthGetNextActiveTrack(current_track, synth, false);
+//            
+//            visual_cursor_y = visual_track_height-1;
+//        }
+//        
+//    } else {
+//        
+//        if(playing && follow) {
+//            if(visual_cursor_x == visual_track_width) {
+//                visual_cursor_x = 0;
+//            }
+//            
+//            if(visual_cursor_x == -1) {
+//                visual_cursor_x = visual_track_width-1;
+//            }
+//            
+//            if(visual_cursor_y == visual_track_height) {
+//                
+//                /*
+//                if(synth->current_track < synth->active_patterns-1) {
+//                    synth->current_track++;
+//                } else {
+//                    //rewind
+//                    synth->current_track = 0;
+//                }
+//                */
+//                synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, true);
+//                
+//                visual_cursor_y = 0;
+//            }
+//            
+//            if(visual_cursor_y == -1) {
+//                
+//                /*
+//                if(synth->current_track > 0) {
+//                    synth->current_track--;
+//                } else {
+//                    //move to last pattern
+//                    synth->current_track = synth->active_patterns-1;
+//                }
+//                 */
+//                synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, false);
+//                
+//                visual_cursor_y = visual_track_height-1;
+//            }
+//            current_track = synth->current_track;
+//        }
+//    }
+//}
+
+
+// move across the whole 16 tracks.
 static void setVisualCursor(int diff_x, int diff_y, bool user) {
     
     visual_cursor_x += diff_x;
@@ -992,7 +1085,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
         
         if(visual_cursor_y == visual_track_height) {
             
-            if(current_track < synth->active_patterns-1) {
+            if(current_track < 15) {
                 current_track++;
             } else {
                 //rewind
@@ -1008,7 +1101,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
                 current_track--;
             } else {
                 //move to last pattern
-                current_track = synth->active_patterns-1;
+                current_track = 15;
             }
             
             visual_cursor_y = visual_track_height-1;
@@ -1027,7 +1120,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
             
             if(visual_cursor_y == visual_track_height) {
                 
-                if(synth->current_track < synth->active_patterns-1) {
+                if(synth->current_track < 15) {
                     synth->current_track++;
                 } else {
                     //rewind
@@ -1043,7 +1136,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
                     synth->current_track--;
                 } else {
                     //move to last pattern
-                    synth->current_track = synth->active_patterns-1;
+                    synth->current_track = 15;
                 }
                 
                 visual_cursor_y = visual_track_height-1;
@@ -1052,6 +1145,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
         }
     }
 }
+
 
 static void checkPatternCursorBounds(void) {
     
@@ -1088,10 +1182,13 @@ static void toggle_playback(void) {
         playing = true;
         if(pattern_editor) {
             //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
-            cSynthResetTrackProgress(synth, pattern_cursor_y-1);
+            if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
+                cSynthResetTrackProgress(synth, pattern_cursor_y-1, 0);
+            } else {
+                cSynthResetTrackProgress(synth, current_track, 0);
+            }
         } else {
-            cSynthResetTrackProgress(synth, current_track);
-            //printf("playing from pattern:%d\n", synth->current_track);
+            cSynthResetTrackProgress(synth, current_track, visual_cursor_y);
         }
     } else {
         // note off to all voices when stopping playing.
@@ -1144,7 +1241,18 @@ void handle_key_down(SDL_Keysym* keysym)
         return;
     } else {
         
-        switch( keysym->sym ) {
+        switch(keysym->sym) {
+            case SDLK_m:
+                if(pattern_editor) {
+                    if(pattern_cursor_y == 0) {
+                        if(synth->voices[pattern_cursor_x]->muted == 1) {
+                            synth->voices[pattern_cursor_x]->muted = 0;
+                        } else {
+                            synth->voices[pattern_cursor_x]->muted = 1;
+                        }
+                    }
+                }
+                break;
             case SDLK_PLUS:
                 if(instrument_editor) {
                     
@@ -1160,6 +1268,15 @@ void handle_key_down(SDL_Keysym* keysym)
                     changeParam(false);
                 }
                 break;
+            case SDLK_a:
+                if(pattern_cursor_y > 0) {
+                    if(synth->active_tracks[pattern_cursor_y-1] == 0) {
+                        synth->active_tracks[pattern_cursor_y-1] = 1;
+                    } else {
+                        synth->active_tracks[pattern_cursor_y-1] = 0;
+                    }
+                }
+                break;
             case SDLK_o:
                 if(modifier) {
                     file_editor = true;
@@ -1171,6 +1288,22 @@ void handle_key_down(SDL_Keysym* keysym)
                     file_editor = true;
                     file_settings->file_editor_save = true;
                     return;
+                } else {
+                    if(pattern_editor) {
+                        if(pattern_cursor_y > 0) {
+                            if(synth->solo_track == pattern_cursor_y-1) {
+                                synth->solo_track = -1;
+                            } else {
+                                synth->solo_track = pattern_cursor_y-1;
+                            }
+                        } else if(pattern_cursor_y == 0) {
+                            if(synth->solo_voice == pattern_cursor_x) {
+                                synth->solo_voice = -1;
+                            } else {
+                                synth->solo_voice = pattern_cursor_x;
+                            }
+                        }
+                    }
                 }
                 break;
             case SDLK_f:
@@ -1197,8 +1330,18 @@ void handle_key_down(SDL_Keysym* keysym)
                 } else {
                     if(pattern_editor) {
                         pattern_editor = false;
+                        
+                        // set current visual track from marker.
+                        if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
+                            current_track = pattern_cursor_y-1;
+                            visual_cursor_x = pattern_cursor_x*5;
+                        }
                     } else {
                         pattern_editor = true;
+                        printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
+                        pattern_cursor_x = visual_cursor_x/5;
+                        printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
+                        
                     }
                 }
                 break;
@@ -1647,10 +1790,10 @@ static void checkSDLEvents(SDL_Event event) {
                 quit = true;
                 break;
             case SDL_KEYDOWN:
-                handle_key_down( &event.key.keysym );
+                handle_key_down(&event.key.keysym);
                 break;
             case SDL_KEYUP:
-                handle_key_up( &event.key.keysym );
+                handle_key_up(&event.key.keysym);
                 break;
             case SDL_MOUSEMOTION:
                 //printf("Mouse moved by %d,%d to (%d,%d)\n",
@@ -1775,11 +1918,22 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
     
     Uint32 i;
     
+    
     for(int v_i = 0; v_i < synth->max_voices; v_i++) {
         struct CVoice *voice = synth->voices[v_i];
         struct CInstrument *ins = voice->instrument;
-        if(voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
-            
+        
+        bool advance = false;
+        if(synth->solo_voice > -1 && v_i != synth->solo_voice) {
+            // if solo is active and this is a channel that is not the solo channel.
+        } else if (synth->solo_voice > -1 && voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
+            // this is the solo channel. No care if muted.
+            advance = true;
+        } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL) {
+            advance = true;
+        }
+        
+        if(advance) {
             double d_sampleRate = synth->sample_rate;
             double d_waveformLength = voice->waveform_length;
             
@@ -1954,6 +2108,7 @@ static void changeParam(bool plus) {
     
     } else if(y == 19 && x == 1) {
         // active patterns
+        /*
         int active_patterns = synth->active_patterns;
         if(plus) {
             active_patterns++;
@@ -1968,6 +2123,7 @@ static void changeParam(bool plus) {
             }
             synth->active_patterns = active_patterns;
         }
+         */
         
     } else if(y == 19 && x == 2) {
         // active rows for all patterns
@@ -2155,57 +2311,100 @@ static void renderPatternMapping(void) {
             char cval[2];
             sprintf(cval, "%d", val);
             int bg_color = cengine_color_black;
+            int color = cengine_color_white;
             if(x == pattern_cursor_x && y == pattern_cursor_y) {
-                bg_color = cengine_color_red;
+                bg_color = cengine_color_magenta;
+                color = cengine_color_black;
             }
             if(y == 0) {
-                cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                int wave_color = color;
+                if(synth->solo_voice > -1) {
+                    if(x == synth->solo_voice) {
+                        wave_color = cengine_color_blue;
+                    } else {
+                        wave_color = cengine_color_dull_red;
+                    }
+                } else if(synth->voices[x]->muted == 1) {
+                    wave_color = cengine_color_dull_red;
+                }
+                cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
             } else if(y == 17 || y == 18) {
                 char cval[10];
                 int ins_nr = x;
                 if(y == 18) { ins_nr += 6; }
                 sprintf(cval, "Ins %d", ins_nr);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19 && x == 0) {
                 char cval[10];
                 sprintf(cval, "BPM %d", synth->bpm);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19 && x == 1) {
-                char cval[20];
-                sprintf(cval, "Active %d", synth->active_patterns);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+               // char cval[20];
+               // sprintf(cval, "Active %d", synth->active_patterns);
+               // cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
             } else if(y == 19 && x == 2) {
                 char cval[20];
                 sprintf(cval, "Rows %d", synth->track_height);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19 && x == 3) {
                 char cval[20];
                 sprintf(cval, "Arp %d", synth->arpeggio_speed);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19 && x == 4) {
                 char cval[20];
                 sprintf(cval, "Swing %d", synth->swing);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             }
             else if(y == 19) {
                 //nothing
-                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
             }
             else {
+                /*
                 if(y <= synth->active_patterns) {
                     bg_color = cengine_color_green;
                     if(x == pattern_cursor_x && y == pattern_cursor_y) {
                         bg_color = cengine_color_red;
                     }
                 }
+                */
                 
-                if(y-1 == synth->current_track && playing) {
-                    bg_color = cengine_color_red;
+                if(synth->active_tracks[y-1] == 1) {
+                    bg_color = cengine_color_dull_green;
+                    color = cengine_color_black;
                 }
                 
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
+                if(synth->solo_track == y-1) {
+                    bg_color = cengine_color_blue;
+                    color = cengine_color_black;
+                }
+                
+                if(y-1 == synth->current_track && playing) {
+                    bg_color = cengine_color_green;
+                    color = cengine_color_black;
+                }
+                
+                if(x == pattern_cursor_x && y == pattern_cursor_y) {
+                    bg_color = cengine_color_magenta;
+                    color = cengine_color_black;
+                }
+                
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             }
         }
+    }
+    
+    int pattern_at_cursor = -1;
+    int track_at_cursor = -1;
+    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+        track_at_cursor = pattern_cursor_y-1;
+        pattern_at_cursor = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
+    }
+    
+    if(track_at_cursor > -1 && pattern_at_cursor > -1) {
+        char cval[20];
+        sprintf(cval, "p:%d t:%d", pattern_at_cursor, track_at_cursor);
+        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
     }
 }
 
@@ -2232,7 +2431,19 @@ static void drawWaveTypes(void) {
     
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         int val = synth->patterns_and_voices[x][0];
-        cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), 1+x*10, -visual_cursor_y+5, cengine_color_white, cengine_color_black);
+        
+        int wave_color = cengine_color_white;
+        if(synth->solo_voice > -1) {
+            if(x == synth->solo_voice) {
+                wave_color = cengine_color_blue;
+            } else {
+                wave_color = cengine_color_dull_red;
+            }
+        } else if(synth->voices[x]->muted == 1) {
+            wave_color = cengine_color_dull_red;
+        }
+
+        cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), 1+x*10, -visual_cursor_y+5, wave_color, cengine_color_black);
     }
 }
 
@@ -2282,6 +2493,8 @@ static void renderTrack(void) {
         for (int x = 0; x < visual_track_width; x++) {
             
             int bg_color = cengine_color_black;
+            int color = cengine_color_white;
+            
             //int foreground_color = cengine_color_white;
             if(x >= 0 && x < 5 ) bg_color = cengine_color_bg1;
             if(x >= 5 && x < 10 ) bg_color = cengine_color_bg2;
@@ -2293,14 +2506,17 @@ static void renderTrack(void) {
             if(synth->track_progress_int == y && playing == 1) {
                 if(synth->current_track == current_track) {
                     bg_color = cengine_color_green;
+                    color = cengine_color_black;
                 }
             }
             
             if(visual_cursor_x == x && visual_cursor_y == y) {
                 if(editing == 1) {
-                    bg_color = cengine_color_red;
+                    bg_color = cengine_color_magenta;
+                    color = cengine_color_black;
                 } else{
                     bg_color = cengine_color_dull_red;
+                    
                 }
             }
             
@@ -2313,9 +2529,9 @@ static void renderTrack(void) {
                 if(t != NULL && t->tone_active) {
                     int tone = t->tone;
                     char *ctone = cSynthToneToChar(tone);
-                    cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, ctone, inset_x+x+offset_x, pos_y, color, bg_color);
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, " - ", inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, " - ", inset_x+x+offset_x, pos_y, color, bg_color);
                 }
                 offset_x += 3;
             } else {
@@ -2327,28 +2543,28 @@ static void renderTrack(void) {
                         if(t->instrument != NULL) {
                             char cval[20];
                             sprintf(cval, "%d", t->instrument_nr);
-                            cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                            cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                         } else {
-                            cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                            cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, color, bg_color);
                         }
                     } else if(x_count == 2) {
                         //effect type
                         char cval[20];
                         sprintf(cval, "%c", t->effect);
-                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                     } else if(x_count == 3) {
                         //effect type
                         char cval[20];
                         sprintf(cval, "%c", t->effect_param1);
-                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                     } else if(x_count == 4) {
                         //effect type
                         char cval[20];
                         sprintf(cval, "%c", t->effect_param2);
-                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                        cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                     }
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, cengine_color_white, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, color, bg_color);
                 }
                 
                 if(x_count == 1 || x_count == 4) {
@@ -2583,7 +2799,7 @@ static void mainLoop(void) {
     
     for(int x = 0; x < s_width; x++) {
         for(int y = 0; y < s_height; y++) {
-            raster2d[x][y] = 0;
+            raster2d[x][y] = cengine_color_bg;
         }
     }
     
