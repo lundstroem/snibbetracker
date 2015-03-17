@@ -2031,8 +2031,13 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                                 s_byteStream[i+1] += sample * amp_right;
                             }
                         } else if(voice->phase_int < synth->wave_length) {
-                            //int16_t sample = voice->waveform[voice->phase_int];
-                            int16_t sample = get_pwm_sample(voice->phase_int);
+                            int16_t sample = 0;
+                            if(voice->waveform == synth->square_wave_table) {
+                                sample = cSynthGetPWMSample(synth, voice, voice->phase_int);
+                                //sample = get_pwm_sample(voice->phase_int);
+                            } else {
+                                sample = voice->waveform[voice->phase_int];
+                            }
                             s_byteStream[i] += sample * amp_left;
                             s_byteStream[i+1] += sample * amp_right;
                         }
@@ -2045,36 +2050,6 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
     if(playing == true) {
         cSynthAdvanceTrack(synth, length);
     }
-}
-
-static int pwm_pos_int = 0;
-static int pwm_length = 1024;
-static double pwm_pos = 0;
-static int pwm_toggle = 0;
-static int16_t get_pwm_sample(int phase_int) {
-    if(pwm_pos > pwm_length) {
-        pwm_toggle = 1;
-        pwm_pos = pwm_length-1;
-    } else if(pwm_pos < 0) {
-        pwm_toggle = 0;
-        pwm_pos = 0;
-    }
-    
-    if(pwm_toggle == 0) {
-        pwm_pos += 0.01;
-    } else if(pwm_toggle == 1) {
-        pwm_pos -= 0.01;
-    }
-    
-    pwm_pos_int = (int16_t)pwm_pos;
-    
-    if(pwm_pos > phase_int) {
-        return (int16_t)INT16_MAX;
-    } else {
-        return (int16_t)INT16_MIN;
-    }
-    
-    
 }
 
 void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
