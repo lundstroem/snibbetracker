@@ -616,24 +616,36 @@ static void renderFiles(void) {
 static void addFilenameChar(char c) {
     
     if(file_settings->file_name == NULL) {
+        printf("file_name in addFilenameChar is NULL\n");
         file_settings->file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
+        file_settings->file_name[0] = '\0';
     }
         
     int len = (int)strlen(file_settings->file_name);
     if(len < file_settings->file_name_limit) {
-        sprintf(file_settings->file_name, "%s%c", file_settings->file_name, c);
+        char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
+        sprintf(temp_chars, "%s%c", file_settings->file_name, c);
+        file_settings->file_name = cAllocatorFree(file_settings->file_name);
+        file_settings->file_name = temp_chars;
     }
 }
 
 static void removeFilenameChar(void) {
     
     if(file_settings->file_name == NULL) {
+        printf("file_name in removeFilenameChar is NULL\n");
         file_settings->file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
+        file_settings->file_name[0] = '\0';
     }
     
     int len = (int)strlen(file_settings->file_name);
     if(len > 0) {
+        file_settings->file_name[len] = ' ';
         file_settings->file_name[len-1] = '\0';
+        char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
+        sprintf(temp_chars, "%s", file_settings->file_name);
+        file_settings->file_name = cAllocatorFree(file_settings->file_name);
+        file_settings->file_name = temp_chars;
     }
 }
 
