@@ -1200,7 +1200,8 @@ static void toggle_playback(void) {
                 cSynthResetTrackProgress(synth, current_track, 0);
             }
         } else {
-            cSynthResetTrackProgress(synth, current_track, visual_cursor_y);
+            //cSynthResetTrackProgress(synth, current_track, visual_cursor_y);
+            cSynthResetTrackProgress(synth, current_track, 0);
         }
     } else {
         // note off to all voices when stopping playing.
@@ -1959,6 +1960,8 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                 if(voice->note_on) {
                     
                     double amp = 0;
+                    double amp_left = 0;
+                    double amp_right = 0;
                     
                     if(voice->waveform == synth->noise_table) {
                         voice->phase_double+=voice->tone_with_fx*2;
@@ -1984,6 +1987,9 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                     } else {
                         amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
                     }
+                    
+                    amp_left = amp * voice->amp_left;
+                    amp_right = amp * voice->amp_right;
                     
                     //TODO: needs to be sample rate independent. Currently dependent on 44100Hz.
                     voice->adsr_cursor += 0.00001;
@@ -2018,12 +2024,12 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                     } else {
                         if(voice->waveform == synth->noise_table) {
                             if(voice->phase_int < synth->noise_length) {
-                                s_byteStream[i] += voice->waveform[voice->phase_int]*amp;
-                                s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp;
+                                s_byteStream[i] += voice->waveform[voice->phase_int]*amp_left;
+                                s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp_right;
                             }
                         } else if(voice->phase_int < synth->wave_length) {
-                            s_byteStream[i] += voice->waveform[voice->phase_int]*amp;
-                            s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp;
+                            s_byteStream[i] += voice->waveform[voice->phase_int]*amp_left;
+                            s_byteStream[i+1] += voice->waveform[voice->phase_int]*amp_right;
                         }
                     }
                 }
@@ -2392,7 +2398,11 @@ static void renderPatternMapping(void) {
                 }
                 
                 if(y-1 == synth->current_track && playing) {
-                    bg_color = cengine_color_green;
+                    if(synth->current_track == synth->solo_track) {
+                        bg_color = cengine_color_blue;
+                    } else {
+                        bg_color = cengine_color_green;
+                    }
                     color = cengine_color_black;
                 }
                 
