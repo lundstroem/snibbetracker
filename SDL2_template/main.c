@@ -1300,6 +1300,32 @@ void handle_key_down(SDL_Keysym* keysym)
                     return;
                 }
                 break;
+            case SDLK_e:
+                if(pattern_editor) {
+                        pattern_editor = false;
+                        
+                        // set current visual track from marker.
+                        // cannot use cmd+tab because that switches programs on osx.
+                        
+                        //if(modifier) {
+                            if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
+                                current_track = pattern_cursor_y-1;
+                                visual_cursor_x = pattern_cursor_x*5;
+                            }
+                            setInfoTimer("jump to track");
+                        //}
+                        /*else {
+                        pattern_editor = true;
+                        if(modifier) {
+                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
+                            pattern_cursor_x = visual_cursor_x/5;
+                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
+                            setInfoTimer("jump to track");
+                        */
+                        
+                    return;
+                }
+                break;
             case SDLK_s:
                 if(modifier) {
                     file_editor = true;
