@@ -618,7 +618,7 @@ static void renderFiles(void) {
 static void addFilenameChar(char c) {
     
     if(file_settings->file_name == NULL) {
-        printf("file_name in addFilenameChar is NULL\n");
+        //printf("file_name in addFilenameChar is NULL\n");
         file_settings->file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
         file_settings->file_name[0] = '\0';
     }
@@ -635,7 +635,7 @@ static void addFilenameChar(char c) {
 static void removeFilenameChar(void) {
     
     if(file_settings->file_name == NULL) {
-        printf("file_name in removeFilenameChar is NULL\n");
+        //printf("file_name in removeFilenameChar is NULL\n");
         file_settings->file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
         file_settings->file_name[0] = '\0';
     }
@@ -995,95 +995,6 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
 }
 
 // only move across active tracks
-//static void setVisualCursor(int diff_x, int diff_y, bool user) {
-//    
-//    visual_cursor_x += diff_x;
-//    visual_cursor_y += diff_y;
-//    if(user) {
-//        if(visual_cursor_x == visual_track_width) {
-//            visual_cursor_x = 0;
-//        }
-//        
-//        if(visual_cursor_x == -1) {
-//            visual_cursor_x = visual_track_width-1;
-//        }
-//        
-//        if(visual_cursor_y == visual_track_height) {
-//            
-//            /*
-//            if(current_track < synth->active_patterns-1) {
-//                current_track++;
-//            } else {
-//                //rewind
-//                current_track = 0;
-//            }*/
-//            current_track = cSynthGetNextActiveTrack(current_track, synth, true);
-//            
-//            visual_cursor_y = 0;
-//        }
-//        
-//        if(visual_cursor_y == -1) {
-//            
-//            /*
-//            if(current_track > 0) {
-//                current_track--;
-//                
-//            } else {
-//                //move to last pattern
-//                current_track = synth->active_patterns-1;
-//            }*/
-//            current_track = cSynthGetNextActiveTrack(current_track, synth, false);
-//            
-//            visual_cursor_y = visual_track_height-1;
-//        }
-//        
-//    } else {
-//        
-//        if(playing && follow) {
-//            if(visual_cursor_x == visual_track_width) {
-//                visual_cursor_x = 0;
-//            }
-//            
-//            if(visual_cursor_x == -1) {
-//                visual_cursor_x = visual_track_width-1;
-//            }
-//            
-//            if(visual_cursor_y == visual_track_height) {
-//                
-//                /*
-//                if(synth->current_track < synth->active_patterns-1) {
-//                    synth->current_track++;
-//                } else {
-//                    //rewind
-//                    synth->current_track = 0;
-//                }
-//                */
-//                synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, true);
-//                
-//                visual_cursor_y = 0;
-//            }
-//            
-//            if(visual_cursor_y == -1) {
-//                
-//                /*
-//                if(synth->current_track > 0) {
-//                    synth->current_track--;
-//                } else {
-//                    //move to last pattern
-//                    synth->current_track = synth->active_patterns-1;
-//                }
-//                 */
-//                synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, false);
-//                
-//                visual_cursor_y = visual_track_height-1;
-//            }
-//            current_track = synth->current_track;
-//        }
-//    }
-//}
-
-
-// move across the whole 16 tracks.
 static void setVisualCursor(int diff_x, int diff_y, bool user) {
     
     visual_cursor_x += diff_x;
@@ -1099,24 +1010,29 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
         
         if(visual_cursor_y == visual_track_height) {
             
-            if(current_track < 15) {
+            /*
+            if(current_track < synth->active_patterns-1) {
                 current_track++;
             } else {
                 //rewind
                 current_track = 0;
-            }
+            }*/
+            current_track = cSynthGetNextActiveTrack(current_track, synth, true);
             
             visual_cursor_y = 0;
         }
         
         if(visual_cursor_y == -1) {
             
+            /*
             if(current_track > 0) {
                 current_track--;
+                
             } else {
                 //move to last pattern
-                current_track = 15;
-            }
+                current_track = synth->active_patterns-1;
+            }*/
+            current_track = cSynthGetNextActiveTrack(current_track, synth, false);
             
             visual_cursor_y = visual_track_height-1;
         }
@@ -1134,24 +1050,30 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
             
             if(visual_cursor_y == visual_track_height) {
                 
-                if(synth->current_track < 15) {
+                /*
+                if(synth->current_track < synth->active_patterns-1) {
                     synth->current_track++;
                 } else {
                     //rewind
                     synth->current_track = 0;
                 }
+                */
+                synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, true);
                 
                 visual_cursor_y = 0;
             }
             
             if(visual_cursor_y == -1) {
                 
+                /*
                 if(synth->current_track > 0) {
                     synth->current_track--;
                 } else {
                     //move to last pattern
-                    synth->current_track = 15;
+                    synth->current_track = synth->active_patterns-1;
                 }
+                 */
+                synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, false);
                 
                 visual_cursor_y = visual_track_height-1;
             }
@@ -1159,6 +1081,84 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
         }
     }
 }
+
+
+// move across the whole 16 tracks.
+//static void setVisualCursor(int diff_x, int diff_y, bool user) {
+//    
+//    visual_cursor_x += diff_x;
+//    visual_cursor_y += diff_y;
+//    if(user) {
+//        if(visual_cursor_x == visual_track_width) {
+//            visual_cursor_x = 0;
+//        }
+//        
+//        if(visual_cursor_x == -1) {
+//            visual_cursor_x = visual_track_width-1;
+//        }
+//        
+//        if(visual_cursor_y == visual_track_height) {
+//            
+//            if(current_track < 15) {
+//                current_track++;
+//            } else {
+//                //rewind
+//                current_track = 0;
+//            }
+//            
+//            visual_cursor_y = 0;
+//        }
+//        
+//        if(visual_cursor_y == -1) {
+//            
+//            if(current_track > 0) {
+//                current_track--;
+//            } else {
+//                //move to last pattern
+//                current_track = 15;
+//            }
+//            
+//            visual_cursor_y = visual_track_height-1;
+//        }
+//        
+//    } else {
+//        
+//        if(playing && follow) {
+//            if(visual_cursor_x == visual_track_width) {
+//                visual_cursor_x = 0;
+//            }
+//            
+//            if(visual_cursor_x == -1) {
+//                visual_cursor_x = visual_track_width-1;
+//            }
+//            
+//            if(visual_cursor_y == visual_track_height) {
+//                
+//                if(synth->current_track < 15) {
+//                    synth->current_track++;
+//                } else {
+//                    //rewind
+//                    synth->current_track = 0;
+//                }
+//                
+//                visual_cursor_y = 0;
+//            }
+//            
+//            if(visual_cursor_y == -1) {
+//                
+//                if(synth->current_track > 0) {
+//                    synth->current_track--;
+//                } else {
+//                    //move to last pattern
+//                    synth->current_track = 15;
+//                }
+//                
+//                visual_cursor_y = visual_track_height-1;
+//            }
+//            current_track = synth->current_track;
+//        }
+//    }
+//}
 
 
 static void checkPatternCursorBounds(void) {
@@ -1284,11 +1284,13 @@ void handle_key_down(SDL_Keysym* keysym)
                 }
                 break;
             case SDLK_a:
-                if(pattern_cursor_y > 0) {
-                    if(synth->active_tracks[pattern_cursor_y-1] == 0) {
-                        synth->active_tracks[pattern_cursor_y-1] = 1;
-                    } else {
-                        synth->active_tracks[pattern_cursor_y-1] = 0;
+                if(pattern_editor) {
+                    if(pattern_cursor_y > 0) {
+                        if(synth->active_tracks[pattern_cursor_y-1] == 0) {
+                            synth->active_tracks[pattern_cursor_y-1] = 1;
+                        } else {
+                            synth->active_tracks[pattern_cursor_y-1] = 0;
+                        }
                     }
                 }
                 break;
@@ -1347,16 +1349,23 @@ void handle_key_down(SDL_Keysym* keysym)
                         pattern_editor = false;
                         
                         // set current visual track from marker.
-                        if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
-                            current_track = pattern_cursor_y-1;
-                            visual_cursor_x = pattern_cursor_x*5;
-                        }
+                        // cannot use cmd+tab because that switches programs on osx.
+                        /*if(modifier) {
+                            if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
+                                current_track = pattern_cursor_y-1;
+                                visual_cursor_x = pattern_cursor_x*5;
+                            }
+                            setInfoTimer("jump to track");
+                        }*/
                     } else {
-                        pattern_editor = true;
-                        printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
-                        pattern_cursor_x = visual_cursor_x/5;
-                        printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
                         
+                        pattern_editor = true;
+                        /*if(modifier) {
+                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
+                            pattern_cursor_x = visual_cursor_x/5;
+                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
+                            setInfoTimer("jump to track");
+                        }*/
                     }
                 }
                 break;
@@ -2032,10 +2041,11 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                             }
                         } else if(voice->phase_int < synth->wave_length) {
                             int16_t sample = 0;
-                            if(voice->waveform == synth->square_wave_table) {
+                            if(voice->waveform == synth->square_wave_table && voice->pwm_active) {
                                 sample = cSynthGetPWMSample(synth, voice, voice->phase_int);
                                 //sample = get_pwm_sample(voice->phase_int);
                             } else {
+                                //sample = cSynthGetNoisedSample(synth, voice, voice->phase_int, voice->waveform);
                                 sample = voice->waveform[voice->phase_int];
                             }
                             s_byteStream[i] += sample * amp_left;
