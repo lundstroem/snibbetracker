@@ -2055,8 +2055,8 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                             voice->lowpass_next_sample = false;
                         }
                         
-                        s_byteStream[i] += voice->lowpass_last_sample;
-                        s_byteStream[i+1] += voice->lowpass_last_sample;
+                        s_byteStream[i] += voice->lowpass_last_sample * amp_left;
+                        s_byteStream[i+1] += voice->lowpass_last_sample * amp_right;
                         
                     } else {
                         if(voice->waveform == synth->noise_table) {
@@ -2366,7 +2366,7 @@ static void ADSRInvertYRender(double x, double y, int color) {
 
 static void renderPatternMapping(void) {
     
-    int inset_x = 1;
+    int inset_x = 2;
     int inset_y = 1;
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
@@ -2511,7 +2511,7 @@ static void drawWaveTypes(void) {
             wave_color = cengine_color_dull_red;
         }
 
-        cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), 1+x*10, -visual_cursor_y+5, wave_color, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), 2+x*10, -visual_cursor_y+5, wave_color, cengine_color_black);
     }
 }
 
@@ -2535,7 +2535,7 @@ static void renderTrack(void) {
     
     int x_count = 0;
     int offset_x = 0;
-    int inset_x = 1;
+    int inset_x = 2;
     int inset_y = 6;
     
     
