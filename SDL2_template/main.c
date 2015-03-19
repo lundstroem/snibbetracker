@@ -146,6 +146,7 @@ bool follow = false;
 
 int octave = 2;
 
+int visual_pattern_offset = 0;
 int visual_track_width = 30;
 int visual_track_height = 16;
 int visual_cursor_x = 0;
@@ -1162,7 +1163,7 @@ static void toggle_playback(void) {
         playing = true;
         if(pattern_editor) {
             //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
-            if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
+            if(pattern_cursor_y > 0 && pattern_cursor_y < synth->max_tracks_and_patterns) {
                 cSynthResetTrackProgress(synth, pattern_cursor_y-1, 0);
             } else {
                 cSynthResetTrackProgress(synth, current_track, 0);
@@ -1661,9 +1662,10 @@ static void handlePatternKeys(SDL_Keysym* keysym) {
                 break;
         }
         
-        if(pattern > 9) {
-            pattern = 9;
-        } else if(pattern < 0){
+        //if(pattern > 9) {
+        //    pattern = 9;
+        //} else
+        if(pattern < 0){
             pattern = 0;
         }
         
@@ -2194,10 +2196,10 @@ static void changeParam(bool plus) {
         } else {
             pattern--;
         }
-        if(pattern > 9) {
+        if(pattern > synth->max_tracks_and_patterns) {
             pattern = 0;
-        } else if(pattern < 0){
-            pattern = 9;
+        } else if(pattern < 0) {
+            pattern = synth->max_tracks_and_patterns-1;
         }
         synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
     }
@@ -2322,13 +2324,13 @@ static void ADSRInvertYRender(double x, double y, int color) {
 
 static void renderPatternMapping(void) {
     
-    int inset_x = 2;
+    int inset_x = 5;
     int inset_y = 1;
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
             
             int val = synth->patterns_and_voices[x][y];
-            char cval[2];
+            char cval[3];
             sprintf(cval, "%d", val);
             int bg_color = cengine_color_black;
             int color = cengine_color_white;
