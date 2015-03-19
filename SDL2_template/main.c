@@ -945,7 +945,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
             if(x_count == 0) {
                 cSynthAddTrackNode(synth, current_track, x, y, editing, true, value+(octave*12));
                 if(editing) {
-                    if(!playing || !follow) {
+                    if(playing && follow) {}
+                    else {
                         setVisualCursor(0, 1, true);
                     }
                 }
@@ -956,7 +957,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 //printf("change instrument value:%d\n", value);
                 synth->current_instrument = value;
                 
-                if(!playing || !follow) {
+                if(playing && follow) {}
+                else {
                     setVisualCursor(0, 1, true);
                 }
             }
@@ -966,7 +968,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, (char)value, -1, -1);
                 //printf("change effect value:%d\n", value);
                 
-                if(!playing || !follow) {
+                if(playing && follow) {}
+                else {
                     setVisualCursor(0, 1, true);
                 }
             }
@@ -976,7 +979,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, (char)value, -1);
                 //printf("change param1 value:%d\n", value);
                 
-                if(!playing || !follow) {
+                if(playing && follow) {}
+                else {
                     setVisualCursor(0, 1, true);
                 }
             }
@@ -986,7 +990,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, -1, (char)value);
                 //printf("change param2 value:%d\n", value);
                 
-                if(!playing || !follow) {
+                if(playing && follow) {}
+                else {
                     setVisualCursor(0, 1, true);
                 }
             }
@@ -1009,31 +1014,12 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
         }
         
         if(visual_cursor_y == visual_track_height) {
-            
-            /*
-            if(current_track < synth->active_patterns-1) {
-                current_track++;
-            } else {
-                //rewind
-                current_track = 0;
-            }*/
             current_track = cSynthGetNextActiveTrack(current_track, synth, true);
-            
             visual_cursor_y = 0;
         }
         
         if(visual_cursor_y == -1) {
-            
-            /*
-            if(current_track > 0) {
-                current_track--;
-                
-            } else {
-                //move to last pattern
-                current_track = synth->active_patterns-1;
-            }*/
             current_track = cSynthGetNextActiveTrack(current_track, synth, false);
-            
             visual_cursor_y = visual_track_height-1;
         }
         
@@ -1049,32 +1035,12 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
             }
             
             if(visual_cursor_y == visual_track_height) {
-                
-                /*
-                if(synth->current_track < synth->active_patterns-1) {
-                    synth->current_track++;
-                } else {
-                    //rewind
-                    synth->current_track = 0;
-                }
-                */
                 synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, true);
-                
                 visual_cursor_y = 0;
             }
             
             if(visual_cursor_y == -1) {
-                
-                /*
-                if(synth->current_track > 0) {
-                    synth->current_track--;
-                } else {
-                    //move to last pattern
-                    synth->current_track = synth->active_patterns-1;
-                }
-                 */
                 synth->current_track = cSynthGetNextActiveTrack(synth->current_track, synth, false);
-                
                 visual_cursor_y = visual_track_height-1;
             }
             current_track = synth->current_track;
@@ -1302,17 +1268,19 @@ void handle_key_down(SDL_Keysym* keysym)
                 break;
             case SDLK_e:
                 if(pattern_editor) {
-                        pattern_editor = false;
-                        
+                    
                         // set current visual track from marker.
                         // cannot use cmd+tab because that switches programs on osx.
                         
                         //if(modifier) {
-                            if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
-                                current_track = pattern_cursor_y-1;
-                                visual_cursor_x = pattern_cursor_x*5;
-                            }
-                            setInfoTimer("jump to track");
+                        if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+                            pattern_editor = false;
+                            current_track = pattern_cursor_y-1;
+                            visual_cursor_x = pattern_cursor_x*5;
+                        }
+                        setInfoTimer("jump to track");
+                    
+                    
                         //}
                         /*else {
                         pattern_editor = true;
@@ -1369,29 +1337,11 @@ void handle_key_down(SDL_Keysym* keysym)
                         selected_instrument_node_index = 1;
                     }
                     
-                    //printf("selected_instrument_node_index:%i", selected_instrument_node_index);
                 } else {
                     if(pattern_editor) {
                         pattern_editor = false;
-                        
-                        // set current visual track from marker.
-                        // cannot use cmd+tab because that switches programs on osx.
-                        /*if(modifier) {
-                            if(pattern_cursor_y > 0 && pattern_cursor_y < 16) {
-                                current_track = pattern_cursor_y-1;
-                                visual_cursor_x = pattern_cursor_x*5;
-                            }
-                            setInfoTimer("jump to track");
-                        }*/
                     } else {
-                        
                         pattern_editor = true;
-                        /*if(modifier) {
-                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
-                            pattern_cursor_x = visual_cursor_x/5;
-                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
-                            setInfoTimer("jump to track");
-                        }*/
                     }
                 }
                 break;
@@ -1994,11 +1944,15 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
             
             
             for (i = begin; i < end; i+=2) {
+                
+                
                 if(voice->note_on) {
                     
                     double amp = 0;
                     double amp_left = 0;
                     double amp_right = 0;
+                
+                    cSynthAdvanceAmpTargets(synth, voice);
                     
                     if(voice->waveform == synth->noise_table) {
                         voice->phase_double+=voice->tone_with_fx*2;
@@ -2044,17 +1998,19 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                         if(voice->lowpass_next_sample) {
                             if(voice->waveform == synth->noise_table) {
                                 if(voice->phase_int < synth->noise_length) {
-                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]*amp);
+                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
                                 }
                             } else {
                                 if(voice->phase_int < synth->wave_length) {
-                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]*amp);
+                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
                                 }
                             }
                             
                             voice->lowpass_next_sample = false;
                         }
                         
+                        //s_byteStream[i] += voice->lowpass_last_sample * (amp * 8);
+                        //s_byteStream[i+1] += voice->lowpass_last_sample * (amp * 8);
                         s_byteStream[i] += voice->lowpass_last_sample * amp_left;
                         s_byteStream[i+1] += voice->lowpass_last_sample * amp_right;
                         
