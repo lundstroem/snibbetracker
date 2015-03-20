@@ -3,6 +3,30 @@ snibbetracker test
  
 changelog
 ----------------
+
+build 8 - 2015-03-20 10.48
+pattern view
+- toggle track active/inactive with 'a' when in patternview.
+- toggle track solo with 's'.
+- press 'e' on a track (in patternview) to jump tp that track in the trackview.
+- set mute/solo on channels with 'm' and 's' when the cursor is at the top with sine, saw, square etc..
+- scroll tracks with modifier+up/down. They range from 0-63.
+
+effects
+no stacking of effects, except some combinations of arp/arp speed and amp.
+
+8xx PWM (linear position, oscillator speed) works only on squarewave.
+9xx stack effects (positivt value activates, 0 eller - turns off.)
+1xx arpeggio speed (speed, speed) use one of the values or both multiplied.
+Axx (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
+
+fixade buggar
+---------------
+- save song (igen)
+- ska nu ladda channel-waveform settings korrekt.
+
+
+
 build 7 - 2015-03-15 08.59
 - edit cursor disconnected from player cursor. (can be toggled with modifier+F)
 - directory browsing completely disabled for saving and loading files, only uses the directory the exe is in.
@@ -58,8 +82,12 @@ pattern view
 controls:
 - arrow keys: move around grid.
 - plus/minus: cycle waveform, pattern numbers, bpm, swing, active etc.
-- spacebar: go to instrument view (when gridcursor is at Ins 0-11)
+- spacebar: go to instrument view (when gridcursor is at Ins 0-F)
 - tab: go to track view.
+- e: jump to trackview with current position.
+- m: mute track (or channel if cursor is at the top)
+- a: activate/inactivate track.
+- s: solo track (or channel if cursor is at the top)
  
 instrument view
 ----------------
@@ -91,8 +119,12 @@ load view
 effects
 ----------------
 0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
+1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
+8xx - PWM (linear position, oscillator speed) works only on squarewave.
+9xx - stack effects (positivt value activates, 0 eller - turns off.)
+Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - lowpass sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - lowpass sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Dxx - ends pattern.
