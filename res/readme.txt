@@ -20,10 +20,14 @@ no stacking of effects, except some combinations of arp/arp speed and amp.
 1xx arpeggio speed (speed, speed) use one of the values or both multiplied.
 Axx (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 
-fixade buggar
+fixed bugs
 ---------------
-- save song (igen)
-- ska nu ladda channel-waveform settings korrekt.
+- save song (again)
+- should now load channel-waveform settings correctly.
+
+other
+- changed a few colors with with more contrast to make it easier to see what you're doing.
+- old songs cannot be loaded with this version because of significant changes in the file format.
 
 
 
