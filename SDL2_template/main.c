@@ -1459,20 +1459,28 @@ void handle_key_down(SDL_Keysym* keysym)
                     instrument_editor = false;
                 } else {
                     if(pattern_editor) {
-                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18) {
-                            int ins_nr = pattern_cursor_x;
-                            // instruments
-                            if(pattern_cursor_y == 18) {
-                                ins_nr += 6;
-                            }
-                            selected_instrument_id = ins_nr;
-                            //printf("selected instrument:%d\n", ins_nr);
-                            if(instrument_editor) {
-                                instrument_editor = false;
-                                //printf("instrument editor false\n");
-                            } else {
-                                instrument_editor = true;
-                                //printf("instrument editor true\n");
+                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
+                            
+                            if(pattern_cursor_y < 19) {
+                                int ins_nr = pattern_cursor_x;
+                                if(pattern_cursor_y == 18) {
+                                    ins_nr += 6;
+                                }
+                                selected_instrument_id = ins_nr;
+                                if(instrument_editor) {
+                                    instrument_editor = false;
+                                } else {
+                                    instrument_editor = true;
+                                }
+                            } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
+                                int ins_nr = pattern_cursor_x;
+                                ins_nr += 12;
+                                selected_instrument_id = ins_nr;
+                                if(instrument_editor) {
+                                    instrument_editor = false;
+                                } else {
+                                    instrument_editor = true;
+                                }
                             }
                         }
                     } else {
@@ -1707,6 +1715,24 @@ void handleInstrumentKeys(SDL_Keysym* keysym) {
             break;
         case SDLK_9:
             addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            break;
+        case SDLK_a:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            break;
+        case SDLK_b:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            break;
+        case SDLK_c:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            break;
+        case SDLK_d:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            break;
+        case SDLK_e:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            break;
+        case SDLK_f:
+            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
             break;
         default:
             break;
@@ -2114,7 +2140,7 @@ static void changeParam(bool plus) {
         if(y == 18) {
             //ins_nr += 6;
         }
-    } else if(y == 19 && x == 0) {
+    } else if(y == 20 && x == 0) {
         //BPM
         int bpm = synth->bpm;
         if(plus) {
@@ -2147,7 +2173,7 @@ static void changeParam(bool plus) {
         }
          */
         
-    } else if(y == 19 && x == 2) {
+    } else if(y == 20 && x == 2) {
         // active rows for all patterns
         int track_height = synth->track_height;
         if(plus) {
@@ -2166,7 +2192,7 @@ static void changeParam(bool plus) {
             visual_track_height = track_height;
         }
         
-    } else if(y == 19 && x == 3) {
+    } else if(y == 20 && x == 3) {
         if(plus) {
             synth->arpeggio_speed++;
         } else {
@@ -2175,7 +2201,7 @@ static void changeParam(bool plus) {
                 synth->arpeggio_speed = 1;
             }
         }
-    } else if(y == 19 && x == 4) {
+    } else if(y == 20 && x == 4) {
         if(plus) {
             synth->swing++;
         } else {
@@ -2186,7 +2212,7 @@ static void changeParam(bool plus) {
         }
         
     }
-    else if(y == 19) {
+    else if(y == 20) {
         //nothing
     } else {
         // pattern nr.
@@ -2230,7 +2256,7 @@ static void renderInstrumentEditor(void) {
     struct CInstrument *ins = synth->instruments[selected_instrument_id];
     int max_nodes = ins->adsr_nodes;
     int inset_x = 10;
-    int inset_y = 50;
+    int inset_y = 30;
     double speed = 0.01;
     if(modifier) {
         speed = 0.001;
@@ -2312,6 +2338,11 @@ static void renderInstrumentEditor(void) {
             }
         }
     }
+    
+    char cval[10];
+    char c = cSynthGetCharFromParam((char)selected_instrument_id);
+    sprintf(cval, "Ins %c", c);
+    cEngineRenderLabelWithParams(raster2d, cval, 1, 2, cengine_color_white, cengine_color_black);
 }
 
 static void ADSRInvertYRender(double x, double y, int color) {
@@ -2321,6 +2352,8 @@ static void ADSRInvertYRender(double x, double y, int color) {
         raster2d[i_x][i_y] = color;
     }
 }
+
+
 
 static void renderPatternMapping(void) {
     
@@ -2350,34 +2383,59 @@ static void renderPatternMapping(void) {
                     wave_color = cengine_color_dull_red;
                 }
                 cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
-            } else if(y == 17 || y == 18) {
+            } else if(y == 17) {
                 char cval[10];
                 int ins_nr = x;
-                if(y == 18) { ins_nr += 6; }
-                sprintf(cval, "Ins %d", ins_nr);
+                char c = cSynthGetCharFromParam((char)ins_nr);
+                sprintf(cval, "Ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            } else if(y == 19 && x == 0) {
+            } else if(y == 18) {
+                char cval[10];
+                int ins_nr = x;
+                ins_nr += 6;
+                char c = cSynthGetCharFromParam((char)ins_nr);
+                sprintf(cval, "Ins %c", c);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 19 && x < 4) {
+                char cval[10];
+                int ins_nr = x;
+                ins_nr += 12;
+                char c = cSynthGetCharFromParam((char)ins_nr);
+                sprintf(cval, "Ins %c", c);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+            }
+            
+            
+            
+            else if(y == 20 && x == 0) {
                 char cval[10];
                 sprintf(cval, "BPM %d", synth->bpm);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            } else if(y == 19 && x == 1) {
-               // char cval[20];
-               // sprintf(cval, "Active %d", synth->active_patterns);
-               // cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, cengine_color_white, bg_color);
-            } else if(y == 19 && x == 2) {
+            } else if(y == 20 && x == 1) {
+                //nothing
+                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 20 && x == 2) {
                 char cval[20];
                 sprintf(cval, "Rows %d", synth->track_height);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            } else if(y == 19 && x == 3) {
+            } else if(y == 20 && x == 3) {
                 char cval[20];
                 sprintf(cval, "Arp %d", synth->arpeggio_speed);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            } else if(y == 19 && x == 4) {
+            } else if(y == 20 && x == 4) {
                 char cval[20];
                 sprintf(cval, "Swing %d", synth->swing);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             }
             else if(y == 19) {
+                //nothing
+                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
+            }
+            else if(y == 20) {
+                //nothing
+                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
+            }
+            else if(y == 21) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
             }
@@ -2568,7 +2626,8 @@ static void renderTrack(void) {
                     if(x_count == 1) {
                         if(t->instrument != NULL) {
                             char cval[20];
-                            sprintf(cval, "%d", t->instrument_nr);
+                            char c = cSynthGetCharFromParam((char)t->instrument_nr);
+                            sprintf(cval, "%c", c);
                             cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                         } else {
                             cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, color, bg_color);
