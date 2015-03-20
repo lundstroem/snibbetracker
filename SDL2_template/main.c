@@ -932,6 +932,9 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     //TODO remove this
     //current_track = synth->current_track;
     
+    printf("current_track:%d", current_track);
+    printf("current_pattern:%d", current_pattern);
+    
     if(instrument_editor || pattern_editor || !editing) {
         //printf("not editing\n");
         // only allow preview of notes in editor
@@ -1163,8 +1166,8 @@ static void toggle_playback(void) {
         playing = true;
         if(pattern_editor) {
             //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
-            if(pattern_cursor_y > 0 && pattern_cursor_y < synth->max_tracks_and_patterns) {
-                cSynthResetTrackProgress(synth, pattern_cursor_y-1, 0);
+            if(pattern_cursor_y > 0 && pattern_cursor_y < synth->patterns_height) {
+                cSynthResetTrackProgress(synth, pattern_cursor_y-1+visual_pattern_offset, 0);
             } else {
                 cSynthResetTrackProgress(synth, current_track, 0);
             }
@@ -1253,10 +1256,10 @@ void handle_key_down(SDL_Keysym* keysym)
             case SDLK_a:
                 if(pattern_editor) {
                     if(pattern_cursor_y > 0) {
-                        if(synth->active_tracks[pattern_cursor_y-1] == 0) {
-                            synth->active_tracks[pattern_cursor_y-1] = 1;
+                        if(synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] == 0) {
+                            synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 1;
                         } else {
-                            synth->active_tracks[pattern_cursor_y-1] = 0;
+                            synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 0;
                         }
                     }
                 }
@@ -1276,7 +1279,7 @@ void handle_key_down(SDL_Keysym* keysym)
                         //if(modifier) {
                         if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                             pattern_editor = false;
-                            current_track = pattern_cursor_y-1;
+                            current_track = pattern_cursor_y-1+visual_pattern_offset;
                             visual_cursor_x = pattern_cursor_x*5;
                         }
                         setInfoTimer("jump to track");
@@ -1303,10 +1306,10 @@ void handle_key_down(SDL_Keysym* keysym)
                 } else {
                     if(pattern_editor) {
                         if(pattern_cursor_y > 0) {
-                            if(synth->solo_track == pattern_cursor_y-1) {
+                            if(synth->solo_track == pattern_cursor_y-1+visual_pattern_offset) {
                                 synth->solo_track = -1;
                             } else {
-                                synth->solo_track = pattern_cursor_y-1;
+                                synth->solo_track = pattern_cursor_y-1+visual_pattern_offset;
                             }
                         } else if(pattern_cursor_y == 0) {
                             if(synth->solo_voice == pattern_cursor_x) {
@@ -1401,6 +1404,11 @@ void handle_key_down(SDL_Keysym* keysym)
                 pressed_up = true;
                 if(instrument_editor) {
                     
+                } else if(modifier && pattern_editor) {
+                    visual_pattern_offset -= 16;
+                    if(visual_pattern_offset < 0){
+                        visual_pattern_offset = 48;
+                    }
                 } else {
                     if(pattern_editor) {
                         pattern_cursor_y -= 1;
@@ -1415,8 +1423,12 @@ void handle_key_down(SDL_Keysym* keysym)
                 break;
             case SDLK_DOWN:
                 pressed_down = true;
-                if(instrument_editor) {
-                    
+                if(instrument_editor) {}
+                else if(modifier && pattern_editor) {
+                    visual_pattern_offset += 16;
+                    if(visual_pattern_offset > 48){
+                        visual_pattern_offset = 0;
+                    }
                 } else {
                     if(pattern_editor) {
                         pattern_cursor_y += 1;
@@ -1677,7 +1689,7 @@ static void handlePatternKeys(SDL_Keysym* keysym) {
             pattern = 0;
         }
         
-        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
+        synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = pattern;
     }
 }
 
@@ -2155,31 +2167,15 @@ static void changeParam(bool plus) {
         }
     
     } else if(y == 19 && x == 1) {
-        // active patterns
-        /*
-        int active_patterns = synth->active_patterns;
-        if(plus) {
-            active_patterns++;
-            if(active_patterns > 16) {
-                active_patterns = 1;
-            }
-            synth->active_patterns = active_patterns;
-        } else {
-            active_patterns--;
-            if(active_patterns < 1) {
-                active_patterns = 16;
-            }
-            synth->active_patterns = active_patterns;
-        }
-         */
+       
         
     } else if(y == 20 && x == 2) {
         // active rows for all patterns
         int track_height = synth->track_height;
         if(plus) {
             track_height++;
-            if(track_height > synth->track_max_height) {
-                track_height = synth->track_max_height;
+            if(track_height >= synth->track_max_height) {
+                track_height = synth->track_max_height-1;
             }
             synth->track_height = track_height;
             visual_track_height = track_height;
@@ -2216,18 +2212,18 @@ static void changeParam(bool plus) {
         //nothing
     } else {
         // pattern nr.
-        int pattern = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
+        int pattern = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
         if(plus) {
             pattern++;
         } else {
             pattern--;
         }
-        if(pattern > synth->max_tracks_and_patterns) {
+        if(pattern >= synth->patterns_height) {
             pattern = 0;
         } else if(pattern < 0) {
-            pattern = synth->max_tracks_and_patterns-1;
+            pattern = synth->patterns_height-1;
         }
-        synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = pattern;
+        synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = pattern;
     }
 }
 
@@ -2362,15 +2358,19 @@ static void renderPatternMapping(void) {
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
             
+            /*
             int val = synth->patterns_and_voices[x][y];
             char cval[3];
             sprintf(cval, "%d", val);
+            */
+            
             int bg_color = cengine_color_black;
             int color = cengine_color_white;
             if(x == pattern_cursor_x && y == pattern_cursor_y) {
                 bg_color = cengine_color_magenta;
                 color = cengine_color_black;
             }
+            
             if(y == 0) {
                 int wave_color = color;
                 if(synth->solo_voice > -1) {
@@ -2382,6 +2382,9 @@ static void renderPatternMapping(void) {
                 } else if(synth->voices[x]->muted == 1) {
                     wave_color = cengine_color_dull_red;
                 }
+                int val = synth->patterns_and_voices[x][y];
+                char cval[3];
+                sprintf(cval, "%d", val);
                 cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
             } else if(y == 17) {
                 char cval[10];
@@ -2449,9 +2452,13 @@ static void renderPatternMapping(void) {
                 }
                 */
                 
-                if(synth->active_tracks[y-1] == 1) {
+                
+                if(synth->active_tracks[y-1+visual_pattern_offset] == 1) {
                     bg_color = cengine_color_dull_green;
                     color = cengine_color_black;
+                    if(synth->solo_track == y-1+visual_pattern_offset) {
+                        bg_color = cengine_color_blue;
+                    }
                 }
                 
                 if(synth->solo_track == y-1) {
@@ -2459,7 +2466,7 @@ static void renderPatternMapping(void) {
                     color = cengine_color_black;
                 }
                 
-                if(y-1 == synth->current_track && playing) {
+                if(y-1+visual_pattern_offset == synth->current_track && playing) {
                     if(synth->current_track == synth->solo_track) {
                         bg_color = cengine_color_blue;
                     } else {
@@ -2473,7 +2480,23 @@ static void renderPatternMapping(void) {
                     color = cengine_color_black;
                 }
                 
+                //int val = synth->patterns_and_voices[x][y];
+                int pattern = synth->patterns[x][y-1+visual_pattern_offset];
+                char cval[3];
+                sprintf(cval, "%d", pattern);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+                
+                if(x == 0) {
+                    // print track numbers
+                    int track_nr = y-1+visual_pattern_offset;
+                    char cval[3];
+                    sprintf(cval, "%d", track_nr);
+                    int x_offset = 1;
+                    if(track_nr < 10) {
+                        x_offset = 2;
+                    }
+                    cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, cengine_color_white, cengine_color_black);
+                }
             }
         }
     }
@@ -2481,8 +2504,8 @@ static void renderPatternMapping(void) {
     int pattern_at_cursor = -1;
     int track_at_cursor = -1;
     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-        track_at_cursor = pattern_cursor_y-1;
-        pattern_at_cursor = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
+        track_at_cursor = pattern_cursor_y-1+visual_pattern_offset;
+        pattern_at_cursor = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
     }
     
     if(track_at_cursor > -1 && pattern_at_cursor > -1) {
@@ -2608,7 +2631,7 @@ static void renderTrack(void) {
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
                 node_x = (int)floor(x/5);
-                int pattern = synth->patterns_and_voices[node_x][current_track+1];
+                int pattern = synth->patterns[node_x][current_track];
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL && t->tone_active) {
                     int tone = t->tone;
@@ -2619,7 +2642,7 @@ static void renderTrack(void) {
                 }
                 offset_x += 3;
             } else {
-                int pattern = synth->patterns_and_voices[node_x][current_track+1];
+                int pattern = synth->patterns[node_x][current_track];
                 
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL) {
@@ -2663,7 +2686,7 @@ static void renderTrack(void) {
             }
         }
         
-        int pattern_at_cursor = synth->patterns_and_voices[cursor_x][current_track+1];
+        int pattern_at_cursor = synth->patterns[cursor_x][current_track];
         current_pattern = pattern_at_cursor;
         char cval[20];
         sprintf(cval, "p:%d t:%d", current_pattern, current_track);
