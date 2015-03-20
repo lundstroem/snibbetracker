@@ -356,6 +356,9 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
 						sprintf(load_path, "%s.json", file_settings->file_name);
 						loadProjectFile(load_path);
 						cAllocatorFree(load_path);
+                        
+                        // set visual track height
+                        visual_track_height = synth->track_height;
 					}
 				}
 			/*
@@ -932,8 +935,8 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     //TODO remove this
     //current_track = synth->current_track;
     
-    printf("current_track:%d", current_track);
-    printf("current_pattern:%d", current_pattern);
+    //printf("current_track:%d", current_track);
+    //printf("current_pattern:%d", current_pattern);
     
     if(instrument_editor || pattern_editor || !editing) {
         //printf("not editing\n");
@@ -1272,29 +1275,12 @@ void handle_key_down(SDL_Keysym* keysym)
                 break;
             case SDLK_e:
                 if(pattern_editor) {
-                    
-                        // set current visual track from marker.
-                        // cannot use cmd+tab because that switches programs on osx.
-                        
-                        //if(modifier) {
                         if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                             pattern_editor = false;
                             current_track = pattern_cursor_y-1+visual_pattern_offset;
                             visual_cursor_x = pattern_cursor_x*5;
-                        }
-                        setInfoTimer("jump to track");
-                    
-                    
-                        //}
-                        /*else {
-                        pattern_editor = true;
-                        if(modifier) {
-                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
-                            pattern_cursor_x = visual_cursor_x/5;
-                            printf("pattern cursor x:%d visual cursor x:%d\n", pattern_cursor_x, visual_cursor_x);
                             setInfoTimer("jump to track");
-                        */
-                        
+                        }
                     return;
                 }
                 break;
@@ -1687,6 +1673,17 @@ static void handlePatternKeys(SDL_Keysym* keysym) {
         //} else
         if(pattern < 0){
             pattern = 0;
+        }
+        
+        int old_pattern = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
+        if(old_pattern < 10) {
+            old_pattern *= 10;
+            pattern += old_pattern;
+            if(pattern >= synth->patterns_height) {
+                pattern = synth->patterns_height-1;
+            }
+        } else {
+            
         }
         
         synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = pattern;
@@ -2570,20 +2567,17 @@ static void renderTrack(void) {
         return;
     }
     
-    drawWaveTypes();
     
     int x_count = 0;
     int offset_x = 0;
     int inset_x = 2;
     int inset_y = 6;
     
-    
-    // TODO remove this
-    //current_track = synth->current_track;
-    
     int cursor_x = visual_cursor_x/5;
     cSynthUpdateTrackCursor(synth, cursor_x, visual_cursor_y);
     int track_progress_int = synth->track_progress_int;
+    
+    drawWaveTypes();
     
     if(follow && playing) {
         //visual_cursor_y = track_progress_int;
@@ -2594,6 +2588,9 @@ static void renderTrack(void) {
     }
     
     int node_x = -1;
+    
+
+    
     
     for (int y = 0; y < synth->track_height; y++) {
         offset_x = 0;
