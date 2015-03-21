@@ -144,6 +144,8 @@ bool modifier = false;
 
 bool follow = false;
 
+bool visualiser = false;
+
 int octave = 2;
 
 int visual_pattern_offset = 0;
@@ -227,6 +229,7 @@ static void ADSRInvertYRender(double x, double y, int color);
 static void renderPatternMapping(void);
 static char *getWaveTypeAsChar(int type);
 static void drawWaveTypes(void);
+static void renderVisuals(void);
 static void renderTrack(void);
 static void setupSDL(void);
 static void setup_synth(void);
@@ -241,6 +244,7 @@ static int get_buffer_size_from_index(int i);
 static void load_config();
 static void st_log(char *message);
 static void st_pause(void);
+
 
 /*
  
@@ -1265,6 +1269,16 @@ void handle_key_down(SDL_Keysym* keysym)
                             synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 0;
                         }
                     }
+                }
+                break;
+            case SDLK_p:
+                if(modifier) {
+                    if(visualiser) {
+                        visualiser = false;
+                    } else {
+                        visualiser = true;
+                    }
+                    return;
                 }
                 break;
             case SDLK_o:
@@ -2551,6 +2565,24 @@ static void drawWaveTypes(void) {
     }
 }
 
+static void renderVisuals(void) {
+    for(int x = 0; x < s_width; x++) {
+        for(int y = 0; y < s_height; y++) {
+            raster2d[x][y] = rand();
+        }
+    }
+}
+
+
+int isInBounds(int x, int y, int width, int height) {
+    if(x > -1 && y > -1 && x < width && y < height) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+
 static void renderTrack(void) {
     
     if(instrument_editor && !file_editor) {
@@ -2564,6 +2596,9 @@ static void renderTrack(void) {
         //    listDirectory();
         //#endif
         renderFiles();
+        return;
+    } else if(visualiser) {
+        renderVisuals();
         return;
     }
     
@@ -2690,6 +2725,7 @@ static void renderTrack(void) {
         cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
         
     }
+    
 }
 
 SDL_Window *window = NULL;
@@ -2716,7 +2752,9 @@ static void setupSDL(void) {
 		}
 	}
 	
-    window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
+    //SDL_WINDOW_FULLSCREEN
+    
+    window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
 	if(window != NULL) {
 		
 		context = SDL_GL_CreateContext(window);
