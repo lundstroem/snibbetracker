@@ -49,11 +49,10 @@ bool load_gfx = false;
 bool log_file_enabled = true;
 bool release_build = true;
 bool run_with_sdl = true;
+bool redraw_screen = true;
 
 int screen_width = 1280;
 int screen_height = 720;
-int fps_print_interval = 0;
-int old_time = 0;
 
 int current_pattern = 0;
 int current_track = 0;
@@ -178,9 +177,6 @@ char *infoString = NULL;
 bool show_tips = true;
 
 struct FileSettings *file_settings = NULL;
-
-// todo remove?
-static int16_t get_pwm_sample(int phase_int);
 
 static void initFileSettings(void);
 static void handle_key_down_file(SDL_Keysym* keysym);
@@ -512,29 +508,6 @@ static void initDefaultDirIfNull(void) {
         file_settings->file_path_list[0] = path;
         file_settings->file_path_pos = 0;
         
-        //TODO: remove this later, only for testing.
-        if(!release_build) {
-            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
-            sprintf(path, "%s", "Users");
-            file_settings->file_path_list[1] = path;
-            file_settings->file_path_pos++;
-            
-            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
-            sprintf(path, "%s", "d");
-            file_settings->file_path_list[2] = path;
-            file_settings->file_path_pos++;
-            
-            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
-            sprintf(path, "%s", "Documents");
-            file_settings->file_path_list[3] = path;
-            file_settings->file_path_pos++;
-            
-            path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
-            sprintf(path, "%s", "snibbetracker-workspace");
-            file_settings->file_path_list[4] = path;
-            file_settings->file_path_pos++;
-        }
-
     }
 }
 
@@ -708,35 +681,7 @@ static void loadProjectFile(char *path) {
 }
 
 static void saveProjectFile(void) {
-    // TODO: set delimiter based on POSIX/WIN.
-    // save the '.json' in a separate char array so it can easily be swapped for something else.
-    
-	//#if defined(platform_osx)
-    /*
-		if(file_settings->file_name != NULL && file_settings->file_path != NULL) {
-			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
-			sprintf(save_path, "%s%c%s.json", file_settings->file_path, getFilePathDelimiter(), file_settings->file_name);
-        
-			cJSON *root = cSynthSaveProject(synth);
-			if(root != NULL) {
-				FILE * fp;
-				fp = fopen (save_path, "w+");
-                char *json_print = cJSON_PrintUnformatted(root);
-				fprintf(fp, "%s", json_print);
-				fclose(fp);
-				cJSON_Delete(root);
-                free(json_print);
-			}
 
-			//sprintf(save_path, "saved file:%s", save_path);
-			setInfoTimer(save_path);
-			cAllocatorFree(save_path);
-			exitFileEditor();
-		} else {
-			printf("cannot save, filename or path is null\n");
-		}
-     */
-	//#elif defined(platform_windows)
 		if(file_settings->file_name != NULL) {
 			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
 			sprintf(save_path, "%s.json", file_settings->file_name);
@@ -759,9 +704,6 @@ static void saveProjectFile(void) {
 		} else {
 			printf("cannot save, filename or path is null\n");
 		}
-	//#endif
-	
-   
 }
 
 static void setInfoTimer(char *string) {
@@ -804,6 +746,9 @@ static void updateAndRenderInfo(double dt) {
     if(infoString != NULL) {
         if(!cTimerIsReady(infoTimer)) {
             cTimerAdvance(dt, infoTimer);
+            if(cTimerIsReady(infoTimer)) {
+                redraw_screen = true;
+            }
             cEngineRenderLabelWithParams(raster2d, infoString, 0, 23, cengine_color_white, cengine_color_black);
         }
     }
@@ -935,9 +880,6 @@ static void ADSRInvertYRender(double x, double y, int color);
 static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
     int x_count = visual_cursor_x%5;
     
-    
-    //TODO remove this
-    //current_track = synth->current_track;
     
     //printf("current_track:%d", current_track);
     //printf("current_pattern:%d", current_pattern);
@@ -1202,8 +1144,10 @@ static void toggle_editing(void) {
     }
 }
 
-void handle_key_up(SDL_Keysym* keysym)
-{
+void handle_key_up(SDL_Keysym* keysym) {
+    
+    redraw_screen = true;
+    
     switch( keysym->sym ) {
         case SDLK_LGUI:
             modifier = false;
@@ -1226,8 +1170,10 @@ void handle_key_up(SDL_Keysym* keysym)
     }
 }
 
-void handle_key_down(SDL_Keysym* keysym)
-{
+void handle_key_down(SDL_Keysym* keysym) {
+    
+    redraw_screen = true;
+    
     if(file_editor) {
         handle_key_down_file(keysym);
         return;
@@ -1446,9 +1392,6 @@ void handle_key_down(SDL_Keysym* keysym)
                 else if(pattern_editor) {}
                 else if(editing) {
                     int x_count = visual_cursor_x%5;
-                    
-                    //TODO remove this
-                    //current_track = synth->current_track;
                     
                     if(x_count == 0) {
                         cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
@@ -1906,30 +1849,6 @@ static void checkSDLEvents(SDL_Event event) {
     }
 }
 
-static int getDelta(void) {
-    int currentTime = SDL_GetTicks();
-    int delta = 0;
-    //int fps = 0;
-    
-    if(old_time == 0) {
-        old_time = currentTime;
-        delta = 16;
-    } else {
-        delta = currentTime-old_time;
-        old_time = currentTime;
-        if(delta <= 0) {
-            delta = 1;
-        }
-        //fps = 1000/delta;
-    }
-    
-    if(fps_print_interval == 100) {
-        fps_print_interval = 0;
-    }
-    
-    fps_print_interval++;
-    return delta;
-}
 
 /*** synth stuff */
 //const double ChromaticRatio = 1.059463094359295264562;
@@ -2021,8 +1940,7 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                         double init_amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
                         amp = voice->noteoff_slope_value*init_amp;
                         double bpm = synth->bpm;
-                        //TODO: needs to be sample rate independent. Currently dependent on 44100Hz.
-                        voice->noteoff_slope_value -= bpm * 0.00005;
+                        voice->noteoff_slope_value -= bpm * synth->mod_noteoff_slope;
                         if(voice->noteoff_slope_value < 0) {
                             voice->noteoff_slope_value = 0;
                         }
@@ -2033,8 +1951,7 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                     amp_left = amp * voice->amp_left;
                     amp_right = amp * voice->amp_right;
                     
-                    //TODO: needs to be sample rate independent. Currently dependent on 44100Hz.
-                    voice->adsr_cursor += 0.00001;
+                    voice->adsr_cursor += synth->mod_adsr_cursor;
                     
                     if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
                         
@@ -2060,8 +1977,6 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                             voice->lowpass_next_sample = false;
                         }
                         
-                        //s_byteStream[i] += voice->lowpass_last_sample * (amp * 8);
-                        //s_byteStream[i+1] += voice->lowpass_last_sample * (amp * 8);
                         s_byteStream[i] += voice->lowpass_last_sample * amp_left;
                         s_byteStream[i+1] += voice->lowpass_last_sample * amp_right;
                         
@@ -2076,9 +1991,7 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
                             int16_t sample = 0;
                             if(voice->waveform == synth->square_wave_table && voice->pwm_active) {
                                 sample = cSynthGetPWMSample(synth, voice, voice->phase_int);
-                                //sample = get_pwm_sample(voice->phase_int);
                             } else {
-                                //sample = cSynthGetNoisedSample(synth, voice, voice->phase_int, voice->waveform);
                                 sample = voice->waveform[voice->phase_int];
                             }
                             s_byteStream[i] += sample * amp_left;
@@ -2788,6 +2701,8 @@ static void setupSDL(void) {
 static void setup_synth(void) {
     
     synth = cSynthContextNew();
+    synth->interleaved = true;
+    synth->chunk_size = 64;
     cSynthInit(synth);
     visual_track_height = synth->track_height;
 }
@@ -2926,34 +2841,89 @@ static void cleanupSynth(void) {
     cAllocatorCleanup();
 }
 
+
+int fps_print_interval = 0;
+int print_interval_limit = 100;
+int old_time = 0;
+
+static int getDelta(void) {
+    int currentTime = SDL_GetTicks();
+    int delta = 0;
+    
+    if(old_time == 0) {
+        old_time = currentTime;
+        delta = 16;
+    } else {
+        delta = currentTime-old_time;
+        old_time = currentTime;
+        if(delta <= 0) {
+            delta = 1;
+        }
+        double fps = 1000/delta;
+        if(fps_print_interval >= print_interval_limit) {
+            printf("fps:%f delta_time:%d\n", fps, delta);
+        }
+    }
+    
+    if(fps_print_interval >= print_interval_limit) {
+        fps_print_interval = 0;
+    }
+    fps_print_interval++;
+    
+    return delta;
+}
+
+int last_dt = 16;
+
+static void redrawScreen(void) {
+    
+}
+
 static void mainLoop(void) {
     
+    int delay_ms = 64;
     SDL_LockAudioDevice(AudioDevice);
     checkSDLEvents(event);
     
-    for (int r_x = 0; r_x < s_width; r_x++) {
-        for (int r_y = 0; r_y < s_height; r_y++) {
-            raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
+
+    updateAndRenderInfo(last_dt);
+    
+    if(redraw_screen || synth->needs_redraw) {
+        renderTrack();
+        for (int r_x = 0; r_x < s_width; r_x++) {
+            for (int r_y = 0; r_y < s_height; r_y++) {
+                raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
+            }
         }
+        for(int x = 0; x < s_width; x++) {
+            for(int y = 0; y < s_height; y++) {
+                raster2d[x][y] = cengine_color_bg;
+            }
+        }
+        redraw_screen = false;
+        synth->needs_redraw = false;
     }
     
-    double dt = (double)getDelta();
-    cEngineGameloop(dt, raster2d, input);
     
-    for(int x = 0; x < s_width; x++) {
-        for(int y = 0; y < s_height; y++) {
-            raster2d[x][y] = cengine_color_bg;
-        }
-    }
-    
-    renderTrack();
-    updateAndRenderInfo(dt);
     SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (unsigned int));
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
     SDL_UnlockAudioDevice(AudioDevice);
-    SDL_Delay(16);
+    
+    int dt = getDelta();
+    last_dt = dt;
+    int wait_time = delay_ms-dt;
+    if(dt < delay_ms) {
+        if(fps_print_interval >= print_interval_limit) {
+            printf("dt:%d additional wait_time:%d\n", dt, wait_time);
+        }
+        SDL_Delay(wait_time);
+    } else {
+        if(fps_print_interval >= print_interval_limit) {
+            printf("frame time:%d\n", dt);
+        }
+    }
 }
 
 static void debug_log(char *str) {
@@ -3037,6 +3007,8 @@ static void st_log(char *message) {
 
 int main(int argc, char* argv[])
 {
+    
+    
     //load_config();
     st_log("started executing.");
     
@@ -3048,6 +3020,41 @@ int main(int argc, char* argv[])
     
     setup_synth();
     st_log("setup synth successful.");
+    
+    /*
+     phase += (0.001*wave_length)+speed;
+     double d_depth = 0.000005 * depth;
+     vibrato speed, depth 0-15
+     voice->noteoff_slope_value -= bpm * 0.00005;
+     voice->adsr_cursor += 0.00001;
+     
+     s->base_mod_vibrato_speed = 0.689063;
+     s->base_mod_vibrato_depth = 0.003445;
+     
+     double mod = v->pitch_speed1*0.02 + v->pitch_speed2*0.0002;
+     
+     0.000441
+     */
+    
+    
+    /*
+    double val1 = cSynthGetRelativeModifierReverse(0.0156, 44100, true, true);
+    cSynthGetRelativeModifier(val1, 44100, true, true);
+    
+    double val2 = cSynthGetRelativeModifierReverse(0.01, 44100, true, true);
+    cSynthGetRelativeModifier(val2, 44100, true, true);
+    */
+     
+     //double val1 = cSynthGetRelativeModForChunksReverse(0.02, 44100, 64, true, true);
+    //double val2 = cSynthGetRelativeModForChunksReverse(val3, 44100, 64, true, true);
+    
+    //cSynthGetRelativeModForChunks(val1, 44100, 64, true, true);
+    //cSynthGetRelativeModForChunks(val2, 44100, 64, true, true);
+    
+    
+    
+   // double mod = v->pitch_speed1*0.02 + v->pitch_speed2*0.0002;
+    
     
     if(run_with_sdl) {
         setup_texture();
