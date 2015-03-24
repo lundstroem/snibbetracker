@@ -50,28 +50,66 @@ bool log_file_enabled = true;
 bool release_build = true;
 bool run_with_sdl = true;
 bool redraw_screen = true;
-
 int screen_width = 1280;
 int screen_height = 720;
-
 int current_pattern = 0;
 int current_track = 0;
+int quit = 0;
+char *title = "snibbetracker test";
+struct CInput *input = NULL;
+unsigned int *raster = NULL;
+unsigned int **raster2d = NULL;
+unsigned int **sheet = NULL;
+unsigned int *raw_sheet = NULL;
+int width = 256*4;
+int height = 144*4;
+int s_width = 256*2;
+int s_height = 144*2;
+bool playing = false;
+bool editing = false;
+bool modifier = false;
+bool follow = false;
+bool visualiser = false;
+int octave = 2;
+int visual_pattern_offset = 0;
+int visual_track_width = 30;
+int visual_track_height = 16;
+int visual_cursor_x = 0;
+int visual_cursor_y = 0;
+bool pattern_editor = false;
+int pattern_cursor_x = 0;
+int pattern_cursor_y = 0;
+bool instrument_editor = false;
+int selected_instrument_id = 0;
+int selected_instrument_node_index = 1;
+bool file_editor = false;
+bool pressed_left = false;
+bool pressed_right = false;
+bool pressed_up = false;
+bool pressed_down = false;
+struct CSynthContext *synth = NULL;
+struct CTimer *info_timer = NULL;
+char *info_string = NULL;
+bool show_tips = true;
+struct FileSettings *file_settings = NULL;
+int sine_scroll = 0;
+
 
 #define MAX_TOUCHES 8
 #define sheet_width 1024
 #define sheet_height 1024
 #define fullscreen 0
 
-/*
- 
- 
 
- 
- 
- */
 
 /*
+ TODO: 
+ - formatting.
+ - delete old filehandling crap
+ - add colors to settings file.
+ - move logic out of input handler
 
+ 
 static int color_font = 0xFFCCCCCC;
 static int color_font_bg = 0xFF222222;
 
@@ -124,140 +162,72 @@ static int color_bg = 0xFF000000;
 #define cengine_color_bg5 0xFF333322
 #define cengine_color_bg6 0xFF223333
 
-char *title = "snibbetracker test";
 
-struct CInput *input = NULL;
-
-unsigned int *raster = NULL;
-unsigned int **raster2d = NULL;
-unsigned int **sheet = NULL;
-unsigned int *raw_sheet = NULL;
-int width = 256*4;
-int height = 144*4;
-int s_width = 256*2;
-int s_height = 144*2;
-
-bool playing = false;
-bool editing = false;
-bool modifier = false;
-
-bool follow = false;
-
-bool visualiser = false;
-
-int octave = 2;
-
-int visual_pattern_offset = 0;
-int visual_track_width = 30;
-int visual_track_height = 16;
-int visual_cursor_x = 0;
-int visual_cursor_y = 0;
-
-bool pattern_editor = false;
-int pattern_cursor_x = 0;
-int pattern_cursor_y = 0;
-
-bool instrument_editor = false;
-int selected_instrument_id = 0;
-int selected_instrument_node_index = 1;
-
-bool file_editor = false;
-
-
-bool pressed_left = false;
-bool pressed_right = false;
-bool pressed_up = false;
-bool pressed_down = false;
-
-struct CSynthContext *synth = NULL;
-
-struct CTimer *infoTimer = NULL;
-char *infoString = NULL;
-
-bool show_tips = true;
-
-struct FileSettings *file_settings = NULL;
-
-static void initFileSettings(void);
+static void init_file_settings(void);
 static void handle_key_down_file(SDL_Keysym* keysym);
-static void exitDir(void);
-static void enterDir(void);
-static void exitFileEditor(void);
-static char *getDefaultDir(void);
-static void initDefaultDirIfNull(void);
-static char getFilePathDelimiter(void);
-static int getDirectoryList(char *dir_string);
-static void listDirectory(void);
-static void renderFiles(void);
-static void addFilenameChar(char c);
-static void removeFilenameChar(void);
-static char *loadFile(char *path);
-static void loadProjectFile(char *path);
-static void saveProjectFile(void);
-static void setInfoTimer(char *string);
-static void setInfoTimerWithInt(char *string, int data);
-static void updateAndRenderInfo(double dt);
+static void exit_file_editor(void);
+static void render_files(void);
+static void add_filename_char(char c);
+static void remove_filename_char(void);
+static char *load_file(char *path);
+static void load_project_file(char *path);
+static void save_project_file(void);
+static void set_info_timer(char *string);
+static void set_info_timer_with_int(char *string, int data);
+static void update_and_render_info(double dt);
 static void setup_data(void);
-static void convertInput(int x, int y);
+static void convert_input(int x, int y);
 static void cleanup_data(void);
-static void addTrackNodeWithOctave(int x, int y, bool editing, int value);
-static void setVisualCursor(int diff_x, int diff_y, bool user);
-static void checkPatternCursorBounds(void);
-static bool checkScreenBounds(int x, int y);
+static void convert_input(int x, int y);
+static void add_track_node_with_octave(int x, int y, bool editing, int value);
+static void set_visual_cursor(int diff_x, int diff_y, bool user);
+static void check_pattern_cursor_bounds(void);
+static bool check_screen_bounds(int x, int y);
 static void toggle_playback(void);
 static void toggle_editing(void);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
-static void handleNoteKeys(SDL_Keysym* keysym);
-static void handlePatternKeys(SDL_Keysym* keysym);
-static void handleInstrumentKeys(SDL_Keysym* keysym);
-static void handleEffectKeys(SDL_Keysym* keysym);
-static void checkSDLEvents(SDL_Event event);
-static int getDelta(void);
-static void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
-static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length);
-void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength);
-static void changeWaveform(int plus);
-static void changeParam(bool plus);
-static void drawLine(int x0, int y0, int x1, int y1);
-static void renderInstrumentEditor(void);
-static void ADSRInvertYRender(double x, double y, int color);
-static void renderPatternMapping(void);
-static char *getWaveTypeAsChar(int type);
-static void drawWaveTypes(void);
-static void renderVisuals(void);
-static void renderTrack(void);
-static void setupSDL(void);
+static void handle_note_keys(SDL_Keysym* keysym);
+static void handle_pattern_keys(SDL_Keysym* keysym);
+static void handle_instrument_keys(SDL_Keysym* keysym);
+static void handle_effect_keys(SDL_Keysym* keysym);
+static void check_sdl_events(SDL_Event event);
+static int get_delta(void);
+static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
+static void render_audio(Sint16 *s_byteStream, int begin, int end, int length);
+void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
+static void change_waveform(int plus);
+static void change_param(bool plus);
+static void draw_line(int x0, int y0, int x1, int y1);
+static void render_instrument_editor(void);
+static void adsr_invert_y_render(double x, double y, int color);
+static void render_pattern_mapping(void);
+static char *get_wave_type_as_char(int type);
+static void draw_wave_types(void);
+static void render_visuals(void);
+static void render_track(void);
+static void setup_sdl(void);
 static void setup_synth(void);
 static void setup_texture(void);
-static void destroySDL(void);
-static int setupSDLAudio(void);
+static void destroy_sdl(void);
+static int setup_sdl_audio(void);
 static void setup_cengine(void);
-static void cleanupSynth(void);
-static void mainLoop(void);
+static void cleanup_synth(void);
+static void main_loop(void);
 static void debug_log(char *str);
 static int get_buffer_size_from_index(int i);
 static void load_config();
 static void st_log(char *message);
 static void st_pause(void);
+static void add_track_node_with_octave(int x, int y, bool editing, int tone);
+static bool check_screen_bounds(int x, int y);
+static char *get_wave_type_as_char(int type);
+static void change_param(bool plus);
+static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file);
+static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate);
 
-
-/*
- 
-
- - persistent default dir, need to research platform differences?
-
- - change colors to make more sense.
- - make flags to diff posix/win and write template code for win.
- 
- //done
- - preserve path after save/load to make it default next time when entering.
- - test file name limits so not to crash the program.
- - adjust placement of labels to the infoLabel.
- - use escape overall to move back, remove esc as way to close program.
- */
-
-static void initFileSettings(void) {
+static void init_file_settings(void) {
+    
     struct FileSettings *f = cAllocatorAlloc(sizeof(struct FileSettings), "FileSettings");
     f->file_editor_save = false;
     f->file_cursor_y = 0;
@@ -268,7 +238,6 @@ static void initFileSettings(void) {
     f->file_path = NULL;
     f->file_path_max_length = 256;
     f->file_path_pos = 0;
-    //f->file_cursor_y_saved[256];
     f->reload_dirs = true;
     f->file_name = NULL;
     f->file_name_limit = 20;
@@ -297,42 +266,42 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
    
     char c = 0;
     switch( keysym->sym ) {
-        case SDLK_a: c = 'a'; addFilenameChar(c); break;
-        case SDLK_b: c = 'b'; addFilenameChar(c); break;
-        case SDLK_c: c = 'c'; addFilenameChar(c); break;
-        case SDLK_d: c = 'd'; addFilenameChar(c); break;
-        case SDLK_e: c = 'e'; addFilenameChar(c); break;
-        case SDLK_f: c = 'f'; addFilenameChar(c); break;
-        case SDLK_g: c = 'g'; addFilenameChar(c); break;
-        case SDLK_h: c = 'h'; addFilenameChar(c); break;
-        case SDLK_i: c = 'i'; addFilenameChar(c); break;
-        case SDLK_j: c = 'j'; addFilenameChar(c); break;
-        case SDLK_k: c = 'k'; addFilenameChar(c); break;
-        case SDLK_l: c = 'l'; addFilenameChar(c); break;
-        case SDLK_m: c = 'm'; addFilenameChar(c); break;
-        case SDLK_n: c = 'n'; addFilenameChar(c); break;
-        case SDLK_o: c = 'o'; addFilenameChar(c); break;
-        case SDLK_p: c = 'p'; addFilenameChar(c); break;
-        case SDLK_q: c = 'q'; addFilenameChar(c); break;
-        case SDLK_r: c = 'r'; addFilenameChar(c); break;
-        case SDLK_s: c = 's'; addFilenameChar(c); break;
-        case SDLK_t: c = 't'; addFilenameChar(c); break;
-        case SDLK_u: c = 'u'; addFilenameChar(c); break;
-        case SDLK_v: c = 'v'; addFilenameChar(c); break;
-        case SDLK_w: c = 'w'; addFilenameChar(c); break;
-        case SDLK_x: c = 'x'; addFilenameChar(c); break;
-        case SDLK_y: c = 'y'; addFilenameChar(c); break;
-        case SDLK_z: c = 'z'; addFilenameChar(c); break;
-        case SDLK_0: c = '0'; addFilenameChar(c); break;
-        case SDLK_1: c = '1'; addFilenameChar(c); break;
-        case SDLK_2: c = '2'; addFilenameChar(c); break;
-        case SDLK_3: c = '3'; addFilenameChar(c); break;
-        case SDLK_4: c = '4'; addFilenameChar(c); break;
-        case SDLK_5: c = '5'; addFilenameChar(c); break;
-        case SDLK_6: c = '6'; addFilenameChar(c); break;
-        case SDLK_7: c = '7'; addFilenameChar(c); break;
-        case SDLK_8: c = '8'; addFilenameChar(c); break;
-        case SDLK_9: c = '9'; addFilenameChar(c); break;
+        case SDLK_a: c = 'a'; add_filename_char(c); break;
+        case SDLK_b: c = 'b'; add_filename_char(c); break;
+        case SDLK_c: c = 'c'; add_filename_char(c); break;
+        case SDLK_d: c = 'd'; add_filename_char(c); break;
+        case SDLK_e: c = 'e'; add_filename_char(c); break;
+        case SDLK_f: c = 'f'; add_filename_char(c); break;
+        case SDLK_g: c = 'g'; add_filename_char(c); break;
+        case SDLK_h: c = 'h'; add_filename_char(c); break;
+        case SDLK_i: c = 'i'; add_filename_char(c); break;
+        case SDLK_j: c = 'j'; add_filename_char(c); break;
+        case SDLK_k: c = 'k'; add_filename_char(c); break;
+        case SDLK_l: c = 'l'; add_filename_char(c); break;
+        case SDLK_m: c = 'm'; add_filename_char(c); break;
+        case SDLK_n: c = 'n'; add_filename_char(c); break;
+        case SDLK_o: c = 'o'; add_filename_char(c); break;
+        case SDLK_p: c = 'p'; add_filename_char(c); break;
+        case SDLK_q: c = 'q'; add_filename_char(c); break;
+        case SDLK_r: c = 'r'; add_filename_char(c); break;
+        case SDLK_s: c = 's'; add_filename_char(c); break;
+        case SDLK_t: c = 't'; add_filename_char(c); break;
+        case SDLK_u: c = 'u'; add_filename_char(c); break;
+        case SDLK_v: c = 'v'; add_filename_char(c); break;
+        case SDLK_w: c = 'w'; add_filename_char(c); break;
+        case SDLK_x: c = 'x'; add_filename_char(c); break;
+        case SDLK_y: c = 'y'; add_filename_char(c); break;
+        case SDLK_z: c = 'z'; add_filename_char(c); break;
+        case SDLK_0: c = '0'; add_filename_char(c); break;
+        case SDLK_1: c = '1'; add_filename_char(c); break;
+        case SDLK_2: c = '2'; add_filename_char(c); break;
+        case SDLK_3: c = '3'; add_filename_char(c); break;
+        case SDLK_4: c = '4'; add_filename_char(c); break;
+        case SDLK_5: c = '5'; add_filename_char(c); break;
+        case SDLK_6: c = '6'; add_filename_char(c); break;
+        case SDLK_7: c = '7'; add_filename_char(c); break;
+        case SDLK_8: c = '8'; add_filename_char(c); break;
+        case SDLK_9: c = '9'; add_filename_char(c); break;
         case SDLK_PLUS:
             break;
         case SDLK_MINUS:
@@ -344,44 +313,26 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
         case SDLK_LCTRL:
             break;
         case SDLK_ESCAPE:
-                exitFileEditor();
+            exit_file_editor();
             break;
-        case SDLK_RETURN:	
-			//#if defined(platform_windows)
-				if(file_settings->file_editor_save) {
-					saveProjectFile();
-				} else {
-					if(file_settings->file_name != NULL) {
-						char *load_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-						sprintf(load_path, "%s.json", file_settings->file_name);
-						loadProjectFile(load_path);
-						cAllocatorFree(load_path);
+        case SDLK_RETURN:
+            if(file_settings->file_editor_save) {
+                save_project_file();
+            } else {
+                if(file_settings->file_name != NULL) {
+                    char *load_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                    sprintf(load_path, "%s.json", file_settings->file_name);
+                    load_project_file(load_path);
+                    cAllocatorFree(load_path);
                         
-                        // set visual track height
-                        visual_track_height = synth->track_height;
-					}
-				}
-			/*
-            #elif defined(platform_osx)
-				if(file_settings->file_editor_save) {
-					saveProjectFile();
-				} else {
-					file_settings->file_enter_pressed = true;
-					enterDir();
-				}
-            */
-			//#endif
-
+                    // set visual track height
+                    visual_track_height = synth->track_height;
+                }
+            }
             break;
         case SDLK_LEFT:
-			//#if defined(platform_osx)
-			//	exitDir();
-			//#endif
             break;
         case SDLK_RIGHT:
-			//#if defined(platform_osx)
-			//	enterDir();
-			//#endif
             break;
         case SDLK_UP:
             file_settings->file_cursor_y--;
@@ -397,7 +348,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             }
             break;
         case SDLK_BACKSPACE:
-                removeFilenameChar();
+                remove_filename_char();
             break;
         case SDLK_SPACE:
             break;
@@ -406,73 +357,13 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
     }
 }
 
-static void exitDir(void) {
-    if(file_settings->file_path_pos > 0) {
-        if(file_settings->file_path_list[file_settings->file_path_pos] != NULL) {
-            file_settings->file_path_list[file_settings->file_path_pos] = cAllocatorFree(file_settings->file_path_list[file_settings->file_path_pos]);
-        }
-        file_settings->file_path_pos--;
-        file_settings->file_cursor_y = file_settings->file_cursor_y_saved[file_settings->file_path_pos];
-        file_settings->reload_dirs = true;
-    } else {
-        printf("cannot go further back.\n");
-    }
-}
-
-static void enterDir(void) {
+static void exit_file_editor(void) {
     
-    struct PeekDirResult *result = NULL;
-    if(file_settings->file_path_pos < file_settings->file_path_max_length) {
-        initDefaultDirIfNull();
-        
-        #if defined(platform_osx)
-            result = peekDirPosix(file_settings->file_dirs[file_settings->file_cursor_y], file_settings);
-		#elif defined(platform_windows)        
-			result = peekDirWin(file_settings->file_dirs[file_settings->file_cursor_y], file_settings);
-		#endif
-		if(result->status == 1) {
-			if(result->path != NULL){
-				loadProjectFile(result->path);
-			}
-		}
-        
-        printf("== peek status:%d\n", result->status);
-        if(result != NULL && result->status == 2) {
-            // advance directory
-            file_settings->file_cursor_y_saved[file_settings->file_path_pos] = file_settings->file_cursor_y;
-            file_settings->file_path_pos++;
-            if(file_settings->file_path_list[file_settings->file_path_pos] != NULL) {
-                file_settings->file_path_list[file_settings->file_path_pos] = cAllocatorFree(file_settings->file_path_list[file_settings->file_path_pos]);
-            }
-            char *path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
-            sprintf(path, "%s", file_settings->file_dirs[file_settings->file_cursor_y]);
-            file_settings->file_path_list[file_settings->file_path_pos] = path;
-            file_settings->file_cursor_y = 0;
-            printf("adding another to path:%s path_pos:%d\n", path, file_settings->file_path_pos);
-            file_settings->reload_dirs = true;
-        } else {
-            file_settings->file_enter_pressed = false;
-        }
-    } else {
-        printf("file path max nodes reached, cannot go deeper\n");
-    }
-    
-    if(result != NULL && result->path != NULL) {
-        cAllocatorFree(result->path);
-    }
-    
-    if(result != NULL) {
-        cAllocatorFree(result);
-    }
-}
-
-static void exitFileEditor(void) {
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
         if (file_settings->file_dirs[i] != NULL) {
             file_settings->file_dirs[i] = cAllocatorFree(file_settings->file_dirs[i]);
         }
     }
-    
     file_settings->file_path = cAllocatorFree(file_settings->file_path);
     file_settings->file_name = cAllocatorFree(file_settings->file_name);
     file_editor = false;
@@ -481,84 +372,7 @@ static void exitFileEditor(void) {
 }
 
 
-static char *getDefaultDir(void) {
-    /*
-    #if defined(platform_osx)
-        return "/";
-    #elif defined(platform_windows)
-        return "C:\\0";
-    #endif
-     */
-    #if defined(platform_osx)
-        if(release_build) {
-            return "../";
-        } else {
-            return "/";
-        }
-    #elif defined(platform_windows)
-        return ".\\";
-    #endif
-}
-
-static void initDefaultDirIfNull(void) {
-    if(file_settings->file_path_list[0] == NULL) {
-        printf("setting up file path defaults.\n");
-        char *path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file path name chars");
-        sprintf(path, "%s", getDefaultDir());
-        file_settings->file_path_list[0] = path;
-        file_settings->file_path_pos = 0;
-        
-    }
-}
-
-static char getFilePathDelimiter(void) {
-    return '/';
-}
-
-
-static int getDirectoryList(char *dir_string) {
-    #if defined(platform_osx)
-        return getDirectoryListPosix(dir_string, file_settings);
-    #elif defined(platform_windows)
-        return getDirectoryListWin(dir_string, file_settings);
-    #endif
-}
-
-static void listDirectory(void) {
-    
-    // Set default values
-    if(file_settings->reload_dirs) {
-        
-        initDefaultDirIfNull();
-        
-        // append the dir names to the path.
-        char *path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "dir name chars");
-        for(int i = 0; i < file_settings->file_path_pos+1; i++) {
-            if(file_settings->file_path_list[i] != NULL) {
-                if(i < 2) {
-                    sprintf(path, "%s%s", path, file_settings->file_path_list[i]);
-                } else {
-                    // Also append slash.
-                    sprintf(path, "%s/%s", path, file_settings->file_path_list[i]);
-                }
-            }
-        }
-        
-        // Set the new path
-        if(file_settings->file_path != NULL) {
-            file_settings->file_path = cAllocatorFree(file_settings->file_path);
-        }
-        file_settings->file_path = path;
-        
-        printf("path:%s path_pos:%d\n", path, file_settings->file_path_pos);
-        
-        getDirectoryList(file_settings->file_path);
-        file_settings->reload_dirs = false;
-    }
-}
-
-static void renderFiles(void) {
-    
+static void render_files(void) {
     
     int offset_y = 0;
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
@@ -578,28 +392,16 @@ static void renderFiles(void) {
         cEngineRenderLabelWithParams(raster2d, "path:                                                                                            ", offset_x, 23, cengine_color_red, cengine_color_black);
         cEngineRenderLabelWithParams(raster2d, file_settings->file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
     }
-    
-    /*
-    if(file_settings->file_editor_save) {
-        cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
-        if(file_settings->file_name != NULL) {
-            cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
-        }
-    }
-     */
-	
-	//#if defined(platform_windows)
-		cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
-		if(file_settings->file_name != NULL) {
+
+    cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+    if(file_settings->file_name != NULL) {
 			cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
-		}
-	//#endif
+    }
 }
 
-static void addFilenameChar(char c) {
+static void add_filename_char(char c) {
     
     if(file_settings->file_name == NULL) {
-        //printf("file_name in addFilenameChar is NULL\n");
         file_settings->file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
         file_settings->file_name[0] = '\0';
     }
@@ -613,10 +415,9 @@ static void addFilenameChar(char c) {
     }
 }
 
-static void removeFilenameChar(void) {
+static void remove_filename_char(void) {
     
     if(file_settings->file_name == NULL) {
-        //printf("file_name in removeFilenameChar is NULL\n");
         file_settings->file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
         file_settings->file_name[0] = '\0';
     }
@@ -632,7 +433,8 @@ static void removeFilenameChar(void) {
     }
 }
 
-static char *loadFile(char *path) {
+static char *load_file(char *path) {
+    
     if(path != NULL) {
         FILE *fp = NULL;
         fp = fopen(path, "rb");
@@ -656,100 +458,98 @@ static char *loadFile(char *path) {
     } else {
         printf("cannot load, path is null\n");
     }
-    
     return NULL;
 }
 
-static void loadProjectFile(char *path) {
+static void load_project_file(char *path) {
     
-    char *b = loadFile(path);
+    char *b = load_file(path);
     if(b != NULL) {
-        //printf("json_str:%s\n", b);
         cSynthReset(synth);
         int status = cSynthLoadProject(synth, b);
         cAllocatorFree(b);
         if(status == 0) {
-            setInfoTimer("error: could not load project");
+            set_info_timer("error: could not load project");
         } else {
-            setInfoTimer(path);
-            exitFileEditor();
+            set_info_timer(path);
+            exit_file_editor();
         }
     } else {
         printf("could not load file.\n");
-		setInfoTimer("could not load file.");
+		set_info_timer("could not load file.");
     }
 }
 
-static void saveProjectFile(void) {
+static void save_project_file(void) {
 
-		if(file_settings->file_name != NULL) {
-			char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
-			sprintf(save_path, "%s.json", file_settings->file_name);
-        
-			cJSON *root = cSynthSaveProject(synth);
-			if(root != NULL) {
-				FILE * fp;
-				fp = fopen (save_path, "w+");
-                char *json_print = cJSON_PrintUnformatted(root);
-				fprintf(fp, "%s", json_print);
-				fclose(fp);
-				cJSON_Delete(root);
-                free(json_print);
-			}
-
-			//sprintf(save_path, "saved file:%s", save_path);
-			setInfoTimer(save_path);
-			cAllocatorFree(save_path);
-			exitFileEditor();
-		} else {
-			printf("cannot save, filename or path is null\n");
-		}
+    if(file_settings->file_name != NULL) {
+        char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
+        sprintf(save_path, "%s.json", file_settings->file_name);
+        cJSON *root = cSynthSaveProject(synth);
+        if(root != NULL) {
+            FILE * fp;
+            fp = fopen (save_path, "w+");
+            char *json_print = cJSON_PrintUnformatted(root);
+            fprintf(fp, "%s", json_print);
+            fclose(fp);
+            cJSON_Delete(root);
+            free(json_print);
+        }
+        set_info_timer(save_path);
+        cAllocatorFree(save_path);
+        exit_file_editor();
+    } else {
+        printf("cannot save, filename or path is null\n");
+    }
 }
 
-static void setInfoTimer(char *string) {
+static void set_info_timer(char *string) {
+    
     if(string != NULL) {
         int max_size = file_settings->file_name_max_length;
         int len = (int)strlen(string);
         if(len < max_size) {
             char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer string");
             sprintf(info, "%s", string);
-            if(infoString != NULL) {
-                infoString = cAllocatorFree(infoString);
+            if(info_string != NULL) {
+                info_string = cAllocatorFree(info_string);
             }
-            infoString = info;
-            cTimerReset(infoTimer);
+            info_string = info;
+            cTimerReset(info_timer);
         } else {
             printf("setInfoTimerWithInt: string too large\n");
         }
     }
 }
 
-static void setInfoTimerWithInt(char *string, int data) {
+static void set_info_timer_with_int(char *string, int data) {
+    
     if(string != NULL) {
         int max_size = file_settings->file_name_max_length;
         int len = (int)strlen(string);
         if(len < max_size) {
             char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer with int");
             sprintf(info, "%s:%d", string, data);
-            if(infoString != NULL) {
-                infoString = cAllocatorFree(infoString);
+            if(info_string != NULL) {
+                info_string = cAllocatorFree(info_string);
             }
-            infoString = info;
-            cTimerReset(infoTimer);
+            info_string = info;
+            cTimerReset(info_timer);
         } else {
             printf("setInfoTimerWithInt: string too large\n");
         }
     }
 }
 
-static void updateAndRenderInfo(double dt) {
-    if(infoString != NULL) {
-        if(!cTimerIsReady(infoTimer)) {
-            cTimerAdvance(dt, infoTimer);
-            if(cTimerIsReady(infoTimer)) {
+static void update_and_render_info(double dt) {
+    
+    if(info_string != NULL) {
+        if(!cTimerIsReady(info_timer)) {
+            cTimerAdvance(dt, info_timer);
+            if(cTimerIsReady(info_timer)) {
                 redraw_screen = true;
             }
-            cEngineRenderLabelWithParams(raster2d, infoString, 0, 23, cengine_color_white, cengine_color_black);
+            cEngineRenderLabelWithParams(raster2d, info_string, 0, 23, cengine_color_white, cengine_color_black);
         }
     }
 }
@@ -760,9 +560,8 @@ static void setup_data(void) {
     int r_x = 0;
     int r_y = 0;
     
-    initFileSettings();
+    init_file_settings();
     
-    // contains an integer for every color/pixel on the screen.
     raster = cAllocatorAlloc((s_width*s_height) * sizeof(unsigned int), "main.c raster 1");
     for(i = 0; i < s_width*s_height; i++) {
         raster[i] = 0;
@@ -788,7 +587,6 @@ static void setup_data(void) {
             }
         }
     }
-    
     
     input = cInputNew();
     
@@ -819,18 +617,16 @@ static void setup_data(void) {
         }
     }
     
-    infoTimer = cTimerNew(3000);
-    cTimerReset(infoTimer);
+    info_timer = cTimerNew(3000);
+    cTimerReset(info_timer);
 }
 
 
-static void convertInput(int x, int y) {
+static void convert_input(int x, int y) {
+    
     input->mouse_x = x/4;
     input->mouse_y = y/4;
 }
-
-
-int quit = 0;
 
 static void cleanup_data(void) {
     int i = 0;
@@ -843,9 +639,9 @@ static void cleanup_data(void) {
     cSynthCleanup(synth);
     cEngineCleanup();
     input = cInputCleanup(input);
-    infoTimer = cAllocatorFree(infoTimer);
+    info_timer = cAllocatorFree(info_timer);
     
-    infoString = cAllocatorFree(infoString);
+    info_string = cAllocatorFree(info_string);
     
     // File settings --
     for (i = 0; i < file_settings->file_path_max_length; i++) {
@@ -861,37 +657,21 @@ static void cleanup_data(void) {
         }
     }
     file_settings->file_dirs = cAllocatorFree(file_settings->file_dirs);
-
     file_settings->file_path = cAllocatorFree(file_settings->file_path);
     file_settings->file_name = cAllocatorFree(file_settings->file_name);
-    
     file_settings = cAllocatorFree(file_settings);
-    
 }
 
-
-int sine_scroll = 0;
-static void addTrackNodeWithOctave(int x, int y, bool editing, int tone);
-static bool checkScreenBounds(int x, int y);
-static char *getWaveTypeAsChar(int type);
-static void changeParam(bool plus);
-static void ADSRInvertYRender(double x, double y, int color);
-
-static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
+static void add_track_node_with_octave(int x, int y, bool editing, int value) {
+    
     int x_count = visual_cursor_x%5;
     
-    
-    //printf("current_track:%d", current_track);
-    //printf("current_pattern:%d", current_pattern);
-    
     if(instrument_editor || pattern_editor || !editing) {
-        //printf("not editing\n");
         // only allow preview of notes in editor
         cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
     } else {
         
         if(!editing) {
-            //printf("not editing\n");
             cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
         } else {
             
@@ -900,52 +680,45 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
                 if(editing) {
                     if(playing && follow) {}
                     else {
-                        setVisualCursor(0, 1, true);
+                        set_visual_cursor(0, 1, true);
                     }
                 }
             }
             
             if(x_count == 1 && editing) {
                 cSynthAddTrackNodeParams(synth, current_track, x, y, value, -1, -1, -1);
-                //printf("change instrument value:%d\n", value);
+                // change instrument
                 synth->current_instrument = value;
-                
                 if(playing && follow) {}
                 else {
-                    setVisualCursor(0, 1, true);
+                    set_visual_cursor(0, 1, true);
                 }
             }
             
             if(x_count == 2 && editing) {
                 // change effect
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, (char)value, -1, -1);
-                //printf("change effect value:%d\n", value);
-                
                 if(playing && follow) {}
                 else {
-                    setVisualCursor(0, 1, true);
+                    set_visual_cursor(0, 1, true);
                 }
             }
             
             if(x_count == 3 && editing) {
                 // change param2
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, (char)value, -1);
-                //printf("change param1 value:%d\n", value);
-                
                 if(playing && follow) {}
                 else {
-                    setVisualCursor(0, 1, true);
+                    set_visual_cursor(0, 1, true);
                 }
             }
             
             if(x_count == 4 && editing) {
                 // change param1
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, -1, (char)value);
-                //printf("change param2 value:%d\n", value);
-                
                 if(playing && follow) {}
                 else {
-                    setVisualCursor(0, 1, true);
+                    set_visual_cursor(0, 1, true);
                 }
             }
         }
@@ -953,7 +726,7 @@ static void addTrackNodeWithOctave(int x, int y, bool editing, int value) {
 }
 
 // only move across active tracks
-static void setVisualCursor(int diff_x, int diff_y, bool user) {
+static void set_visual_cursor(int diff_x, int diff_y, bool user) {
     
     visual_cursor_x += diff_x;
     visual_cursor_y += diff_y;
@@ -1002,7 +775,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
 }
 
 
-// move across the whole 16 tracks.
+// move across the whole 16 tracks. Keep this commented for now.
 //static void setVisualCursor(int diff_x, int diff_y, bool user) {
 //    
 //    visual_cursor_x += diff_x;
@@ -1079,8 +852,7 @@ static void setVisualCursor(int diff_x, int diff_y, bool user) {
 //    }
 //}
 
-
-static void checkPatternCursorBounds(void) {
+static void check_pattern_cursor_bounds(void) {
     
     if(pattern_cursor_x == synth->patterns_and_voices_width) {
         pattern_cursor_x = 0;
@@ -1097,11 +869,10 @@ static void checkPatternCursorBounds(void) {
     if(pattern_cursor_y == -1) {
         pattern_cursor_y = synth->patterns_and_voices_height-1;
     }
-    
-    //printf("pattern cursor y:%d\n", pattern_cursor_y);
 }
 
-static bool checkScreenBounds(int x, int y) {
+static bool check_screen_bounds(int x, int y) {
+    
     if(x > -1 && x < s_width && y > -1 && y < s_height) {
         return true;
     } else {
@@ -1114,14 +885,12 @@ static void toggle_playback(void) {
     if(playing == false) {
         playing = true;
         if(pattern_editor) {
-            //printf("playing from pattern when editing:%d\n", pattern_cursor_y-1);
             if(pattern_cursor_y > 0 && pattern_cursor_y < synth->patterns_height) {
                 cSynthResetTrackProgress(synth, pattern_cursor_y-1+visual_pattern_offset, 0);
             } else {
                 cSynthResetTrackProgress(synth, current_track, 0);
             }
         } else {
-            //cSynthResetTrackProgress(synth, current_track, visual_cursor_y);
             cSynthResetTrackProgress(synth, current_track, 0);
         }
     } else {
@@ -1137,10 +906,10 @@ static void toggle_editing(void) {
     
     if(editing == true) {
         editing = false;
-        setInfoTimer("editing off");
+        set_info_timer("editing off");
     } else {
         editing = true;
-        setInfoTimer("editing on");
+        set_info_timer("editing on");
     }
 }
 
@@ -1195,7 +964,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(instrument_editor) {
                     
                 } else if(pattern_editor) {
-                    changeParam(true);
+                    change_param(true);
                 }
                 break;
             case SDLK_MINUS:
@@ -1203,7 +972,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(instrument_editor) {
                     
                 } else if(pattern_editor) {
-                    changeParam(false);
+                    change_param(false);
                 }
                 break;
             case SDLK_a:
@@ -1239,7 +1008,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                             pattern_editor = false;
                             current_track = pattern_cursor_y-1+visual_pattern_offset;
                             visual_cursor_x = pattern_cursor_x*5;
-                            setInfoTimer("jump to track");
+                            set_info_timer("jump to track");
                         }
                     return;
                 }
@@ -1271,10 +1040,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(modifier) {
                     if(follow) {
                         follow = false;
-                        setInfoTimer("follow: false");
+                        set_info_timer("follow: false");
                     } else {
                         follow = true;
-                        setInfoTimer("follow: true");
+                        set_info_timer("follow: true");
                     }
                     return;
                 }
@@ -1302,7 +1071,6 @@ void handle_key_down(SDL_Keysym* keysym) {
                 modifier = true;
                 break;
             case SDLK_ESCAPE:
-                //quit = true;
                 break;
             case SDLK_SPACE:
                 toggle_playback();
@@ -1317,13 +1085,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                         if(octave < 0) {
                             octave = 0;
                         }
-                        setInfoTimerWithInt("octave", octave);
+                        set_info_timer_with_int("octave", octave);
                     } else if(pattern_editor) {
                         pattern_cursor_x -= 1;
-                        checkPatternCursorBounds();
-                        //setVisualCursor(-1, 1, true);
+                        check_pattern_cursor_bounds();
                     } else {
-                        setVisualCursor(-1, 0, true);
+                        set_visual_cursor(-1, 0, true);
                     }
                 }
                 break;
@@ -1337,12 +1104,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                         if(octave > 7) {
                             octave = 7;
                         }
-                        setInfoTimerWithInt("octave", octave);
+                        set_info_timer_with_int("octave", octave);
                     } else if(pattern_editor) {
                         pattern_cursor_x += 1;
-                        checkPatternCursorBounds();
+                        check_pattern_cursor_bounds();
                     } else {
-                        setVisualCursor(1, 0, true);
+                        set_visual_cursor(1, 0, true);
                     }
                 }
                 break;
@@ -1358,11 +1125,11 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else {
                     if(pattern_editor) {
                         pattern_cursor_y -= 1;
-                        checkPatternCursorBounds();
+                        check_pattern_cursor_bounds();
                     } else {
                         if(playing && follow) {}
                         else {
-                            setVisualCursor(0, -1, true);
+                            set_visual_cursor(0, -1, true);
                         }
                     }
                 }
@@ -1378,11 +1145,11 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else {
                     if(pattern_editor) {
                         pattern_cursor_y += 1;
-                        checkPatternCursorBounds();
+                        check_pattern_cursor_bounds();
                     } else {
                         if(playing && follow) {}
                         else {
-                            setVisualCursor(0, 1, true);
+                            set_visual_cursor(0, 1, true);
                         }
                     }
                 }
@@ -1405,7 +1172,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     }
                     if(!playing) {
-                        setVisualCursor(0, 1, true);
+                        set_visual_cursor(0, 1, true);
                     }
                 }
                 break;
@@ -1439,14 +1206,6 @@ void handle_key_down(SDL_Keysym* keysym) {
                             }
                         }
                     } else {
-                        /*
-                        if(editing == true) {
-                            editing = false;
-                            setInfoTimer("editing off");
-                        } else {
-                            editing = true;
-                            setInfoTimer("editing on");
-                        }*/
                         toggle_editing();
                     }
                 }
@@ -1460,119 +1219,119 @@ void handle_key_down(SDL_Keysym* keysym) {
     int x_count = visual_cursor_x%5;
     
     if(pattern_editor) {
-        handlePatternKeys(keysym);
+        handle_pattern_keys(keysym);
         return;
     } else if(x_count == 1 && editing) {
-        handleInstrumentKeys(keysym);
+        handle_instrument_keys(keysym);
         return;
     } else if((x_count > 1 && editing) && (x_count < 5 && editing)) {
-        handleEffectKeys(keysym);
+        handle_effect_keys(keysym);
         return;
     } else {
-        handleNoteKeys(keysym);
+        handle_note_keys(keysym);
     }
 }
 
-static void handleNoteKeys(SDL_Keysym* keysym) {
+static void handle_note_keys(SDL_Keysym* keysym) {
     
     switch( keysym->sym ) {
         case SDLK_z:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
             break;
         case SDLK_s:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
             break;
         case SDLK_x:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
             break;
         case SDLK_d:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
             break;
         case SDLK_c:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 16);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 16);
             break;
         case SDLK_v:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 17);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 17);
             break;
         case SDLK_g:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 18);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 18);
             break;
         case SDLK_b:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 19);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 19);
             break;
         case SDLK_h:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 20);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 20);
             break;
         case SDLK_n:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 21);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 21);
             break;
         case SDLK_j:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 22);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 22);
             break;
         case SDLK_m:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 23);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 23);
             break;
         case SDLK_COMMA:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
             break;
         case SDLK_l:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
             break;
         case SDLK_PERIOD:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
             break;
             
             //upper keyboard
         case SDLK_q:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
             break;
         case SDLK_2:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
             break;
         case SDLK_w:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
             break;
         case SDLK_3:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 27);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 27);
             break;
         case SDLK_e:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 28);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 28);
             break;
         case SDLK_r:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 29);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 29);
             break;
         case SDLK_5:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 30);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 30);
             break;
         case SDLK_t:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 31);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 31);
             break;
         case SDLK_6:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 32);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 32);
             break;
         case SDLK_y:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 33);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 33);
             break;
         case SDLK_7:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 34);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 34);
             break;
         case SDLK_u:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 35);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 35);
             break;
         case SDLK_i:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 36);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 36);
             break;
         case SDLK_9:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 37);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 37);
             break;
         case SDLK_o:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 38);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 38);
             break;
         case SDLK_0:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 39);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 39);
             break;
         case SDLK_p:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 40);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 40);
             break;
             
         default:
@@ -1580,15 +1339,10 @@ static void handleNoteKeys(SDL_Keysym* keysym) {
     }
 }
 
-
-
-
-static void handlePatternKeys(SDL_Keysym* keysym) {
+static void handle_pattern_keys(SDL_Keysym* keysym) {
     
     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-        // pattern nr.
         int pattern = 0;
-
         switch( keysym->sym ) {
             case SDLK_0:
                 pattern = 0;
@@ -1625,9 +1379,6 @@ static void handlePatternKeys(SDL_Keysym* keysym) {
                 break;
         }
         
-        //if(pattern > 9) {
-        //    pattern = 9;
-        //} else
         if(pattern < 0){
             pattern = 0;
         }
@@ -1639,144 +1390,125 @@ static void handlePatternKeys(SDL_Keysym* keysym) {
             if(pattern >= synth->patterns_height) {
                 pattern = synth->patterns_height-1;
             }
-        } else {
-            
         }
         
         synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = pattern;
     }
 }
 
-
-
-void handleInstrumentKeys(SDL_Keysym* keysym) {
+void handle_instrument_keys(SDL_Keysym* keysym) {
     
     switch( keysym->sym ) {
         case SDLK_0:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
             break;
         case SDLK_1:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
             break;
         case SDLK_2:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
             break;
         case SDLK_3:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
             break;
         case SDLK_4:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
             break;
         case SDLK_5:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
             break;
         case SDLK_6:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
             break;
         case SDLK_7:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
             break;
         case SDLK_8:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
             break;
         case SDLK_9:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
             break;
         case SDLK_a:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
             break;
         case SDLK_b:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
             break;
         case SDLK_c:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
             break;
         case SDLK_d:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
             break;
         case SDLK_e:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
             break;
         case SDLK_f:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
             break;
         default:
             break;
     }
 }
 
-static void handleEffectKeys(SDL_Keysym* keysym) {
+static void handle_effect_keys(SDL_Keysym* keysym) {
     
     switch( keysym->sym ) {
         case SDLK_a:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
             break;
         case SDLK_b:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
             break;
         case SDLK_c:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
             break;
         case SDLK_d:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
             break;
         case SDLK_e:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
             break;
         case SDLK_f:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
             break;
         case SDLK_0:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
             break;
         case SDLK_1:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
             break;
         case SDLK_2:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
             break;
         case SDLK_3:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
             break;
         case SDLK_4:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
             break;
         case SDLK_5:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
             break;
         case SDLK_6:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
             break;
         case SDLK_7:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
             break;
         case SDLK_8:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
             break;
         case SDLK_9:
-            addTrackNodeWithOctave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
             break;
         default:
             break;
     }
 }
 
-
-
-
-
-
-/*C-1 - D-2
-zsxdcvgbhnjm,l.
- 
-C-2 - E-3
-q2w3er5t6y7ui9o0p 
- 
- 
- 
- */
- 
-static void checkSDLEvents(SDL_Event event) {
+static void check_sdl_events(SDL_Event event) {
     
     while (SDL_PollEvent(&event)) {
         switch(event.type) {
@@ -1790,10 +1522,7 @@ static void checkSDLEvents(SDL_Event event) {
                 handle_key_up(&event.key.keysym);
                 break;
             case SDL_MOUSEMOTION:
-                //printf("Mouse moved by %d,%d to (%d,%d)\n",
-                //           event.motion.xrel, event.motion.yrel,
-                //           event.motion.x, event.motion.y);
-                convertInput(event.motion.x, event.motion.y);
+                convert_input(event.motion.x, event.motion.y);
                 if(input->mouse1 == 1) {
                     input->touches[0]->x = event.motion.x/4;
                     input->touches[0]->y = event.motion.y/4;
@@ -1804,30 +1533,20 @@ static void checkSDLEvents(SDL_Event event) {
                 }
                 break;
             case SDL_MOUSEBUTTONDOWN:
-                //printf("Mouse button %d pressed at (%d,%d)\n",
-                //           event.button.button, event.button.x, event.button.y);
-                
                 if(event.button.button == SDL_BUTTON_LEFT) {
                     input->mouse1 = true;
                     input->touches[0]->active = true;
                     input->touches[0]->x = event.motion.x/4;
                     input->touches[0]->y = event.motion.y/4;
-                    //printf("mouse 1 x:%i y:%i\n", input->touches[0]->x, input->touches[0]->y);
-                    
                 }
-                
                 if(event.button.button == SDL_BUTTON_RIGHT) {
                     input->mouse2 = true;
                     input->touches[1]->active = true;
                     input->touches[1]->x = event.motion.x;
                     input->touches[1]->y = event.motion.y;
                 }
-                
                 break;
             case SDL_MOUSEBUTTONUP:
-                //printf("Mouse button %d pressed at (%d,%d)\n",
-                //           event.button.button, event.button.x, event.button.y);
-                
                 if(event.button.button == SDL_BUTTON_LEFT) {
                     input->mouse1 = 0;
                     input->touches[0]->active = false;
@@ -1835,7 +1554,6 @@ static void checkSDLEvents(SDL_Event event) {
                     input->ended_touches[0]->x = event.motion.x;
                     input->ended_touches[0]->y = event.motion.y;
                 }
-                
                 if(event.button.button == SDL_BUTTON_RIGHT) {
                     input->mouse2 = 0;
                     input->touches[1]->active = false;
@@ -1843,14 +1561,12 @@ static void checkSDLEvents(SDL_Event event) {
                     input->ended_touches[1]->x = event.motion.x;
                     input->ended_touches[1]->y = event.motion.y;
                 }
-                
-                break;
+            break;
         }
     }
 }
 
 
-/*** synth stuff */
 //const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
@@ -1860,19 +1576,16 @@ Uint16 bufferSize = 4096; // must be a power of two, decrease to allow for a low
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
-
 SDL_atomic_t audioCallbackLeftOff;
 Sint32 audioMainLeftOff;
 Sint8 audioMainAccumulator;
-
 SDL_AudioDeviceID AudioDevice;
 SDL_AudioSpec audioSpec;
-
 SDL_Event event;
 SDL_bool running = SDL_TRUE;
 
-
-static void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
+static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
+    
     printf("\n\nwaveform data:\n\n");
     Uint32 i=0;
     for (i=0; i<floatStreamLength; i+=increment)
@@ -1880,14 +1593,14 @@ static void logWavedata(float *floatStream, Uint32 floatStreamLength, Uint32 inc
     printf("\n\n");
 }
 
-static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
+static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
+    
     if(synth == NULL) {
         printf("audioCallback: synthContext is null, returning.\n");
         return;
     }
     
     Uint32 i;
-    
     
     for(int v_i = 0; v_i < synth->max_voices; v_i++) {
         struct CVoice *voice = synth->voices[v_i];
@@ -1907,15 +1620,10 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
             double d_sampleRate = synth->sample_rate;
             double d_waveformLength = voice->waveform_length;
             
-            
             cSynthVoiceApplyEffects(synth, voice);
-            
             double delta_phi = (double) (cSynthGetFrequency((double)voice->tone_with_fx) / d_sampleRate * (double)d_waveformLength);
             
-            
             for (i = begin; i < end; i+=2) {
-                
-                
                 if(voice->note_on) {
                     
                     double amp = 0;
@@ -2008,7 +1716,7 @@ static void renderAudio(Sint16 *s_byteStream, int begin, int end, int length) {
     }
 }
 
-void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
+void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     memset(byteStream, 0, byteStreamLength);
     
@@ -2025,11 +1733,11 @@ void audioCallback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     for(int i = 0; i < iterations; i++) {
         int begin = i*chunk_size;
         int end = (i*chunk_size) + chunk_size;
-        renderAudio(s_byteStream, begin, end, chunk_size);
+        render_audio(s_byteStream, begin, end, chunk_size);
     }
 }
 
-static void changeWaveform(int plus) {
+static void change_waveform(int plus) {
     
     int current_waveform = synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y];
     if(plus) {
@@ -2062,14 +1770,13 @@ static void changeWaveform(int plus) {
     synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = current_waveform;
 }
 
-
-static void changeParam(bool plus) {
+static void change_param(bool plus) {
     
     int x = pattern_cursor_x;
     int y = pattern_cursor_y;
     
     if(y == 0) {
-        changeWaveform(plus);
+        change_waveform(plus);
     } else if(y == 17 || y == 18) {
         //int ins_nr = x;
         // instruments
@@ -2130,7 +1837,6 @@ static void changeParam(bool plus) {
                 synth->swing = 0;
             }
         }
-        
     }
     else if(y == 20) {
         //nothing
@@ -2151,7 +1857,8 @@ static void changeParam(bool plus) {
     }
 }
 
-static void drawLine(int x0, int y0, int x1, int y1) {
+static void draw_line(int x0, int y0, int x1, int y1) {
+    
     double g_vec_x = x1 - x0;
     double g_vec_y = y1 - y0;
     double scale_factor = 1.0;
@@ -2166,12 +1873,12 @@ static void drawLine(int x0, int y0, int x1, int y1) {
         pos_y += g_vec_y;
         int i_pos_x = (int)pos_x;
         int i_pos_y = (int)pos_y;
-        ADSRInvertYRender(i_pos_x, i_pos_y, 0xff00ff00);
+        adsr_invert_y_render(i_pos_x, i_pos_y, 0xff00ff00);
         i++;
     }
 }
 
-static void renderInstrumentEditor(void) {
+static void render_instrument_editor(void) {
 
     struct CInstrument *ins = synth->instruments[selected_instrument_id];
     int max_nodes = ins->adsr_nodes;
@@ -2229,8 +1936,8 @@ static void renderInstrumentEditor(void) {
         double g_pos = (i*(pos_factor*0.001)) + inset_x;
         int top_line_y = (int)(amp_factor + inset_y);
         int bottom_line_y = 0 + inset_y;
-        ADSRInvertYRender(g_pos, top_line_y, cengine_color_white);
-        ADSRInvertYRender(g_pos, bottom_line_y, cengine_color_white);
+        adsr_invert_y_render(g_pos, top_line_y, cengine_color_white);
+        adsr_invert_y_render(g_pos, bottom_line_y, cengine_color_white);
     }
     
     for(i = 0; i < max_nodes-1; i++) {
@@ -2240,7 +1947,7 @@ static void renderInstrumentEditor(void) {
         double g_pos = (node->pos*pos_factor) + inset_x;
         double g_amp2 = (node2->amp*amp_factor) + inset_y;
         double g_pos2 = (node2->pos*pos_factor) + inset_x;
-        drawLine((int)g_pos, (int)g_amp, (int)g_pos2, (int)g_amp2);
+        draw_line((int)g_pos, (int)g_amp, (int)g_pos2, (int)g_amp2);
     }
     
     // render dots for nodes
@@ -2254,7 +1961,7 @@ static void renderInstrumentEditor(void) {
                 if(i == selected_instrument_node_index) {
                     color = cengine_color_green;
                 }
-                ADSRInvertYRender(g_pos+x, g_amp+y, color);
+                adsr_invert_y_render(g_pos+x, g_amp+y, color);
             }
         }
     }
@@ -2265,28 +1972,20 @@ static void renderInstrumentEditor(void) {
     cEngineRenderLabelWithParams(raster2d, cval, 1, 2, cengine_color_white, cengine_color_black);
 }
 
-static void ADSRInvertYRender(double x, double y, int color) {
+static void adsr_invert_y_render(double x, double y, int color) {
     int i_x = (int)x;
     int i_y = (int)y/-1+170;
-    if(checkScreenBounds(i_x, i_y)) {
+    if(check_screen_bounds(i_x, i_y)) {
         raster2d[i_x][i_y] = color;
     }
 }
 
-
-
-static void renderPatternMapping(void) {
+static void render_pattern_mapping(void) {
     
     int inset_x = 5;
     int inset_y = 1;
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
-            
-            /*
-            int val = synth->patterns_and_voices[x][y];
-            char cval[3];
-            sprintf(cval, "%d", val);
-            */
             
             int bg_color = cengine_color_black;
             int color = cengine_color_white;
@@ -2309,7 +2008,7 @@ static void renderPatternMapping(void) {
                 int val = synth->patterns_and_voices[x][y];
                 char cval[3];
                 sprintf(cval, "%d", val);
-                cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
+                cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
             } else if(y == 17) {
                 char cval[10];
                 int ins_nr = x;
@@ -2330,11 +2029,7 @@ static void renderPatternMapping(void) {
                 char c = cSynthGetCharFromParam((char)ins_nr);
                 sprintf(cval, "Ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            }
-            
-            
-            
-            else if(y == 20 && x == 0) {
+            } else if(y == 20 && x == 0) {
                 char cval[10];
                 sprintf(cval, "BPM %d", synth->bpm);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
@@ -2367,16 +2062,7 @@ static void renderPatternMapping(void) {
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
             }
             else {
-                /*
-                if(y <= synth->active_patterns) {
-                    bg_color = cengine_color_green;
-                    if(x == pattern_cursor_x && y == pattern_cursor_y) {
-                        bg_color = cengine_color_red;
-                    }
-                }
-                */
-                
-                
+
                 if(synth->active_tracks[y-1+visual_pattern_offset] == 1) {
                     bg_color = cengine_color_dull_green;
                     color = cengine_color_black;
@@ -2404,7 +2090,6 @@ static void renderPatternMapping(void) {
                     color = cengine_color_black;
                 }
                 
-                //int val = synth->patterns_and_voices[x][y];
                 int pattern = synth->patterns[x][y-1+visual_pattern_offset];
                 char cval[3];
                 sprintf(cval, "%d", pattern);
@@ -2439,7 +2124,8 @@ static void renderPatternMapping(void) {
     }
 }
 
-static char *getWaveTypeAsChar(int type) {
+static char *get_wave_type_as_char(int type) {
+    
     if(type == 0) {
         return "sine";
     }
@@ -2458,11 +2144,10 @@ static char *getWaveTypeAsChar(int type) {
     return "error";
 }
 
-static void drawWaveTypes(void) {
+static void draw_wave_types(void) {
     
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         int val = synth->patterns_and_voices[x][0];
-        
         int wave_color = cengine_color_white;
         if(synth->solo_voice > -1) {
             if(x == synth->solo_voice) {
@@ -2473,12 +2158,12 @@ static void drawWaveTypes(void) {
         } else if(synth->voices[x]->muted == 1) {
             wave_color = cengine_color_dull_red;
         }
-
-        cEngineRenderLabelWithParams(raster2d, getWaveTypeAsChar(val), 2+x*10, -visual_cursor_y+5, wave_color, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), 2+x*10, -visual_cursor_y+5, wave_color, cengine_color_black);
     }
 }
 
-static void renderVisuals(void) {
+static void render_visuals(void) {
+    
     for(int x = 0; x < s_width; x++) {
         for(int y = 0; y < s_height; y++) {
             raster2d[x][y] = rand();
@@ -2486,8 +2171,8 @@ static void renderVisuals(void) {
     }
 }
 
-
-int isInBounds(int x, int y, int width, int height) {
+int is_in_bounds(int x, int y, int width, int height) {
+    
     if(x > -1 && y > -1 && x < width && y < height) {
         return 1;
     } else {
@@ -2495,26 +2180,21 @@ int isInBounds(int x, int y, int width, int height) {
     }
 }
 
-
-static void renderTrack(void) {
+static void render_track(void) {
     
     if(instrument_editor && !file_editor) {
-        renderInstrumentEditor();
+        render_instrument_editor();
         return;
     } else if(pattern_editor && !file_editor) {
-        renderPatternMapping();
+        render_pattern_mapping();
         return;
     } else if(file_editor) {
-        //#if defined(platform_osx)
-        //    listDirectory();
-        //#endif
-        renderFiles();
+        render_files();
         return;
     } else if(visualiser) {
-        renderVisuals();
+        render_visuals();
         return;
     }
-    
     
     int x_count = 0;
     int offset_x = 0;
@@ -2525,20 +2205,16 @@ static void renderTrack(void) {
     cSynthUpdateTrackCursor(synth, cursor_x, visual_cursor_y);
     int track_progress_int = synth->track_progress_int;
     
-    drawWaveTypes();
+    draw_wave_types();
     
     if(follow && playing) {
-        //visual_cursor_y = track_progress_int;
         int diff = track_progress_int - visual_cursor_y;
-        setVisualCursor(0, diff, false);
+        set_visual_cursor(0, diff, false);
     } else {
         track_progress_int = visual_cursor_y;
     }
     
     int node_x = -1;
-    
-
-    
     
     for (int y = 0; y < synth->track_height; y++) {
         offset_x = 0;
@@ -2636,9 +2312,7 @@ static void renderTrack(void) {
         char cval[20];
         sprintf(cval, "p:%d t:%d", current_pattern, current_track);
         cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
-        
     }
-    
 }
 
 SDL_Window *window = NULL;
@@ -2646,7 +2320,7 @@ SDL_Texture *texture = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_GLContext context;
 
-static void setupSDL(void) {
+static void setup_sdl(void) {
     
     SDL_Init(SDL_INIT_VIDEO);
     
@@ -2746,14 +2420,14 @@ static void setup_texture(void) {
     }
 }
 
-static void destroySDL(void) {
+static void destroy_sdl(void) {
 	
     SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
 }
 
-static int setupSDLAudio(void) {
+static int setup_sdl_audio(void) {
 	
     SDL_Init(SDL_INIT_AUDIO | SDL_INIT_TIMER);
     SDL_AudioSpec want;
@@ -2764,7 +2438,7 @@ static int setupSDLAudio(void) {
     want.format = AUDIO_S16LSB;
     want.channels = 2;
     want.samples = bufferSize;
-    want.callback = audioCallback;
+    want.callback = audio_callback;
     
     printf("\naudioSpec want\n");
     printf("----------------\n");
@@ -2783,13 +2457,11 @@ static int setupSDLAudio(void) {
     printf("size:%d\n", audioSpec.size);
     printf("----------------\n");
     
-	
     if (AudioDevice == 0) {
         printf("\nFailed to open audio: %s\n", SDL_GetError());
 		st_pause();
         return 1;
     }
-    
     
     if (audioSpec.format != want.format) {
         printf("\nCouldn't get requested audio format.\n");
@@ -2797,9 +2469,7 @@ static int setupSDLAudio(void) {
         return 2;
     }
     
-
     int frameRate = synth->frame_rate;
-    
     int sampleRate = audioSpec.freq;
     bufferSize = audioSpec.samples;
     samplesPerFrame = sampleRate/frameRate;
@@ -2807,7 +2477,6 @@ static int setupSDLAudio(void) {
     audioMainLeftOff = samplesPerFrame*8;
     SDL_AtomicSet(&audioCallbackLeftOff, 0);
     SDL_PauseAudioDevice(AudioDevice, 0);// unpause audio.
-    
     return 0;
 }
 
@@ -2824,12 +2493,10 @@ static void setup_cengine(void) {
     c->max_buttons = 10;
     c->show_fps = false;
     c->ground_render_enabled = false;
-    
     cEngineInit(c);
-    
 }
 
-static void cleanupSynth(void) {
+static void cleanup_synth(void) {
     printf("allocs before cleanup:\n");
     cAllocatorPrintAllocationCount();
     cleanup_data();
@@ -2841,12 +2508,11 @@ static void cleanupSynth(void) {
     cAllocatorCleanup();
 }
 
-
 int fps_print_interval = 0;
 int print_interval_limit = 100;
 int old_time = 0;
 
-static int getDelta(void) {
+static int get_delta(void) {
     int currentTime = SDL_GetTicks();
     int delta = 0;
     
@@ -2875,21 +2541,19 @@ static int getDelta(void) {
 
 int last_dt = 16;
 
-static void redrawScreen(void) {
+static void redraw_screen_function(void) {
     
 }
 
-static void mainLoop(void) {
+static void main_loop(void) {
     
     int delay_ms = 64;
     SDL_LockAudioDevice(AudioDevice);
-    checkSDLEvents(event);
-    
-
-    updateAndRenderInfo(last_dt);
+    check_sdl_events(event);
+    update_and_render_info(last_dt);
     
     if(redraw_screen || synth->needs_redraw) {
-        renderTrack();
+        render_track();
         for (int r_x = 0; r_x < s_width; r_x++) {
             for (int r_y = 0; r_y < s_height; r_y++) {
                 raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
@@ -2911,7 +2575,7 @@ static void mainLoop(void) {
     SDL_RenderPresent(renderer);
     SDL_UnlockAudioDevice(AudioDevice);
     
-    int dt = getDelta();
+    int dt = get_delta();
     last_dt = dt;
     int wait_time = delay_ms-dt;
     if(dt < delay_ms) {
@@ -2927,6 +2591,7 @@ static void mainLoop(void) {
 }
 
 static void debug_log(char *str) {
+    
     if(log_file_enabled) {
         FILE * fp;
         fp = fopen ("log.txt", "a");
@@ -2936,6 +2601,7 @@ static void debug_log(char *str) {
 }
 
 static int get_buffer_size_from_index(int i) {
+    
     switch (i) {
         case 1:
             return 256;
@@ -2972,7 +2638,7 @@ static void load_config() {
     cJSON *root = NULL;
     cJSON *object = NULL;
     bool success = false;
-    char *b = loadFile(config_file_name);
+    char *b = load_file(config_file_name);
     if(b != NULL) {
         root = cJSON_Parse(b);
         if(root != NULL) {
@@ -2999,15 +2665,16 @@ static void load_config() {
 }
 
 static void st_pause(void) {
+    
 	SDL_Delay(5000);
 }
 static void st_log(char *message) {
+    
     printf("*** %s \n", message);
 }
 
 int main(int argc, char* argv[])
 {
-    
     
     //load_config();
     st_log("started executing.");
@@ -3021,67 +2688,32 @@ int main(int argc, char* argv[])
     setup_synth();
     st_log("setup synth successful.");
     
-    /*
-     phase += (0.001*wave_length)+speed;
-     double d_depth = 0.000005 * depth;
-     vibrato speed, depth 0-15
-     voice->noteoff_slope_value -= bpm * 0.00005;
-     voice->adsr_cursor += 0.00001;
-     
-     s->base_mod_vibrato_speed = 0.689063;
-     s->base_mod_vibrato_depth = 0.003445;
-     
-     double mod = v->pitch_speed1*0.02 + v->pitch_speed2*0.0002;
-     
-     0.000441
-     */
-    
-    
-    /*
-    double val1 = cSynthGetRelativeModifierReverse(0.0156, 44100, true, true);
-    cSynthGetRelativeModifier(val1, 44100, true, true);
-    
-    double val2 = cSynthGetRelativeModifierReverse(0.01, 44100, true, true);
-    cSynthGetRelativeModifier(val2, 44100, true, true);
-    */
-     
-     //double val1 = cSynthGetRelativeModForChunksReverse(0.02, 44100, 64, true, true);
-    //double val2 = cSynthGetRelativeModForChunksReverse(val3, 44100, 64, true, true);
-    
-    //cSynthGetRelativeModForChunks(val1, 44100, 64, true, true);
-    //cSynthGetRelativeModForChunks(val2, 44100, 64, true, true);
-    
-    
-    
-   // double mod = v->pitch_speed1*0.02 + v->pitch_speed2*0.0002;
-    
-    
     if(run_with_sdl) {
         setup_texture();
         st_log("setup texture successful.");
     
-        setupSDL();
+        setup_sdl();
         st_log("setup SDL successful.");
     
-        setupSDLAudio();
+        setup_sdl_audio();
         st_log("setup SDL audio successful.");
     }
     
     if(run_with_sdl) {
         if (texture != NULL) {
             while (!quit) {
-                mainLoop();
+                main_loop();
             }
         }
     } else {
         //sleep(5);
     }
 
-    cleanupSynth();
+    cleanup_synth();
     st_log("synth cleanup successful.");
     
     if(run_with_sdl) {
-        destroySDL();
+        destroy_sdl();
         st_log("SDL cleanup successful.");
     
         SDL_CloseAudioDevice(AudioDevice);
@@ -3094,5 +2726,79 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file) {
+    
+    unsigned buf;
+    while(num_bytes>0)
+    {   buf = word & 0xff;
+        fwrite(&buf, 1,1, wav_file);
+        num_bytes--;
+        word >>= 8;
+    }
+}
 
+static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate) {
+    
+    /*
+     int i;
+     float t;
+     float amplitude = 32000;
+     float freq_Hz = 440;
+     float phase=0;
+     
+     float freq_radians_per_sample = freq_Hz*2*M_PI/S_RATE;
+     
+    // fill buffer with a sine wave
+    for (i=0; i<BUF_SIZE; i++)
+    {
+        phase += freq_radians_per_sample;
+        buffer[i] = (int)(amplitude * sin(phase));
+    }
+    
+    write_wav("test.wav", BUF_SIZE, buffer, S_RATE);
+    */
+    
+    
+    FILE* wav_file;
+    unsigned int sample_rate;
+    unsigned int num_channels;
+    unsigned int bytes_per_sample;
+    unsigned int byte_rate;
+    unsigned long i;    /* counter for samples */
+    
+    num_channels = 2;   /* monoaural */
+    bytes_per_sample = 2;
+    
+    if (s_rate<=0) sample_rate = 44100;
+    else sample_rate = (unsigned int) s_rate;
+    
+    byte_rate = sample_rate*num_channels*bytes_per_sample;
+    
+    wav_file = fopen(filename, "wb");
+    //assert(wav_file);   /* make sure it opened */
+    
+    /* write RIFF header */
+    fwrite("RIFF", 1, 4, wav_file);
+    write_little_endian((unsigned int)(36 + bytes_per_sample * num_samples * num_channels), 4, wav_file);
+    fwrite("WAVE", 1, 4, wav_file);
+    
+    /* write fmt  subchunk */
+    fwrite("fmt ", 1, 4, wav_file);
+    write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
+    write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
+    write_little_endian(num_channels, 2, wav_file);
+    write_little_endian(sample_rate, 4, wav_file);
+    write_little_endian(byte_rate, 4, wav_file);
+    write_little_endian(num_channels*bytes_per_sample, 2, wav_file);  /* block align */
+    write_little_endian(8*bytes_per_sample, 2, wav_file);  /* bits/sample */
+    
+    /* write data subchunk */
+    fwrite("data", 1, 4, wav_file);
+    write_little_endian((unsigned int)(bytes_per_sample * num_samples * num_channels), 4, wav_file);
+    for (i=0; i< num_samples; i++) {
+        write_little_endian((unsigned int)(data[i]),bytes_per_sample, wav_file);
+    }
+    
+    fclose(wav_file);
+}
 
