@@ -66,10 +66,12 @@ int height = 144*4;
 int s_width = 256*2;
 int s_height = 144*2;
 bool playing = false;
+bool exporting = false;
 bool editing = false;
 bool modifier = false;
 bool follow = false;
 bool visualiser = false;
+bool export_project = false;
 int octave = 2;
 int visual_pattern_offset = 0;
 int visual_track_width = 30;
@@ -223,6 +225,7 @@ static void add_track_node_with_octave(int x, int y, bool editing, int tone);
 static bool check_screen_bounds(int x, int y);
 static char *get_wave_type_as_char(int type);
 static void change_param(bool plus);
+static void export_wav(char *filename);
 static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file);
 static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate);
 
@@ -316,17 +319,30 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             exit_file_editor();
             break;
         case SDLK_RETURN:
-            if(file_settings->file_editor_save) {
-                save_project_file();
-            } else {
+            if(export_project) {
+                // TODO export wav.
                 if(file_settings->file_name != NULL) {
-                    char *load_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-                    sprintf(load_path, "%s.json", file_settings->file_name);
-                    load_project_file(load_path);
-                    cAllocatorFree(load_path);
-                        
-                    // set visual track height
-                    visual_track_height = synth->track_height;
+                    char *file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                    sprintf(file_name, "%s.wav", file_settings->file_name);
+                    export_wav(file_name);
+                    cAllocatorFree(file_name);
+                    export_project = false;
+                    exit_file_editor();
+                }
+            } else {
+                if(file_settings->file_editor_save) {
+                    save_project_file();
+                } else {
+                    if(file_settings->file_name != NULL) {
+                        char *load_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                        sprintf(load_path, "%s.json", file_settings->file_name);
+                        load_project_file(load_path);
+                        cAllocatorFree(load_path);
+                            
+                        // set visual track height
+                        visual_track_height = synth->track_height;
+                
+                    }
                 }
             }
             break;
@@ -1003,6 +1019,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_e:
+                if(modifier) {
+                    file_editor = true;
+                    file_settings->file_editor_save = true;
+                    export_project = true;
+                    return;
+                }
                 if(pattern_editor) {
                         if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                             pattern_editor = false;
@@ -1017,6 +1039,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(modifier) {
                     file_editor = true;
                     file_settings->file_editor_save = true;
+                    export_project = false;
                     return;
                 } else {
                     if(pattern_editor) {
@@ -1685,15 +1708,23 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             voice->lowpass_next_sample = false;
                         }
                         
-                        s_byteStream[i] += voice->lowpass_last_sample * amp_left;
-                        s_byteStream[i+1] += voice->lowpass_last_sample * amp_right;
+                        if(s_byteStream != NULL) {
+                            int16_t sample_left = (int16_t)((voice->lowpass_last_sample * amp_left) * synth->master_amp);
+                            int16_t sample_right = (int16_t)((voice->lowpass_last_sample * amp_right) * synth->master_amp);
+                            s_byteStream[i] += sample_left;
+                            s_byteStream[i+1] += sample_right;
+                        }
                         
                     } else {
                         if(voice->waveform == synth->noise_table) {
                             if(voice->phase_int < synth->noise_length) {
                                 int16_t sample = voice->waveform[voice->phase_int];
-                                s_byteStream[i] += sample * amp_left;
-                                s_byteStream[i+1] += sample * amp_right;
+                                if(s_byteStream != NULL) {
+                                    int16_t sample_left = (int16_t)((sample * amp_left) * synth->master_amp);
+                                    int16_t sample_right = (int16_t)((sample * amp_right) * synth->master_amp);
+                                    s_byteStream[i] += sample_left;
+                                    s_byteStream[i+1] += sample_right;
+                                }
                             }
                         } else if(voice->phase_int < synth->wave_length) {
                             int16_t sample = 0;
@@ -1702,8 +1733,13 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             } else {
                                 sample = voice->waveform[voice->phase_int];
                             }
-                            s_byteStream[i] += sample * amp_left;
-                            s_byteStream[i+1] += sample * amp_right;
+                            
+                            if(s_byteStream != NULL) {
+                                int16_t sample_left = (int16_t)((sample * amp_left) * synth->master_amp);
+                                int16_t sample_right = (int16_t)((sample * amp_right) * synth->master_amp);
+                                s_byteStream[i] += sample_left;
+                                s_byteStream[i+1] += sample_right;
+                            }
                         }
                     }
                 }
@@ -1711,7 +1747,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
         }
     }
     
-    if(playing == true) {
+    if(playing || exporting) {
         cSynthAdvanceTrack(synth, length);
     }
 }
@@ -1720,7 +1756,7 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     memset(byteStream, 0, byteStreamLength);
     
-    if(quit) {
+    if(quit || exporting) {
         return;
     }
     
@@ -2527,7 +2563,7 @@ static int get_delta(void) {
         }
         double fps = 1000/delta;
         if(fps_print_interval >= print_interval_limit) {
-            printf("fps:%f delta_time:%d\n", fps, delta);
+            //printf("fps:%f delta_time:%d\n", fps, delta);
         }
     }
     
@@ -2580,12 +2616,12 @@ static void main_loop(void) {
     int wait_time = delay_ms-dt;
     if(dt < delay_ms) {
         if(fps_print_interval >= print_interval_limit) {
-            printf("dt:%d additional wait_time:%d\n", dt, wait_time);
+            //printf("dt:%d additional wait_time:%d\n", dt, wait_time);
         }
         SDL_Delay(wait_time);
     } else {
         if(fps_print_interval >= print_interval_limit) {
-            printf("frame time:%d\n", dt);
+            //printf("frame time:%d\n", dt);
         }
     }
 }
@@ -2726,11 +2762,78 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file) {
+static void export_wav(char *filename) {
+    
+    if(playing) {
+        toggle_playback();
+    }
+    
+    int starting_track = 0;
+    for(int i = 0; i < synth->patterns_height; i++) {
+        if(synth->active_tracks[i] == 1) {
+            starting_track = i;
+            break;
+        }
+    }
+    
+    synth->current_track = starting_track;
+    cSynthResetTrackProgress(synth, starting_track, 0);
+    exporting = true;
+    synth->looped = false;
+    
+    unsigned long buffer_size = 0;
+    int chunk_size = 64;
+    Sint16 *buffer = NULL;
+    int iterations = INT16_MAX;
+   
+    // TODO analyze and set modifier (master_amp) for maximize volume for export.
+    
+    
+    // calculate size of file and allocate buffer etc
+    for(int i = 0; i < iterations; i++) {
+        int begin = i*chunk_size;
+        int end = (i*chunk_size) + chunk_size;
+        render_audio(NULL, begin, end, chunk_size);
+        if(synth->looped) {
+            synth->looped = false;
+            break;
+        }
+        buffer_size += chunk_size*2;
+    }
+    
+    printf("export buffer size:%ld\n", buffer_size);
+    synth->current_track = starting_track;
+    cSynthResetTrackProgress(synth, starting_track, 0);
+    exporting = true;
+    synth->looped = false;
+    
+    // alloc buffer of
+    buffer = cAllocatorAlloc(sizeof(Sint16) * buffer_size, "export buffer");
+    
+    // render to buffer
+    for(int i = 0; i < iterations; i++) {
+        int begin = i*chunk_size;
+        int end = (i*chunk_size) + chunk_size;
+        render_audio(buffer, begin, end, chunk_size);
+        if(synth->looped) {
+            synth->looped = false;
+            break;
+        }
+    }
+    
+    write_wav(filename, buffer_size, buffer, synth->sample_rate);
+    printf("total buffer size: %lu\n", buffer_size);
+    cAllocatorFree(buffer);
+    exporting = false;
+    
+    printf("\n\n");
+}
+
+static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file) {
     
     unsigned buf;
-    while(num_bytes>0)
-    {   buf = word & 0xff;
+    while(num_bytes > 0) {
+        buf = word & 0xff;
         fwrite(&buf, 1,1, wav_file);
         num_bytes--;
         word >>= 8;
@@ -2739,26 +2842,6 @@ void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file) {
 
 static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate) {
     
-    /*
-     int i;
-     float t;
-     float amplitude = 32000;
-     float freq_Hz = 440;
-     float phase=0;
-     
-     float freq_radians_per_sample = freq_Hz*2*M_PI/S_RATE;
-     
-    // fill buffer with a sine wave
-    for (i=0; i<BUF_SIZE; i++)
-    {
-        phase += freq_radians_per_sample;
-        buffer[i] = (int)(amplitude * sin(phase));
-    }
-    
-    write_wav("test.wav", BUF_SIZE, buffer, S_RATE);
-    */
-    
-    
     FILE* wav_file;
     unsigned int sample_rate;
     unsigned int num_channels;
@@ -2766,13 +2849,13 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
     unsigned int byte_rate;
     unsigned long i;    /* counter for samples */
     
-    num_channels = 2;   /* monoaural */
+    num_channels = 2;
     bytes_per_sample = 2;
     
-    if (s_rate<=0) sample_rate = 44100;
+    if (s_rate <= 0) sample_rate = 44100;
     else sample_rate = (unsigned int) s_rate;
     
-    byte_rate = sample_rate*num_channels*bytes_per_sample;
+    byte_rate = sample_rate * num_channels * bytes_per_sample;
     
     wav_file = fopen(filename, "wb");
     //assert(wav_file);   /* make sure it opened */
@@ -2795,8 +2878,10 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
     /* write data subchunk */
     fwrite("data", 1, 4, wav_file);
     write_little_endian((unsigned int)(bytes_per_sample * num_samples * num_channels), 4, wav_file);
-    for (i=0; i< num_samples; i++) {
-        write_little_endian((unsigned int)(data[i]),bytes_per_sample, wav_file);
+    for (i = 0; i < num_samples; i++) {
+        if(i < num_samples/2) {
+            write_little_endian((unsigned int)(data[i]), bytes_per_sample, wav_file);
+        }
     }
     
     fclose(wav_file);

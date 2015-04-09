@@ -129,8 +129,8 @@ effects
 8xx - PWM (linear position, oscillator speed) works only on squarewave.
 9xx - stack effects (positivt value activates, 0 eller - turns off.)
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
-Bxx - lowpass sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-Cxx - lowpass sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Dxx - ends pattern.
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
