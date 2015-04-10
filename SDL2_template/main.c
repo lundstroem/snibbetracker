@@ -187,6 +187,8 @@ static void check_pattern_cursor_bounds(void);
 static bool check_screen_bounds(int x, int y);
 static void toggle_playback(void);
 static void toggle_editing(void);
+static void move_notes_up(void);
+static void move_notes_down(void);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
 static void handle_note_keys(SDL_Keysym* keysym);
@@ -201,13 +203,13 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
 static void draw_line(int x0, int y0, int x1, int y1);
-static void render_instrument_editor(void);
+static void render_instrument_editor(double dt);
 static void adsr_invert_y_render(double x, double y, int color);
 static void render_pattern_mapping(void);
 static char *get_wave_type_as_char(int type);
 static void draw_wave_types(void);
 static void render_visuals(void);
-static void render_track(void);
+static void render_track(double dt);
 static void setup_sdl(void);
 static void setup_synth(void);
 static void setup_texture(void);
@@ -228,6 +230,8 @@ static void change_param(bool plus);
 static void export_wav(char *filename);
 static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file);
 static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate);
+
+
 
 static void init_file_settings(void) {
     
@@ -409,9 +413,13 @@ static void render_files(void) {
         cEngineRenderLabelWithParams(raster2d, file_settings->file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
     }
 
-    cEngineRenderLabelWithParams(raster2d, "enter filename:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+    if(export_project) {
+        cEngineRenderLabelWithParams(raster2d, "  export wav as:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+    } else {
+        cEngineRenderLabelWithParams(raster2d, "save project as:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+    }
     if(file_settings->file_name != NULL) {
-			cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+15, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+16, 22, cengine_color_red, cengine_color_black);
     }
 }
 
@@ -929,6 +937,20 @@ static void toggle_editing(void) {
     }
 }
 
+static void move_notes_up(void) {
+    
+    int cursor_x = visual_cursor_x/5;
+    int pattern_at_cursor = synth->patterns[cursor_x][current_track];
+    cSynthMoveNotes(synth, true, false, cursor_x, visual_cursor_y, pattern_at_cursor);
+}
+
+static void move_notes_down(void) {
+    
+    int cursor_x = visual_cursor_x/5;
+    int pattern_at_cursor = synth->patterns[cursor_x][current_track];
+    cSynthMoveNotes(synth, false, true, cursor_x, visual_cursor_y, pattern_at_cursor);
+}
+
 void handle_key_up(SDL_Keysym* keysym) {
     
     redraw_screen = true;
@@ -1151,6 +1173,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                         check_pattern_cursor_bounds();
                     } else {
                         if(playing && follow) {}
+                        else if(modifier && editing) {
+                            move_notes_up();
+                            set_visual_cursor(0, -1, true);
+                        }
                         else {
                             set_visual_cursor(0, -1, true);
                         }
@@ -1171,7 +1197,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                         check_pattern_cursor_bounds();
                     } else {
                         if(playing && follow) {}
-                        else {
+                        else if(modifier && editing) {
+                            move_notes_down();
+                            set_visual_cursor(0, 1, true);
+                        } else {
                             set_visual_cursor(0, 1, true);
                         }
                     }
@@ -1182,11 +1211,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 else if(pattern_editor) {}
                 else if(editing) {
                     int x_count = visual_cursor_x%5;
-                    
-                    if(x_count == 0) {
+                    if(x_count == 0 || x_count == 1) {
                         cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
-                    } else if(x_count == 1) {
                         cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     } else if(x_count == 2) {
                         cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
                     } else if(x_count == 3) {
@@ -1914,15 +1944,15 @@ static void draw_line(int x0, int y0, int x1, int y1) {
     }
 }
 
-static void render_instrument_editor(void) {
+static void render_instrument_editor(double dt) {
 
     struct CInstrument *ins = synth->instruments[selected_instrument_id];
     int max_nodes = ins->adsr_nodes;
     int inset_x = 10;
     int inset_y = 30;
-    double speed = 0.01;
+    double speed = 0.0004*dt;
     if(modifier) {
-        speed = 0.001;
+        speed *= 0.1;
     }
     
     if(selected_instrument_node_index > 0) {
@@ -2216,10 +2246,10 @@ int is_in_bounds(int x, int y, int width, int height) {
     }
 }
 
-static void render_track(void) {
+static void render_track(double dt) {
     
     if(instrument_editor && !file_editor) {
-        render_instrument_editor();
+        render_instrument_editor(dt);
         return;
     } else if(pattern_editor && !file_editor) {
         render_pattern_mapping();
@@ -2588,8 +2618,12 @@ static void main_loop(void) {
     check_sdl_events(event);
     update_and_render_info(last_dt);
     
+    if(instrument_editor) {
+        synth->needs_redraw = true;
+    }
+    
     if(redraw_screen || synth->needs_redraw) {
-        render_track();
+        render_track(last_dt);
         for (int r_x = 0; r_x < s_width; r_x++) {
             for (int r_y = 0; r_y < s_height; r_y++) {
                 raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
@@ -2768,6 +2802,7 @@ static void export_wav(char *filename) {
         toggle_playback();
     }
     
+    // find starting pattern
     int starting_track = 0;
     for(int i = 0; i < synth->patterns_height; i++) {
         if(synth->active_tracks[i] == 1) {

@@ -126,7 +126,7 @@ effects
 1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
-8xx - PWM (linear position, oscillator speed) works only on squarewave.
+8xx - PWM (linear position/oscillation depth, oscillation speed) works only on squarewave. If param2 is present, param1 will be used for osc depth.
 9xx - stack effects (positivt value activates, 0 eller - turns off.)
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
