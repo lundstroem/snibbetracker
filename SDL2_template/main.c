@@ -69,6 +69,9 @@ bool playing = false;
 bool exporting = false;
 bool editing = false;
 bool modifier = false;
+bool shift_down = false;
+bool selection_enabled = false;
+bool selection_set = false;
 bool follow = false;
 bool visualiser = false;
 bool export_project = false;
@@ -78,6 +81,8 @@ int visual_track_width = 30;
 int visual_track_height = 16;
 int visual_cursor_x = 0;
 int visual_cursor_y = 0;
+int selection_x = 0;
+int selection_y = 0;
 bool pattern_editor = false;
 int pattern_cursor_x = 0;
 int pattern_cursor_y = 0;
@@ -150,6 +155,7 @@ static int color_bg = 0xFF000000;
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFFFF0000
 #define cengine_color_green 0xFF00FF00
+#define cengine_color_cyan 0xFF00FFFF
 #define cengine_color_blue 0xFF0000FF
 #define cengine_color_black 0xFF000000
 #define cengine_color_white 0xFFCCCCCC
@@ -752,15 +758,25 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
 // only move across active tracks
 static void set_visual_cursor(int diff_x, int diff_y, bool user) {
     
-    visual_cursor_x += diff_x;
+    if(shift_down) {
+        int node_x = (int)floor(visual_cursor_x/5);
+        visual_cursor_x = (node_x + diff_x)*5;
+    } else {
+        visual_cursor_x += diff_x;
+    }
+    
     visual_cursor_y += diff_y;
+    
     if(user) {
-        if(visual_cursor_x == visual_track_width) {
+        if(visual_cursor_x > visual_track_width-1) {
             visual_cursor_x = 0;
         }
         
-        if(visual_cursor_x == -1) {
+        if(visual_cursor_x < 0) {
             visual_cursor_x = visual_track_width-1;
+            if(shift_down) {
+                visual_cursor_x = visual_track_width-5;
+            }
         }
         
         if(visual_cursor_y == visual_track_height) {
@@ -795,6 +811,14 @@ static void set_visual_cursor(int diff_x, int diff_y, bool user) {
             }
             current_track = synth->current_track;
         }
+    }
+    
+    if(!shift_down) {
+        selection_x = visual_cursor_x;
+        selection_y = visual_cursor_y;
+        selection_enabled = false;
+    } else {
+        selection_enabled = true;
     }
 }
 
@@ -974,7 +998,12 @@ void handle_key_up(SDL_Keysym* keysym) {
         case SDLK_DOWN:
             pressed_down = false;
             break;
+        case SDLK_LSHIFT:
+            shift_down = false;
+            break;
+        
     }
+    
 }
 
 void handle_key_down(SDL_Keysym* keysym) {
@@ -1011,6 +1040,45 @@ void handle_key_down(SDL_Keysym* keysym) {
                     
                 } else if(pattern_editor) {
                     change_param(false);
+                }
+                break;
+            case SDLK_c:
+                if(modifier) {
+                    if(instrument_editor) {}
+                    else if(file_editor) {}
+                    else if(pattern_editor) {
+                        // TODO make copy/paste for pattern editor.
+                    } else {
+                        cSynthCopyNotesFromSelection(synth, current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false);
+                        set_info_timer("copy");
+                        return;
+                    }
+                }
+                break;
+            case SDLK_x:
+                if(modifier) {
+                    if(instrument_editor) {}
+                    else if(file_editor) {}
+                    else if(pattern_editor) {
+                        // TODO make copy/paste for pattern editor.
+                    } else {
+                        cSynthCopyNotesFromSelection(synth, current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true);
+                        set_info_timer("cut");
+                        return;
+                    }
+                }
+                break;
+            case SDLK_v:
+                if(modifier) {
+                    if(instrument_editor) {}
+                    else if(file_editor) {}
+                    else if(pattern_editor) {
+                        // TODO make copy/paste for pattern editor.
+                    } else {
+                        cSynthPasteNotesToPos(synth, current_track, visual_cursor_x, visual_cursor_y);
+                        set_info_timer("paste");
+                        return;
+                    }
                 }
                 break;
             case SDLK_a:
@@ -1122,6 +1190,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_LEFT:
                 pressed_left = true;
+                
                 if(instrument_editor) {
                     
                 } else {
@@ -1141,6 +1210,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_RIGHT:
                 pressed_right = true;
+                
                 if(instrument_editor) {
                     
                 } else {
@@ -1160,6 +1230,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_UP:
                 pressed_up = true;
+                
                 if(instrument_editor) {
                     
                 } else if(modifier && pattern_editor) {
@@ -1185,8 +1256,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_DOWN:
                 pressed_down = true;
-                if(instrument_editor) {}
-                else if(modifier && pattern_editor) {
+                
+                if(instrument_editor) {
+                
+                } else if(modifier && pattern_editor) {
                     visual_pattern_offset += 16;
                     if(visual_pattern_offset > 48){
                         visual_pattern_offset = 0;
@@ -1263,10 +1336,16 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                 }
                 break;
-                
+            case SDLK_LSHIFT:
+                shift_down = true;
+                break;
             default:
                 break;
         }
+    }
+    
+    if(shift_down) {
+        selection_enabled = true;
     }
     
     int x_count = visual_cursor_x%5;
@@ -2290,12 +2369,12 @@ static void render_track(double dt) {
             int color = cengine_color_white;
             
             //int foreground_color = cengine_color_white;
-            if(x >= 0 && x < 5 ) bg_color = cengine_color_bg1;
-            if(x >= 5 && x < 10 ) bg_color = cengine_color_bg2;
-            if(x >= 10 && x < 15 ) bg_color = cengine_color_bg3;
-            if(x >= 15 && x < 20 ) bg_color = cengine_color_bg4;
-            if(x >= 20 && x < 25 ) bg_color = cengine_color_bg5;
-            if(x >= 25 && x < 30 ) bg_color = cengine_color_bg6;
+            if(x >= 0 && x < 5) bg_color = cengine_color_bg1;
+            if(x >= 5 && x < 10) bg_color = cengine_color_bg2;
+            if(x >= 10 && x < 15) bg_color = cengine_color_bg3;
+            if(x >= 15 && x < 20) bg_color = cengine_color_bg4;
+            if(x >= 20 && x < 25) bg_color = cengine_color_bg5;
+            if(x >= 25 && x < 30) bg_color = cengine_color_bg6;
             
             if(synth->track_progress_int == y && playing == 1) {
                 if(synth->current_track == current_track) {
@@ -2308,16 +2387,52 @@ static void render_track(double dt) {
                 if(editing == 1) {
                     bg_color = cengine_color_magenta;
                     color = cengine_color_black;
-                } else{
+                } else {
                     bg_color = cengine_color_dull_red;
-                    
+                }
+            }
+            
+            node_x = (int)floor(x/5);
+            
+            if(selection_enabled) {
+                int sel_x = (int)floor(selection_x/5);
+                int vis_x = (int)floor(visual_cursor_x/5);
+                
+                bool inside_selection_x = false;
+                bool inside_selection_y = false;
+                if(sel_x < vis_x) {
+                    if(node_x >= sel_x && node_x <= vis_x) {
+                        inside_selection_x = true;
+                    }
+                } else {
+                    if(node_x >= vis_x && node_x <= sel_x) {
+                        inside_selection_x = true;
+                    }
+                }
+                
+                if(selection_y < visual_cursor_y) {
+                    if(y >= selection_y && y <= visual_cursor_y) {
+                        inside_selection_y = true;
+                    }
+                } else {
+                    if(y >= visual_cursor_y && y <= selection_y) {
+                        inside_selection_y = true;
+                    }
+                }
+                
+                if(inside_selection_x && inside_selection_y && editing) {
+                    color = cengine_color_black;
+                    bg_color = cengine_color_cyan;
+                    if(visual_cursor_x == x && visual_cursor_y == y) {
+                        bg_color = cengine_color_magenta;
+                    }
                 }
             }
             
             int pos_y = inset_y+y-track_progress_int;
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
-                node_x = (int)floor(x/5);
+                
                 int pattern = synth->patterns[node_x][current_track];
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL && t->tone_active) {
