@@ -83,6 +83,10 @@ int visual_cursor_x = 0;
 int visual_cursor_y = 0;
 int selection_x = 0;
 int selection_y = 0;
+int last_selection_x = 0;
+int last_selection_y = 0;
+int last_selection_w = 0;
+int last_selection_h = 0;
 bool pattern_editor = false;
 int pattern_cursor_x = 0;
 int pattern_cursor_y = 0;
@@ -186,6 +190,8 @@ static void update_and_render_info(double dt);
 static void setup_data(void);
 static void convert_input(int x, int y);
 static void cleanup_data(void);
+static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store);
+static void paste_notes(int track, int cursor_x, int cursor_y);
 static void convert_input(int x, int y);
 static void add_track_node_with_octave(int x, int y, bool editing, int value);
 static void set_visual_cursor(int diff_x, int diff_y, bool user);
@@ -692,6 +698,28 @@ static void cleanup_data(void) {
     file_settings = cAllocatorFree(file_settings);
 }
 
+static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store) {
+    cSynthCopyNotesFromSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, cut, store);
+    last_selection_x = cursor_x;
+    last_selection_y = cursor_y;
+    last_selection_w = selection_x;
+    last_selection_h = selection_y;
+    
+    /* TODO
+    - show green bg color when playing over selection.
+    - backspace to cut selection. (no notes should be saved to temp storage)
+    - copypaste should not be enabled without editing true?
+    - copy paste in pattern view
+     */
+}
+
+static void paste_notes(int track, int cursor_x, int cursor_y) {
+    cSynthPasteNotesToPos(synth, track, cursor_x, cursor_y);
+    selection_x = cursor_x + abs(last_selection_x - last_selection_w);
+    selection_y = cursor_y + abs(last_selection_y - last_selection_h);
+    selection_enabled = true;
+}
+
 static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     
     int x_count = visual_cursor_x%5;
@@ -1049,8 +1077,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                     else if(pattern_editor) {
                         // TODO make copy/paste for pattern editor.
                     } else {
-                        cSynthCopyNotesFromSelection(synth, current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false);
-                        set_info_timer("copy");
+                        if(editing) {
+                            copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, true);
+                            set_info_timer("copy");
+                        }
                         return;
                     }
                 }
@@ -1062,8 +1092,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                     else if(pattern_editor) {
                         // TODO make copy/paste for pattern editor.
                     } else {
-                        cSynthCopyNotesFromSelection(synth, current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true);
-                        set_info_timer("cut");
+                        if(editing) {
+                            copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, true);
+                            set_info_timer("cut");
+                        }
                         return;
                     }
                 }
@@ -1075,8 +1107,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                     else if(pattern_editor) {
                         // TODO make copy/paste for pattern editor.
                     } else {
-                        cSynthPasteNotesToPos(synth, current_track, visual_cursor_x, visual_cursor_y);
-                        set_info_timer("paste");
+                        if(editing) {
+                            paste_notes(current_track, visual_cursor_x, visual_cursor_y);
+                            set_info_timer("paste");
+                        }
                         return;
                     }
                 }
@@ -1284,21 +1318,26 @@ void handle_key_down(SDL_Keysym* keysym) {
                 else if(pattern_editor) {}
                 else if(editing) {
                     int x_count = visual_cursor_x%5;
-                    if(x_count == 0 || x_count == 1) {
-                        cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
-                    } else if(x_count == 2) {
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
-                    } else if(x_count == 3) {
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
-                    } else if(x_count == 4) {
-                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
-                    }
-                    if(!playing) {
-                        set_visual_cursor(0, 1, true);
+                    
+                    if(selection_enabled) {
+                        copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, false);
+                    } else {
+                        if(x_count == 0 || x_count == 1) {
+                            cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                        } else if(x_count == 2) {
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                        } else if(x_count == 3) {
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                        } else if(x_count == 4) {
+                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                        }
+                        if(!playing) {
+                            set_visual_cursor(0, 1, true);
+                        }
                     }
                 }
                 break;
@@ -2376,22 +2415,6 @@ static void render_track(double dt) {
             if(x >= 20 && x < 25) bg_color = cengine_color_bg5;
             if(x >= 25 && x < 30) bg_color = cengine_color_bg6;
             
-            if(synth->track_progress_int == y && playing == 1) {
-                if(synth->current_track == current_track) {
-                    bg_color = cengine_color_green;
-                    color = cengine_color_black;
-                }
-            }
-            
-            if(visual_cursor_x == x && visual_cursor_y == y) {
-                if(editing == 1) {
-                    bg_color = cengine_color_magenta;
-                    color = cengine_color_black;
-                } else {
-                    bg_color = cengine_color_dull_red;
-                }
-            }
-            
             node_x = (int)floor(x/5);
             
             if(selection_enabled) {
@@ -2428,6 +2451,23 @@ static void render_track(double dt) {
                     }
                 }
             }
+
+            if(synth->track_progress_int == y && playing == 1) {
+                if(synth->current_track == current_track) {
+                    bg_color = cengine_color_green;
+                    color = cengine_color_black;
+                }
+            }
+            
+            if(visual_cursor_x == x && visual_cursor_y == y) {
+                if(editing == 1) {
+                    bg_color = cengine_color_magenta;
+                    color = cengine_color_black;
+                } else {
+                    bg_color = cengine_color_dull_red;
+                }
+            }
+            
             
             int pos_y = inset_y+y-track_progress_int;
             
