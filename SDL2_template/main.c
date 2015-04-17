@@ -87,6 +87,8 @@ int last_selection_x = 0;
 int last_selection_y = 0;
 int last_selection_w = 0;
 int last_selection_h = 0;
+int last_copied_pattern_x = 0;
+int last_copied_pattern_y = 0;
 bool pattern_editor = false;
 int pattern_cursor_x = 0;
 int pattern_cursor_y = 0;
@@ -192,6 +194,8 @@ static void convert_input(int x, int y);
 static void cleanup_data(void);
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store);
 static void paste_notes(int track, int cursor_x, int cursor_y);
+static void copy_pattern(int cursor_x, int cursor_y);
+static void paste_pattern(int cursor_x, int cursor_y);
 static void convert_input(int x, int y);
 static void add_track_node_with_octave(int x, int y, bool editing, int value);
 static void set_visual_cursor(int diff_x, int diff_y, bool user);
@@ -699,6 +703,7 @@ static void cleanup_data(void) {
 }
 
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store) {
+    
     cSynthCopyNotesFromSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, cut, store);
     last_selection_x = cursor_x;
     last_selection_y = cursor_y;
@@ -714,10 +719,31 @@ static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, i
 }
 
 static void paste_notes(int track, int cursor_x, int cursor_y) {
+    
     cSynthPasteNotesToPos(synth, track, cursor_x, cursor_y);
     selection_x = cursor_x + abs(last_selection_x - last_selection_w);
     selection_y = cursor_y + abs(last_selection_y - last_selection_h);
     selection_enabled = true;
+}
+
+static void copy_pattern(int cursor_x, int cursor_y) {
+    
+    if(cursor_y > 0 && cursor_y < 17) {
+        last_copied_pattern_x = cursor_x;
+        last_copied_pattern_y = cursor_y-1+visual_pattern_offset;
+        printf("copy pattern x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y);
+    }
+    
+}
+static void paste_pattern(int cursor_x, int cursor_y) {
+    
+    int target_x = cursor_x;
+    int target_y = cursor_y;
+    if(target_y > 0 && target_y < 17) {
+        target_y = target_y-1+visual_pattern_offset;
+        cSynthPasteNotesFromPattern(synth, last_copied_pattern_x, last_copied_pattern_y, target_x, target_y);
+        printf("paste pattern to x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y);
+    }
 }
 
 static void add_track_node_with_octave(int x, int y, bool editing, int value) {
@@ -1075,7 +1101,9 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
                     else if(pattern_editor) {
-                        // TODO make copy/paste for pattern editor.
+                        if(editing) {
+                            copy_pattern(pattern_cursor_x, pattern_cursor_y);
+                        }
                     } else {
                         if(editing) {
                             copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, true);
@@ -1106,6 +1134,9 @@ void handle_key_down(SDL_Keysym* keysym) {
                     else if(file_editor) {}
                     else if(pattern_editor) {
                         // TODO make copy/paste for pattern editor.
+                        if(editing) {
+                            paste_pattern(pattern_cursor_x, pattern_cursor_y);
+                        }
                     } else {
                         if(editing) {
                             paste_notes(current_track, visual_cursor_x, visual_cursor_y);
