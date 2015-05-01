@@ -50,6 +50,7 @@ bool log_file_enabled = true;
 bool release_build = true;
 bool run_with_sdl = true;
 bool redraw_screen = true;
+bool passive_rendering = false;
 int screen_width = 1280;
 int screen_height = 720;
 int current_pattern = 0;
@@ -96,6 +97,8 @@ bool instrument_editor = false;
 int selected_instrument_id = 0;
 int selected_instrument_node_index = 1;
 bool file_editor = false;
+bool file_editor_confirm_action = false;
+bool file_editor_existing_file = false;
 bool pressed_left = false;
 bool pressed_right = false;
 bool pressed_up = false;
@@ -178,6 +181,7 @@ static int color_bg = 0xFF000000;
 
 
 static void init_file_settings(void);
+static bool file_exists(char *path);
 static void handle_key_down_file(SDL_Keysym* keysym);
 static void exit_file_editor(void);
 static void render_files(void);
@@ -285,6 +289,18 @@ static void init_file_settings(void) {
     }
 }
 
+static bool file_exists(char *path) {
+    
+    bool exists = false;
+    FILE * fp;
+    fp = fopen (path, "r");
+    if(fp != NULL) {
+        exists = true;
+    }
+    fclose(fp);
+    return exists;
+}
+
 static void handle_key_down_file(SDL_Keysym* keysym) {
    
     char c = 0;
@@ -344,25 +360,58 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                 if(file_settings->file_name != NULL) {
                     char *file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
                     sprintf(file_name, "%s.wav", file_settings->file_name);
-                    export_wav(file_name);
+                    if(file_editor_confirm_action) {
+                        export_wav(file_name);
+                        export_project = false;
+                        exit_file_editor();
+                        file_editor_confirm_action = false;
+                    } else {
+                        if(file_exists(file_name)) {
+                            file_editor_existing_file = true;
+                            file_editor_confirm_action = true;
+                        } else {
+                            //file_editor_existing_file = false;
+                            // just proceed.
+                            export_wav(file_name);
+                            export_project = false;
+                            exit_file_editor();
+                            file_editor_confirm_action = false;
+                        }
+                        printf("confirm action\n");
+                    }
                     cAllocatorFree(file_name);
-                    export_project = false;
-                    exit_file_editor();
                 }
             } else {
-                if(file_settings->file_editor_save) {
+                if(file_settings->file_name != NULL && file_settings->file_editor_save && file_editor_confirm_action) {
                     save_project_file();
-                } else {
-                    if(file_settings->file_name != NULL) {
-                        char *load_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-                        sprintf(load_path, "%s.json", file_settings->file_name);
-                        load_project_file(load_path);
-                        cAllocatorFree(load_path);
-                            
-                        // set visual track height
+                    file_editor_confirm_action = false;
+                } else if(file_settings->file_name != NULL) {
+                    file_editor_existing_file = false;
+                    char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                    sprintf(file_path, "%s.json", file_settings->file_name);
+                    if(file_editor_confirm_action) {
+                        load_project_file(file_path);
                         visual_track_height = synth->track_height;
-                
+                        file_editor_confirm_action = false;
+                    } else {
+                        // save project
+                        file_editor_confirm_action = true;
+                        if(file_settings->file_editor_save) {
+                            if(file_exists(file_path)) {
+                                file_editor_existing_file = true;
+                                printf("confirm action\n");
+                            } else {
+                                // just proceed
+                                save_project_file();
+                                file_editor_confirm_action = false;
+                            }
+                        } else {
+                            // load file.
+                            file_editor_confirm_action = true;
+                            printf("confirm action\n");
+                        }
                     }
+                    cAllocatorFree(file_path);
                 }
             }
             break;
@@ -401,10 +450,12 @@ static void exit_file_editor(void) {
         }
     }
     file_settings->file_path = cAllocatorFree(file_settings->file_path);
-    file_settings->file_name = cAllocatorFree(file_settings->file_name);
+    //file_settings->file_name = cAllocatorFree(file_settings->file_name);
     file_editor = false;
     file_settings->file_editor_save = false;
     file_settings->reload_dirs = true;
+    file_editor_confirm_action = false;
+    file_editor_existing_file = false;
 }
 
 
@@ -424,17 +475,24 @@ static void render_files(void) {
     
     int offset_x = 0;
     
-    if(file_settings->file_path != NULL) {
+    if(file_settings->file_path != NULL && !file_editor_confirm_action) {
         cEngineRenderLabelWithParams(raster2d, "path:                                                                                            ", offset_x, 23, cengine_color_red, cengine_color_black);
         cEngineRenderLabelWithParams(raster2d, file_settings->file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
     }
 
-    if(export_project) {
+    if(export_project && !file_editor_confirm_action) {
         cEngineRenderLabelWithParams(raster2d, "  export wav as:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
-    } else {
+    } else if(!file_settings->file_editor_save && !file_editor_confirm_action) {
+        cEngineRenderLabelWithParams(raster2d, "   open project:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+    } else if(!file_editor_confirm_action) {
         cEngineRenderLabelWithParams(raster2d, "save project as:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+    } else if(file_editor_existing_file) {
+         cEngineRenderLabelWithParams(raster2d, "overwrite file? [PRESS RETURN]                                                                                             ", offset_x, 22, cengine_color_red, cengine_color_black);
+    } else {
+        cEngineRenderLabelWithParams(raster2d, " current project will be reset. continue? [PRESS RETURN]                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
     }
-    if(file_settings->file_name != NULL) {
+    
+    if(file_settings->file_name != NULL && !file_editor_confirm_action) {
         cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+16, 22, cengine_color_red, cengine_color_black);
     }
 }
@@ -1543,58 +1601,128 @@ static void handle_note_keys(SDL_Keysym* keysym) {
 
 static void handle_pattern_keys(SDL_Keysym* keysym) {
     
+    int number = 0;
+    switch( keysym->sym ) {
+        case SDLK_0:
+            number = 0;
+            break;
+        case SDLK_1:
+            number = 1;
+            break;
+        case SDLK_2:
+            number = 2;
+            break;
+        case SDLK_3:
+            number = 3;
+            break;
+        case SDLK_4:
+            number = 4;
+            break;
+        case SDLK_5:
+            number = 5;
+            break;
+        case SDLK_6:
+            number = 6;
+            break;
+        case SDLK_7:
+            number = 7;
+            break;
+        case SDLK_8:
+            number = 8;
+            break;
+        case SDLK_9:
+            number = 9;
+            break;
+        default:
+            return;
+            break;
+    }
+
+    
     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-        int pattern = 0;
-        switch( keysym->sym ) {
-            case SDLK_0:
-                pattern = 0;
-                break;
-            case SDLK_1:
-                pattern = 1;
-                break;
-            case SDLK_2:
-                pattern = 2;
-                break;
-            case SDLK_3:
-                pattern = 3;
-                break;
-            case SDLK_4:
-                pattern = 4;
-                break;
-            case SDLK_5:
-                pattern = 5;
-                break;
-            case SDLK_6:
-                pattern = 6;
-                break;
-            case SDLK_7:
-                pattern = 7;
-                break;
-            case SDLK_8:
-                pattern = 8;
-                break;
-            case SDLK_9:
-                pattern = 9;
-                break;
-            default:
-                return;
-                break;
-        }
         
-        if(pattern < 0){
-            pattern = 0;
+        if(number < 0){
+            number = 0;
         }
         
         int old_pattern = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
         if(old_pattern < 10) {
             old_pattern *= 10;
-            pattern += old_pattern;
-            if(pattern >= synth->patterns_height) {
-                pattern = synth->patterns_height-1;
+            number += old_pattern;
+            if(number >= synth->patterns_height) {
+                number = synth->patterns_height-1;
             }
         }
         
-        synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = pattern;
+        synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = number;
+    }
+    
+    if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
+        //int new_bpm = 0;
+        int old_bpm = synth->bpm;
+        
+        if(old_bpm < 100) {
+            old_bpm *= 10;
+            number += old_bpm;
+        } else if(old_bpm < 10) {
+            old_bpm *= 10;
+            number += old_bpm;
+        }
+        
+        if(number >= 600) {
+             number = 600;
+        }
+
+        synth->bpm = number;
+    }
+    
+    // rows
+    if(pattern_cursor_y == 20 && pattern_cursor_x == 2) {
+        int track_height = synth->track_height;
+        if(track_height < 10) {
+            track_height *= 10;
+            number += track_height;
+        }
+        if(number >= synth->track_max_height) {
+            number = synth->track_max_height-1;
+        }
+        synth->track_height = number;
+        if(synth->track_height < 1) {
+            synth->track_height = 1;
+        }
+        visual_track_height = synth->track_height;
+    }
+    
+    // arp
+    if(pattern_cursor_y == 20 && pattern_cursor_x == 3) {
+        int old_arp = synth->arpeggio_speed;
+        if(old_arp < 100) {
+            old_arp *= 10;
+            number += old_arp;
+        } else if(old_arp < 10) {
+            old_arp *= 10;
+            number += old_arp;
+        }
+        if(number >= 600) {
+            number = 600;
+        }
+        synth->arpeggio_speed = number;
+    }
+    
+    // swing
+    if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
+        int old_swing = synth->swing;
+        if(old_swing < 100) {
+            old_swing *= 10;
+            number += old_swing;
+        } else if(old_swing < 10) {
+            old_swing *= 10;
+            number += old_swing;
+        }
+        if(number >= 600) {
+            number = 600;
+        }
+        synth->swing = number;
     }
 }
 
@@ -1772,9 +1900,9 @@ static void check_sdl_events(SDL_Event event) {
 //const double ChromaticRatio = 1.059463094359295264562;
 const double Tao = 6.283185307179586476925;
 
-// 256, 512, 1024, 2048, 4096, 8192
+// 256, 512, 1024, 2048, 4096, 8192, 16384, 32768
 
-Uint16 bufferSize = 4096; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
+Uint16 bufferSize = 8192; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
 Uint32 samplesPerFrame; // = sampleRate/frameRate;
 Uint32 msPerFrame; // = 1000/frameRate;
 double practicallySilent = 0.001;
@@ -2800,6 +2928,10 @@ static void redraw_screen_function(void) {
 static void main_loop(void) {
     
     int delay_ms = 64;
+    if(passive_rendering == false) {
+        delay_ms = 32;
+    }
+    
     SDL_LockAudioDevice(AudioDevice);
     check_sdl_events(event);
     update_and_render_info(last_dt);
@@ -2808,7 +2940,7 @@ static void main_loop(void) {
         synth->needs_redraw = true;
     }
     
-    if(redraw_screen || synth->needs_redraw) {
+    if(redraw_screen || synth->needs_redraw || !passive_rendering) {
         render_track(last_dt);
         for (int r_x = 0; r_x < s_width; r_x++) {
             for (int r_y = 0; r_y < s_height; r_y++) {
@@ -2836,12 +2968,12 @@ static void main_loop(void) {
     int wait_time = delay_ms-dt;
     if(dt < delay_ms) {
         if(fps_print_interval >= print_interval_limit) {
-            //printf("dt:%d additional wait_time:%d\n", dt, wait_time);
+            printf("dt:%d additional wait_time:%d\n", dt, wait_time);
         }
         SDL_Delay(wait_time);
     } else {
         if(fps_print_interval >= print_interval_limit) {
-            //printf("frame time:%d\n", dt);
+            printf("frame time:%d\n", dt);
         }
     }
 }
