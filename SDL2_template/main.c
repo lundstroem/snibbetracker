@@ -50,7 +50,8 @@ bool log_file_enabled = true;
 bool release_build = true;
 bool run_with_sdl = true;
 bool redraw_screen = true;
-bool passive_rendering = false;
+bool passive_rendering = true;
+char *conf_default_dir = NULL;
 int screen_width = 1280;
 int screen_height = 720;
 int current_pattern = 0;
@@ -219,6 +220,7 @@ static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
 static void render_audio(Sint16 *s_byteStream, int begin, int end, int length);
+void add_samples(int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
@@ -388,7 +390,11 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                 } else if(file_settings->file_name != NULL) {
                     file_editor_existing_file = false;
                     char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-                    sprintf(file_path, "%s.json", file_settings->file_name);
+                    if(conf_default_dir != NULL) {
+                        sprintf(file_path, "%s%s.json", conf_default_dir, file_settings->file_name);
+                    } else {
+                        sprintf(file_path, "%s.json", file_settings->file_name);
+                    }
                     if(file_editor_confirm_action) {
                         load_project_file(file_path);
                         visual_track_height = synth->track_height;
@@ -582,7 +588,12 @@ static void save_project_file(void) {
 
     if(file_settings->file_name != NULL) {
         char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
-        sprintf(save_path, "%s.json", file_settings->file_name);
+        if(conf_default_dir != NULL) {
+            sprintf(save_path, "%s%s.json", conf_default_dir, file_settings->file_name);
+        } else {
+            sprintf(save_path, "%s.json", file_settings->file_name);
+        }
+        
         cJSON *root = cSynthSaveProject(synth);
         if(root != NULL) {
             FILE * fp;
@@ -758,6 +769,8 @@ static void cleanup_data(void) {
     file_settings->file_path = cAllocatorFree(file_settings->file_path);
     file_settings->file_name = cAllocatorFree(file_settings->file_name);
     file_settings = cAllocatorFree(file_settings);
+    
+    conf_default_dir = cAllocatorFree(conf_default_dir);
 }
 
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store) {
@@ -2016,10 +2029,9 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                         }
                         
                         if(s_byteStream != NULL) {
-                            int16_t sample_left = (int16_t)((voice->lowpass_last_sample * amp_left) * synth->master_amp);
-                            int16_t sample_right = (int16_t)((voice->lowpass_last_sample * amp_right) * synth->master_amp);
-                            s_byteStream[i] += sample_left;
-                            s_byteStream[i+1] += sample_right;
+                            int sample_left = (int)((voice->lowpass_last_sample * amp_left) * synth->master_amp);
+                            int sample_right = (int)((voice->lowpass_last_sample * amp_right) * synth->master_amp);
+                            add_samples(sample_left, sample_right, s_byteStream, i, i+1);
                         }
                         
                     } else {
@@ -2027,10 +2039,9 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             if(voice->phase_int < synth->noise_length) {
                                 int16_t sample = voice->waveform[voice->phase_int];
                                 if(s_byteStream != NULL) {
-                                    int16_t sample_left = (int16_t)((sample * amp_left) * synth->master_amp);
-                                    int16_t sample_right = (int16_t)((sample * amp_right) * synth->master_amp);
-                                    s_byteStream[i] += sample_left;
-                                    s_byteStream[i+1] += sample_right;
+                                    int sample_left = (int)((sample * amp_left) * synth->master_amp);
+                                    int sample_right = (int)((sample * amp_right) * synth->master_amp);
+                                    add_samples(sample_left, sample_right, s_byteStream, i, i+1);
                                 }
                             }
                         } else if(voice->phase_int < synth->wave_length) {
@@ -2042,10 +2053,9 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             }
                             
                             if(s_byteStream != NULL) {
-                                int16_t sample_left = (int16_t)((sample * amp_left) * synth->master_amp);
-                                int16_t sample_right = (int16_t)((sample * amp_right) * synth->master_amp);
-                                s_byteStream[i] += sample_left;
-                                s_byteStream[i+1] += sample_right;
+                                int sample_left = (int)((sample * amp_left) * synth->master_amp);
+                                int sample_right = (int)((sample * amp_right) * synth->master_amp);
+                                add_samples(sample_left, sample_right, s_byteStream, i, i+1);
                             }
                         }
                     }
@@ -2057,6 +2067,16 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
     if(playing || exporting) {
         cSynthAdvanceTrack(synth, length);
     }
+}
+
+void add_samples(int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
+    
+    if(sample_left > INT16_MAX || sample_left < INT16_MIN || sample_right > INT16_MAX || sample_right < INT16_MIN) {
+        synth->audio_clips = true;
+    }
+    
+    byte_stream[index_left] += (int16_t)sample_left;
+    byte_stream[index_right] += (int16_t)sample_right;
 }
 
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
@@ -2140,6 +2160,28 @@ static void change_param(bool plus) {
             synth->bpm = bpm;
         }
     
+    } else if(y == 20 && x == 1) {
+        //master amp
+        int amp = synth->master_amp_percent;
+        if(plus) {
+            amp++;
+            synth->master_amp_percent = amp;
+        } else {
+            amp--;
+            if(amp < 1) {
+                amp = 1;
+            }
+            synth->master_amp_percent = amp;
+        }
+        synth->master_amp = synth->master_amp_percent*0.01;
+        
+    } else if(y == 21 && x == 0) {
+        //toggle preview 
+        if(synth->preview_enabled) {
+            synth->preview_enabled = false;
+        } else {
+            synth->preview_enabled = true;
+        }
     } else if(y == 19 && x == 1) {
        
         
@@ -2378,7 +2420,13 @@ static void render_pattern_mapping(void) {
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 1) {
                 //nothing
-                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
+                char cval[10];
+                sprintf(cval, "Amp %d%%", synth->master_amp_percent);
+                if(synth->audio_clips) {
+                    bg_color = cengine_color_red;
+                    synth->audio_clips = false;
+                }
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 2) {
                 char cval[20];
                 sprintf(cval, "Rows %d", synth->track_height);
@@ -2391,6 +2439,12 @@ static void render_pattern_mapping(void) {
                 char cval[20];
                 sprintf(cval, "Swing %d", synth->swing);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 21 && x == 0) {
+                if(synth->preview_enabled) {
+                    cEngineRenderLabelWithParams(raster2d, "Preview 1", x*10+inset_x, y+inset_y, color, bg_color);
+                } else {
+                    cEngineRenderLabelWithParams(raster2d, "Preview 0", x*10+inset_x, y+inset_y, color, bg_color);
+                }
             }
             else if(y == 19) {
                 //nothing
@@ -3021,8 +3075,17 @@ static int get_buffer_size_from_index(int i) {
 
 static void load_config() {
     
+    /*
+     - default save/load path
+     - buffersize
+     - active rendering
+     */
+    
     char *param_buffer_size = "buffer_size";
-    char *config_file_name = "config.json";
+    char *param_working_dir_path = "working_dir_path";
+    char *param_passive_rendering = "passive_rendering";
+    
+    char *config_file_name = "config.txt";
     cJSON *root = NULL;
     cJSON *object = NULL;
     bool success = false;
@@ -3030,24 +3093,62 @@ static void load_config() {
     if(b != NULL) {
         root = cJSON_Parse(b);
         if(root != NULL) {
+            
+            success = true;
+            // buffer size
             object = cJSON_GetObjectItem(root, param_buffer_size);
             if(object != NULL) {
                 int buffer_index_value = object->valueint;
-                bufferSize = (uint16_t)get_buffer_size_from_index(buffer_index_value);
+                bufferSize = (Uint16)buffer_index_value;
                 printf("setting buffersize from config:%d\n", bufferSize);
-                success = true;
+                //success = true;
+            } else {
+                printf("could not find buffersize in config.\n");
             }
+            
+            // path
+            object = cJSON_GetObjectItem(root, param_working_dir_path);
+            if(object != NULL) {
+                char *path = object->valuestring;
+                if(path != NULL) {
+                    if(strlen(path) > 0) {
+                        conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
+                        sprintf(conf_default_dir, "%s", path);
+                        printf("path in config:%s\n", conf_default_dir);
+                    }
+                } else {
+                    printf("could not find path in config 1.\n");
+                }
+            } else {
+                printf("could not find path in config 2.\n");
+            }
+            
+            // passive rendering
+            object = cJSON_GetObjectItem(root, param_passive_rendering);
+            if(object != NULL) {
+                bool passive_render_val = object->valueint;
+                if(passive_render_val) {
+                    printf("passive rendering in config is true\n");
+                    passive_rendering = true;
+                } else {
+                    printf("passive rendering in config is false\n");
+                    passive_rendering = false;
+                }
+            } else {
+                printf("could not passive rendering in config.\n");
+            }
+            
             cJSON_Delete(root);
         }
         cAllocatorFree(b);
     }
     
     if(!success) {
-        printf("could not find config file. Writing config.json.\n");
+        printf("could not find config file. Writing config.txt.\n");
         bufferSize = 4096;
         FILE * fp;
-        fp = fopen ("config.json", "w+");
-        fprintf(fp, "%s", "{\"buffer_size\" : 5}");
+        fp = fopen (config_file_name, "w+");
+        fprintf(fp, "%s", "{\"buffer_size\" : 4096, \"buffer_size_info\" : \"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"working_dir_path\" : \"\", \"working_dir_path_info\" : \"Use full path like /Users/d/Desktop/snibbetracker_workspace/ dir must be created before being used. The default (empty path) will use the directory the executable is in. \", \"passive_rendering\" : true}");
         fclose(fp);
     }
 }
@@ -3064,7 +3165,7 @@ static void st_log(char *message) {
 int main(int argc, char* argv[])
 {
     
-    //load_config();
+    load_config();
     st_log("started executing.");
     
     setup_data();
@@ -3139,9 +3240,6 @@ static void export_wav(char *filename) {
     Sint16 *buffer = NULL;
     int iterations = INT16_MAX;
    
-    // TODO analyze and set modifier (master_amp) for maximize volume for export.
-    
-    
     // calculate size of file and allocate buffer etc
     for(int i = 0; i < iterations; i++) {
         int begin = i*chunk_size;
