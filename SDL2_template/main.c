@@ -360,28 +360,33 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             if(export_project) {
                 // TODO export wav.
                 if(file_settings->file_name != NULL) {
-                    char *file_name = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-                    sprintf(file_name, "%s.wav", file_settings->file_name);
+                    char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                    if(conf_default_dir != NULL) {
+                        sprintf(file_path, "%s%s.wav", conf_default_dir, file_settings->file_name);
+                    } else {
+                        sprintf(file_path, "%s.wav", file_settings->file_name);
+                    }
+                    
                     if(file_editor_confirm_action) {
-                        export_wav(file_name);
+                        export_wav(file_path);
                         export_project = false;
                         exit_file_editor();
                         file_editor_confirm_action = false;
                     } else {
-                        if(file_exists(file_name)) {
+                        if(file_exists(file_path)) {
                             file_editor_existing_file = true;
                             file_editor_confirm_action = true;
                         } else {
                             //file_editor_existing_file = false;
                             // just proceed.
-                            export_wav(file_name);
+                            export_wav(file_path);
                             export_project = false;
                             exit_file_editor();
                             file_editor_confirm_action = false;
                         }
                         printf("confirm action\n");
                     }
-                    cAllocatorFree(file_name);
+                    cAllocatorFree(file_path);
                 }
             } else {
                 if(file_settings->file_name != NULL && file_settings->file_editor_save && file_editor_confirm_action) {
@@ -830,13 +835,11 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
             cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
         } else {
             
+            bool move_down = false;
             if(x_count == 0) {
                 cSynthAddTrackNode(synth, current_track, x, y, editing, true, value+(octave*12));
                 if(editing) {
-                    if(playing && follow) {}
-                    else {
-                        set_visual_cursor(0, 1, true);
-                    }
+                    move_down = true;
                 }
             }
             
@@ -844,35 +847,34 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
                 cSynthAddTrackNodeParams(synth, current_track, x, y, value, -1, -1, -1);
                 // change instrument
                 synth->current_instrument = value;
-                if(playing && follow) {}
-                else {
-                    set_visual_cursor(0, 1, true);
-                }
+                move_down = true;
             }
             
             if(x_count == 2 && editing) {
                 // change effect
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, (char)value, -1, -1);
-                if(playing && follow) {}
-                else {
-                    set_visual_cursor(0, 1, true);
-                }
+                move_down = true;
             }
             
             if(x_count == 3 && editing) {
                 // change param2
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, (char)value, -1);
-                if(playing && follow) {}
-                else {
-                    set_visual_cursor(0, 1, true);
-                }
+                move_down = true;
             }
             
             if(x_count == 4 && editing) {
                 // change param1
                 cSynthAddTrackNodeParams(synth, current_track, x, y, -1, -1, -1, (char)value);
-                if(playing && follow) {}
-                else {
+                move_down = true;
+            }
+            
+            if(move_down) {
+                if(follow) {
+                    if(playing) {}
+                    else {
+                        set_visual_cursor(0, 1, true);
+                    }
+                } else {
                     set_visual_cursor(0, 1, true);
                 }
             }
@@ -1437,7 +1439,13 @@ void handle_key_down(SDL_Keysym* keysym) {
                         } else if(x_count == 4) {
                             cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                         }
-                        if(!playing) {
+                        
+                        if(follow) {
+                            if(playing) {}
+                            else {
+                                set_visual_cursor(0, 1, true);
+                            }
+                        } else {
                             set_visual_cursor(0, 1, true);
                         }
                     }
