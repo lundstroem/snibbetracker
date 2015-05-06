@@ -2012,33 +2012,33 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                     
                     voice->adsr_cursor += synth->mod_adsr_cursor;
                     
-                    if(voice->lowpass_sweep_up || voice->lowpass_sweep_down) {
+                    if(voice->downsample_sweep_up || voice->downsample_sweep_down) {
                         
-                        if(voice->lowpass_sweep_up) {
-                            cSynthVoiceApplyLowpassSweep(synth, voice, true);
+                        if(voice->downsample_sweep_up) {
+                            cSynthVoiceApplyDownsampleSweep(synth, voice, true);
                         }
                         
-                        if(voice->lowpass_sweep_down) {
-                            cSynthVoiceApplyLowpassSweep(synth, voice, false);
+                        if(voice->downsample_sweep_down) {
+                            cSynthVoiceApplyDownsampleSweep(synth, voice, false);
                         }
                         
-                        if(voice->lowpass_next_sample) {
+                        if(voice->downsample_next_sample) {
                             if(voice->waveform == synth->noise_table) {
                                 if(voice->phase_int < synth->noise_length) {
-                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
+                                    voice->downsample_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
                                 }
                             } else {
                                 if(voice->phase_int < synth->wave_length) {
-                                    voice->lowpass_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
+                                    voice->downsample_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
                                 }
                             }
                             
-                            voice->lowpass_next_sample = false;
+                            voice->downsample_next_sample = false;
                         }
                         
                         if(s_byteStream != NULL) {
-                            int sample_left = (int)((voice->lowpass_last_sample * amp_left) * synth->master_amp);
-                            int sample_right = (int)((voice->lowpass_last_sample * amp_right) * synth->master_amp);
+                            int sample_left = (int)((voice->downsample_last_sample * amp_left) * synth->master_amp);
+                            int sample_right = (int)((voice->downsample_last_sample * amp_right) * synth->master_amp);
                             add_samples(sample_left, sample_right, s_byteStream, i, i+1);
                         }
                         
