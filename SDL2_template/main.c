@@ -36,6 +36,7 @@
     // define something for OSX
     #define platform_osx
     #include "dir_posix.h"
+    #include "osx_settings.h"
 #endif
 #elif __linux
 // linux
@@ -242,7 +243,8 @@ static void cleanup_synth(void);
 static void main_loop(void);
 static void debug_log(char *str);
 static int get_buffer_size_from_index(int i);
-static void load_config();
+static void load_config(void);
+static bool parse_config(char *json);
 static void st_log(char *message);
 static void st_pause(void);
 static void add_track_node_with_octave(int x, int y, bool editing, int tone);
@@ -549,13 +551,14 @@ static char *load_file(char *path) {
         fp = fopen(path, "rb");
         if(fp != NULL) {
             fseek(fp, 0L, SEEK_END);
-            long sz = ftell(fp);
-            printf("file size:%ld\n", sz);
-            char *b = cAllocatorAlloc(sizeof(char)*sz, "load file chars");
-            fseek(fp, 0, SEEK_SET);
-            fread(b, sz, 1, fp);
-            
+            long sz = 0;
+            sz = ftell(fp);
+            //printf("file size:%ld\n", sz);
+            char *b = NULL;
+            b = cAllocatorAlloc(sizeof(char)*sz, "load file chars");
             if(b != NULL) {
+                fseek(fp, 0, SEEK_SET);
+                fread(b, sz, 1, fp);
                 return b;
             } else {
                 printf("buffer is null\n");
@@ -602,14 +605,18 @@ static void save_project_file(void) {
         cJSON *root = cSynthSaveProject(synth);
         if(root != NULL) {
             FILE * fp;
-            fp = fopen (save_path, "w+");
-            char *json_print = cJSON_PrintUnformatted(root);
-            fprintf(fp, "%s", json_print);
-            fclose(fp);
-            cJSON_Delete(root);
-            free(json_print);
+            fp = fopen(save_path, "w+");
+            if(fp!= NULL) {
+                char *json_print = cJSON_PrintUnformatted(root);
+                fprintf(fp, "%s", json_print);
+                fclose(fp);
+                cJSON_Delete(root);
+                free(json_print);
+                set_info_timer(save_path);
+            } else {
+                set_info_timer("could not save file. Set proper path in config.");
+            }
         }
-        set_info_timer(save_path);
         cAllocatorFree(save_path);
         exit_file_editor();
     } else {
@@ -3030,12 +3037,12 @@ static void main_loop(void) {
     int wait_time = delay_ms-dt;
     if(dt < delay_ms) {
         if(fps_print_interval >= print_interval_limit) {
-            printf("dt:%d additional wait_time:%d\n", dt, wait_time);
+            //printf("dt:%d additional wait_time:%d\n", dt, wait_time);
         }
         SDL_Delay(wait_time);
     } else {
         if(fps_print_interval >= print_interval_limit) {
-            printf("frame time:%d\n", dt);
+            //printf("frame time:%d\n", dt);
         }
     }
 }
@@ -3081,85 +3088,90 @@ static int get_buffer_size_from_index(int i) {
 
 }
 
-static void load_config() {
+static void load_config(void) {
     
-    /*
-     - default save/load path
-     - buffersize
-     - active rendering
-     */
     
-    char *param_buffer_size = "buffer_size";
-    char *param_working_dir_path = "working_dir_path";
-    char *param_passive_rendering = "passive_rendering";
-    
-    char *config_file_name = "config.txt";
-    cJSON *root = NULL;
-    cJSON *object = NULL;
     bool success = false;
-    char *b = load_file(config_file_name);
+    char *b = load_file("config.txt");
+    
     if(b != NULL) {
-        root = cJSON_Parse(b);
-        if(root != NULL) {
-            
-            success = true;
-            // buffer size
-            object = cJSON_GetObjectItem(root, param_buffer_size);
-            if(object != NULL) {
-                int buffer_index_value = object->valueint;
-                bufferSize = (Uint16)buffer_index_value;
-                printf("setting buffersize from config:%d\n", bufferSize);
-                //success = true;
-            } else {
-                printf("could not find buffersize in config.\n");
-            }
-            
-            // path
-            object = cJSON_GetObjectItem(root, param_working_dir_path);
-            if(object != NULL) {
-                char *path = object->valuestring;
-                if(path != NULL) {
-                    if(strlen(path) > 0) {
-                        conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
-                        sprintf(conf_default_dir, "%s", path);
-                        printf("path in config:%s\n", conf_default_dir);
-                    }
-                } else {
-                    printf("could not find path in config 1.\n");
-                }
-            } else {
-                printf("could not find path in config 2.\n");
-            }
-            
-            // passive rendering
-            object = cJSON_GetObjectItem(root, param_passive_rendering);
-            if(object != NULL) {
-                bool passive_render_val = object->valueint;
-                if(passive_render_val) {
-                    printf("passive rendering in config is true\n");
-                    passive_rendering = true;
-                } else {
-                    printf("passive rendering in config is false\n");
-                    passive_rendering = false;
-                }
-            } else {
-                printf("could not passive rendering in config.\n");
-            }
-            
-            cJSON_Delete(root);
-        }
+        success = false;
+        success = parse_config(b);
         cAllocatorFree(b);
     }
     
     if(!success) {
         printf("could not find config file. Writing config.txt.\n");
-        bufferSize = 4096;
+        bufferSize = 8192;
         FILE * fp;
-        fp = fopen (config_file_name, "w+");
-        fprintf(fp, "%s", "{\"buffer_size\" : 4096, \"buffer_size_info\" : \"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"working_dir_path\" : \"\", \"working_dir_path_info\" : \"Use full path like /Users/d/Desktop/snibbetracker_workspace/ dir must be created before being used. The default (empty path) will use the directory the executable is in. \", \"passive_rendering\" : true}");
-        fclose(fp);
+        fp = fopen("config.txt", "w+");
+        if(fp != NULL) {
+            fprintf(fp, "%s", "{\"buffer_size\":8192,\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"working_dir_path\":\"\",\"working_dir_path_info\":\"Use full path like /Users/d/Desktop/snibbetracker_workspace/ dir must be created manually. The default (empty path) will use the directory the executable is in. \",\"passive_rendering\":true}");
+            fclose(fp);
+        }
     }
 }
+
+static bool parse_config(char *json) {
+    
+    cJSON *root = NULL;
+    cJSON *object = NULL;
+    char *param_buffer_size = "buffer_size";
+    char *param_working_dir_path = "working_dir_path";
+    char *param_passive_rendering = "passive_rendering";
+  
+    root = cJSON_Parse(json);
+    if(root != NULL) {
+        
+        // buffer size
+        object = cJSON_GetObjectItem(root, param_buffer_size);
+        if(object != NULL) {
+            bufferSize = 8192;
+            int buffer_index_value = object->valueint;
+            bufferSize = (Uint16)buffer_index_value;
+        } else {
+            printf("could not find buffersize in config.\n");
+        }
+        
+        // path
+        object = cJSON_GetObjectItem(root, param_working_dir_path);
+        if(object != NULL) {
+            char *path = object->valuestring;
+            if(path != NULL) {
+                if(strlen(path) > 0) {
+                    conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
+                    sprintf(conf_default_dir, "%s", path);
+                    printf("path in config:%s\n", conf_default_dir);
+                }
+            } else {
+                printf("could not find path in config 1.\n");
+            }
+        } else {
+            printf("could not find path in config 2.\n");
+        }
+        
+        
+        // passive rendering
+        object = cJSON_GetObjectItem(root, param_passive_rendering);
+        if(object != NULL) {
+            bool passive_render_val = object->valueint;
+            if(passive_render_val) {
+                printf("passive rendering in config is true\n");
+                passive_rendering = true;
+            } else {
+                printf("passive rendering in config is false\n");
+                passive_rendering = false;
+            }
+        } else {
+            printf("could not passive rendering in config.\n");
+        }
+        
+        cJSON_Delete(root);
+        return true;
+    }
+    return false;
+}
+
 
 static void st_pause(void) {
     
@@ -3173,8 +3185,22 @@ static void st_log(char *message) {
 int main(int argc, char* argv[])
 {
     
-    load_config();
-    st_log("started executing.");
+    #if defined(platform_windows)
+        load_config();
+        st_log("started executing.");
+    #elif defined(platform_osx)
+        //osx, load from bundle
+        char *settings = get_settings_json();
+        parse_config(settings);
+        free(settings);
+    #else
+        //linux
+    #endif
+    
+    /*
+    conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
+    sprintf(conf_default_dir, "%s", "/Users/d/Documents/snibbetracker/");
+    */
     
     setup_data();
     st_log("setup data successful.");
@@ -3317,32 +3343,37 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
     byte_rate = sample_rate * num_channels * bytes_per_sample;
     
     wav_file = fopen(filename, "wb");
-    //assert(wav_file);   /* make sure it opened */
-    
-    /* write RIFF header */
-    fwrite("RIFF", 1, 4, wav_file);
-    write_little_endian((unsigned int)(36 + bytes_per_sample * num_samples * num_channels), 4, wav_file);
-    fwrite("WAVE", 1, 4, wav_file);
-    
-    /* write fmt  subchunk */
-    fwrite("fmt ", 1, 4, wav_file);
-    write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
-    write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
-    write_little_endian(num_channels, 2, wav_file);
-    write_little_endian(sample_rate, 4, wav_file);
-    write_little_endian(byte_rate, 4, wav_file);
-    write_little_endian(num_channels*bytes_per_sample, 2, wav_file);  /* block align */
-    write_little_endian(8*bytes_per_sample, 2, wav_file);  /* bits/sample */
-    
-    /* write data subchunk */
-    fwrite("data", 1, 4, wav_file);
-    write_little_endian((unsigned int)(bytes_per_sample * num_samples * num_channels), 4, wav_file);
-    for (i = 0; i < num_samples; i++) {
-        if(i < num_samples/2) {
-            write_little_endian((unsigned int)(data[i]), bytes_per_sample, wav_file);
+    if(wav_file != NULL) {
+        
+        //assert(wav_file);   /* make sure it opened */
+        
+        /* write RIFF header */
+        fwrite("RIFF", 1, 4, wav_file);
+        write_little_endian((unsigned int)(36 + bytes_per_sample * num_samples * num_channels), 4, wav_file);
+        fwrite("WAVE", 1, 4, wav_file);
+        
+        /* write fmt  subchunk */
+        fwrite("fmt ", 1, 4, wav_file);
+        write_little_endian(16, 4, wav_file);   /* SubChunk1Size is 16 */
+        write_little_endian(1, 2, wav_file);    /* PCM is format 1 */
+        write_little_endian(num_channels, 2, wav_file);
+        write_little_endian(sample_rate, 4, wav_file);
+        write_little_endian(byte_rate, 4, wav_file);
+        write_little_endian(num_channels*bytes_per_sample, 2, wav_file);  /* block align */
+        write_little_endian(8*bytes_per_sample, 2, wav_file);  /* bits/sample */
+        
+        /* write data subchunk */
+        fwrite("data", 1, 4, wav_file);
+        write_little_endian((unsigned int)(bytes_per_sample * num_samples * num_channels), 4, wav_file);
+        for (i = 0; i < num_samples; i++) {
+            if(i < num_samples/2) {
+                write_little_endian((unsigned int)(data[i]), bytes_per_sample, wav_file);
+            }
         }
+        
+        fclose(wav_file);
+    } else {
+        set_info_timer("could not export file. Set proper path in config.");
     }
-    
-    fclose(wav_file);
 }
 
