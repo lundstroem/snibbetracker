@@ -24,7 +24,7 @@
 #elif _WIN32
 //define something for Windows (32-bit)
     #define platform_windows
-	#include "dir_win.h"
+	//#include "dir_win.h"
 #elif __APPLE__
     #include "TargetConditionals.h"
     #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
@@ -300,8 +300,8 @@ static bool file_exists(char *path) {
     fp = fopen (path, "r");
     if(fp != NULL) {
         exists = true;
+        fclose(fp);
     }
-    fclose(fp);
     return exists;
 }
 
