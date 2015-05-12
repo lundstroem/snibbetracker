@@ -53,8 +53,8 @@ bool run_with_sdl = true;
 bool redraw_screen = true;
 bool passive_rendering = true;
 char *conf_default_dir = NULL;
-int screen_width = 1280;
-int screen_height = 720;
+//int screen_width = 1280;
+//int screen_height = 720;
 int current_pattern = 0;
 int current_track = 0;
 int quit = 0;
@@ -116,7 +116,7 @@ int sine_scroll = 0;
 #define MAX_TOUCHES 8
 #define sheet_width 1024
 #define sheet_height 1024
-#define fullscreen 0
+int fullscreen = 0;
 
 
 
@@ -173,7 +173,7 @@ static int color_bg = 0xFF000000;
 #define cengine_color_magenta 0xFFFF00FF
 #define cengine_color_dull_green 0xFF117711
 
-#define cengine_color_bg 0xFF111111
+#define cengine_color_bg 0xFF000000
 #define cengine_color_bg1 0xFF332222
 #define cengine_color_bg2 0xFF223322
 #define cengine_color_bg3 0xFF222233
@@ -181,6 +181,12 @@ static int color_bg = 0xFF000000;
 #define cengine_color_bg5 0xFF333322
 #define cengine_color_bg6 0xFF223333
 
+#define cengine_color_bg1_brighter 0xFF443333
+#define cengine_color_bg2_brighter 0xFF334433
+#define cengine_color_bg3_brighter 0xFF333344
+#define cengine_color_bg4_brighter 0xFF443344
+#define cengine_color_bg5_brighter 0xFF444433
+#define cengine_color_bg6_brighter 0xFF334444
 
 static void init_file_settings(void);
 static bool file_exists(char *path);
@@ -831,6 +837,8 @@ static void paste_pattern(int cursor_x, int cursor_y) {
 
 static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     
+    printf("track node value:%d\n", value);
+    
     int x_count = visual_cursor_x%5;
     
     if(instrument_editor || pattern_editor || !editing) {
@@ -891,6 +899,10 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
 
 // only move across active tracks
 static void set_visual_cursor(int diff_x, int diff_y, bool user) {
+    
+    if(diff_x == 0 && diff_y == 1) {
+        printf("moving down true\n");
+    }
     
     if(shift_down) {
         int node_x = (int)floor(visual_cursor_x/5);
@@ -1150,6 +1162,22 @@ void handle_key_down(SDL_Keysym* keysym) {
     } else {
         
         switch(keysym->sym) {
+            case SDLK_HOME:
+                if(pattern_editor) {
+                    pattern_cursor_y = 0;
+                } else if(instrument_editor) {
+                } else {
+                    visual_cursor_y = 0;
+                }
+                break;
+            case SDLK_END:
+                if(pattern_editor) {
+                    pattern_cursor_y = synth->patterns_and_voices_height-1;
+                } else if(instrument_editor) {
+                } else {
+                    visual_cursor_y = synth->track_height-1;
+                }
+                break;
             case SDLK_m:
                 if(pattern_editor) {
                     if(pattern_cursor_y == 0) {
@@ -1425,6 +1453,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_BACKSPACE:
+            case SDLK_DELETE:
                 if(instrument_editor) {}
                 else if(pattern_editor) {}
                 else if(editing) {
@@ -1522,104 +1551,108 @@ void handle_key_down(SDL_Keysym* keysym) {
 
 static void handle_note_keys(SDL_Keysym* keysym) {
     
+    //int cursor_y = synth->track_cursor_y;
+    int cursor_y = visual_cursor_y;
+    
+    
     switch( keysym->sym ) {
         case SDLK_z:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
             break;
         case SDLK_s:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
             break;
         case SDLK_x:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
             break;
         case SDLK_d:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
             break;
         case SDLK_c:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 16);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 16);
             break;
         case SDLK_v:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 17);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 17);
             break;
         case SDLK_g:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 18);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 18);
             break;
         case SDLK_b:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 19);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 19);
             break;
         case SDLK_h:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 20);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 20);
             break;
         case SDLK_n:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 21);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 21);
             break;
         case SDLK_j:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 22);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 22);
             break;
         case SDLK_m:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 23);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 23);
             break;
         case SDLK_COMMA:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 24);
             break;
         case SDLK_l:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 25);
             break;
         case SDLK_PERIOD:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 26);
             break;
             
             //upper keyboard
         case SDLK_q:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 24);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 24);
             break;
         case SDLK_2:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 25);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 25);
             break;
         case SDLK_w:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 26);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 26);
             break;
         case SDLK_3:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 27);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 27);
             break;
         case SDLK_e:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 28);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 28);
             break;
         case SDLK_r:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 29);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 29);
             break;
         case SDLK_5:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 30);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 30);
             break;
         case SDLK_t:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 31);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 31);
             break;
         case SDLK_6:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 32);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 32);
             break;
         case SDLK_y:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 33);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 33);
             break;
         case SDLK_7:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 34);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 34);
             break;
         case SDLK_u:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 35);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 35);
             break;
         case SDLK_i:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 36);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 36);
             break;
         case SDLK_9:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 37);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 37);
             break;
         case SDLK_o:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 38);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 38);
             break;
         case SDLK_0:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 39);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 39);
             break;
         case SDLK_p:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 40);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 40);
             break;
             
         default:
@@ -1685,6 +1718,7 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
         synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = number;
     }
     
+    // bpm
     if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
         //int new_bpm = 0;
         int old_bpm = synth->bpm;
@@ -1697,12 +1731,38 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
             number += old_bpm;
         }
         
-        if(number >= 600) {
-             number = 600;
+        if(number >= 999) {
+             number = 999;
         }
 
         synth->bpm = number;
     }
+    
+    // master amp
+    if(pattern_cursor_y == 20 && pattern_cursor_x == 1) {
+        //int new_bpm = 0;
+        int old_master_amp = synth->master_amp_percent;
+        
+        if(old_master_amp < 1000) {
+            old_master_amp *= 10;
+            number += old_master_amp;
+        } else if(old_master_amp < 100) {
+            old_master_amp *= 10;
+            number += old_master_amp;
+        } else if(old_master_amp < 10) {
+            old_master_amp *= 10;
+            number += old_master_amp;
+        }
+        
+        if(number >= 9999) {
+            number = 9999;
+        }
+        
+        synth->master_amp_percent = number;
+        synth->master_amp = synth->master_amp_percent*0.01;
+    }
+    
+
     
     // rows
     if(pattern_cursor_y == 20 && pattern_cursor_x == 2) {
@@ -1756,54 +1816,57 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
 
 void handle_instrument_keys(SDL_Keysym* keysym) {
     
+    //int cursor_y = synth->track_cursor_y;
+    int cursor_y = visual_cursor_y;
+    
     switch( keysym->sym ) {
         case SDLK_0:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
             break;
         case SDLK_1:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
             break;
         case SDLK_2:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
             break;
         case SDLK_3:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
             break;
         case SDLK_4:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
             break;
         case SDLK_5:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
             break;
         case SDLK_6:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
             break;
         case SDLK_7:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
             break;
         case SDLK_8:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
             break;
         case SDLK_9:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
             break;
         case SDLK_a:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
             break;
         case SDLK_b:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
             break;
         case SDLK_c:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
             break;
         case SDLK_d:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
             break;
         case SDLK_e:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
             break;
         case SDLK_f:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
             break;
         default:
             break;
@@ -1812,54 +1875,57 @@ void handle_instrument_keys(SDL_Keysym* keysym) {
 
 static void handle_effect_keys(SDL_Keysym* keysym) {
     
+    //int cursor_y = synth->track_cursor_y;
+    int cursor_y = visual_cursor_y;
+    
     switch( keysym->sym ) {
         case SDLK_a:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 10);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
             break;
         case SDLK_b:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 11);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
             break;
         case SDLK_c:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 12);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
             break;
         case SDLK_d:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 13);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
             break;
         case SDLK_e:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 14);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
             break;
         case SDLK_f:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 15);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
             break;
         case SDLK_0:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 0);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
             break;
         case SDLK_1:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 1);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
             break;
         case SDLK_2:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 2);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
             break;
         case SDLK_3:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 3);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
             break;
         case SDLK_4:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 4);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
             break;
         case SDLK_5:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 5);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
             break;
         case SDLK_6:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 6);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
             break;
         case SDLK_7:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 7);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
             break;
         case SDLK_8:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 8);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
             break;
         case SDLK_9:
-            add_track_node_with_octave(synth->track_cursor_x, synth->track_cursor_y, editing, 9);
+            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
             break;
         default:
             break;
@@ -2627,21 +2693,56 @@ static void render_track(double dt) {
     }
     
     int node_x = -1;
+    int node_y = -1;
+    int node_y_bright = 0;
     
     for (int y = 0; y < synth->track_height; y++) {
         offset_x = 0;
+        node_y++;
+        if(node_y > 3) {
+            node_y = 0;
+        }
         for (int x = 0; x < visual_track_width; x++) {
             
             int bg_color = cengine_color_black;
             int color = cengine_color_white;
             
-            //int foreground_color = cengine_color_white;
-            if(x >= 0 && x < 5) bg_color = cengine_color_bg1;
-            if(x >= 5 && x < 10) bg_color = cengine_color_bg2;
-            if(x >= 10 && x < 15) bg_color = cengine_color_bg3;
-            if(x >= 15 && x < 20) bg_color = cengine_color_bg4;
-            if(x >= 20 && x < 25) bg_color = cengine_color_bg5;
-            if(x >= 25 && x < 30) bg_color = cengine_color_bg6;
+            if(x >= 0 && x < 5) {
+                bg_color = cengine_color_bg1;
+                if(node_y == node_y_bright) {
+                    bg_color = cengine_color_bg1_brighter;
+                }
+            }
+            if(x >= 5 && x < 10) {
+                bg_color = cengine_color_bg2;
+                if(node_y == node_y_bright) {
+                    bg_color = cengine_color_bg2_brighter;
+                }
+            }
+            if(x >= 10 && x < 15) {
+                bg_color = cengine_color_bg3;
+                if(node_y == node_y_bright) {
+                    bg_color = cengine_color_bg3_brighter;
+                }
+            }
+            if(x >= 15 && x < 20) {
+                bg_color = cengine_color_bg4;
+                if(node_y == node_y_bright) {
+                    bg_color = cengine_color_bg4_brighter;
+                }
+            }
+            if(x >= 20 && x < 25) {
+                bg_color = cengine_color_bg5;
+                if(node_y == node_y_bright) {
+                    bg_color = cengine_color_bg5_brighter;
+                }
+            }
+            if(x >= 25 && x < 30) {
+                bg_color = cengine_color_bg6;
+                if(node_y == node_y_bright) {
+                    bg_color = cengine_color_bg6_brighter;
+                }
+            }
             
             node_x = (int)floor(x/5);
             
@@ -2759,8 +2860,8 @@ static void render_track(double dt) {
         int pattern_at_cursor = synth->patterns[cursor_x][current_track];
         current_pattern = pattern_at_cursor;
         char cval[20];
-        sprintf(cval, "p:%d t:%d", current_pattern, current_track);
-        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
+        sprintf(cval, "p:%d t:%d r:%d", current_pattern, current_track, visual_cursor_y);
+        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, cengine_color_white, cengine_color_black);
     }
 }
 
@@ -2789,9 +2890,14 @@ static void setup_sdl(void) {
 	}
 	
     //SDL_WINDOW_FULLSCREEN
-    
-    window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
-	if(window != NULL) {
+    if(fullscreen) {
+        window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
+    } else {
+        window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
+    }
+    //window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
+	
+    if(window != NULL) {
 		
 		context = SDL_GL_CreateContext(window);
 		if(context == NULL) {
@@ -2805,6 +2911,11 @@ static void setup_sdl(void) {
                                         SDL_PIXELFORMAT_ARGB8888,
                                         SDL_TEXTUREACCESS_STREAMING,
                                         s_width, s_height);
+            
+            if(fullscreen) {
+                SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");  // make the scaled rendering look smoother.
+                SDL_RenderSetLogicalSize(renderer, width, height);
+            }
             
             SDL_GL_SetSwapInterval(1);
             char title_string[40];
@@ -3106,7 +3217,7 @@ static void load_config(void) {
         FILE * fp;
         fp = fopen("config.txt", "w+");
         if(fp != NULL) {
-            fprintf(fp, "%s", "{\"buffer_size\":8192,\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"working_dir_path\":\"\",\"working_dir_path_info\":\"Use full path like /Users/d/Desktop/snibbetracker_workspace/ dir must be created manually. The default (empty path) will use the directory the executable is in. \",\"passive_rendering\":true}");
+            fprintf(fp, "%s", "{\"buffer_size\":8192,\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"working_dir_path\":\"\",\"working_dir_path_info\":\"Use full path like /Users/d/Desktop/snibbetracker_workspace/ dir must be created manually. The default (empty path) will use the directory the executable is in. \",\"passive_rendering\":true, \"fullscreen\":false}");
             fclose(fp);
         }
     }
@@ -3119,6 +3230,7 @@ static bool parse_config(char *json) {
     char *param_buffer_size = "buffer_size";
     char *param_working_dir_path = "working_dir_path";
     char *param_passive_rendering = "passive_rendering";
+    char *param_fullscreen = "fullscreen";
   
     root = cJSON_Parse(json);
     if(root != NULL) {
@@ -3163,7 +3275,22 @@ static bool parse_config(char *json) {
                 passive_rendering = false;
             }
         } else {
-            printf("could not passive rendering in config.\n");
+            printf("could not find passive rendering in config.\n");
+        }
+        
+        // fullscreen
+        object = cJSON_GetObjectItem(root, param_fullscreen);
+        if(object != NULL) {
+            bool fullscreen_value = object->valueint;
+            if(fullscreen_value) {
+                printf("fullscreen in config is true\n");
+                fullscreen = true;
+            } else {
+                printf("fullscreen in config is false\n");
+                fullscreen = false;
+            }
+        } else {
+            printf("could not find fullscreen in config.\n");
         }
         
         cJSON_Delete(root);
