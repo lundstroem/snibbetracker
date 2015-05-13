@@ -227,7 +227,7 @@ static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
 static void render_audio(Sint16 *s_byteStream, int begin, int end, int length);
-void add_samples(int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
+void add_samples(struct CVoice *v, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
@@ -2112,7 +2112,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                         if(s_byteStream != NULL) {
                             int sample_left = (int)((voice->downsample_last_sample * amp_left) * synth->master_amp);
                             int sample_right = (int)((voice->downsample_last_sample * amp_right) * synth->master_amp);
-                            add_samples(sample_left, sample_right, s_byteStream, i, i+1);
+                            add_samples(voice, sample_left, sample_right, s_byteStream, i, i+1);
                         }
                         
                     } else {
@@ -2122,7 +2122,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                                 if(s_byteStream != NULL) {
                                     int sample_left = (int)((sample * amp_left) * synth->master_amp);
                                     int sample_right = (int)((sample * amp_right) * synth->master_amp);
-                                    add_samples(sample_left, sample_right, s_byteStream, i, i+1);
+                                    add_samples(voice, sample_left, sample_right, s_byteStream, i, i+1);
                                 }
                             }
                         } else if(voice->phase_int < synth->wave_length) {
@@ -2136,7 +2136,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             if(s_byteStream != NULL) {
                                 int sample_left = (int)((sample * amp_left) * synth->master_amp);
                                 int sample_right = (int)((sample * amp_right) * synth->master_amp);
-                                add_samples(sample_left, sample_right, s_byteStream, i, i+1);
+                                add_samples(voice, sample_left, sample_right, s_byteStream, i, i+1);
                             }
                         }
                     }
@@ -2150,14 +2150,35 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
     }
 }
 
-void add_samples(int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
+void add_samples(struct CVoice *voice, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
+    
+    if(voice->dist_active) {
+        if(sample_left > voice->dist_clamp) {
+            sample_left = (int16_t)voice->dist_clamp;
+            sample_left *= voice->dist_amplification;
+        } else if(sample_left < -voice->dist_clamp) {
+            sample_left = -(int16_t)voice->dist_clamp;
+            sample_left *= voice->dist_amplification;
+        }
+        
+        if(sample_right > voice->dist_clamp) {
+            sample_right = (int16_t)voice->dist_clamp;
+            sample_right *= voice->dist_amplification;
+        } else if(sample_right < -voice->dist_clamp) {
+            sample_right = -(int16_t)voice->dist_clamp;
+            sample_right *= voice->dist_amplification;
+        }
+        
+        byte_stream[index_left] += (int16_t)sample_left;
+        byte_stream[index_right] += (int16_t)sample_right;
+    } else {
+        byte_stream[index_left] += (int16_t)sample_left;
+        byte_stream[index_right] += (int16_t)sample_right;
+    }
     
     if(sample_left > INT16_MAX || sample_left < INT16_MIN || sample_right > INT16_MAX || sample_right < INT16_MIN) {
         synth->audio_clips = true;
     }
-    
-    byte_stream[index_left] += (int16_t)sample_left;
-    byte_stream[index_right] += (int16_t)sample_right;
 }
 
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
@@ -2436,6 +2457,25 @@ static void render_instrument_editor(double dt) {
     char c = cSynthGetCharFromParam((char)selected_instrument_id);
     sprintf(cval, "Ins %c", c);
     cEngineRenderLabelWithParams(raster2d, cval, 1, 2, cengine_color_white, cengine_color_black);
+    
+    // render preset instrument effects.
+    int offset_y = 300;
+    for (int i = 0; i < 5; i++) {
+        
+        //effect type
+        char cval[20];
+        struct CTrackNode *t = synth->instrument_effects[selected_instrument_id][i];
+        if(t != NULL) {
+            sprintf(cval, "%c", t->effect);
+            cEngineRenderLabelWithParams(raster2d, cval, 0, i*10+offset_y, cengine_color_white, cengine_color_black);
+        
+            sprintf(cval, "%c", t->effect_param1);
+            cEngineRenderLabelWithParams(raster2d, cval, 0, i*10+offset_y, cengine_color_white, cengine_color_black);
+        
+            sprintf(cval, "%c", t->effect_param2);
+            cEngineRenderLabelWithParams(raster2d, cval, 0, i*10+offset_y, cengine_color_white, cengine_color_black);
+        }
+    }
 }
 
 static void adsr_invert_y_render(double x, double y, int color) {
