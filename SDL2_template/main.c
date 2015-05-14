@@ -96,6 +96,10 @@ bool pattern_editor = false;
 int pattern_cursor_x = 0;
 int pattern_cursor_y = 0;
 bool instrument_editor = false;
+bool instrument_editor_effects = false;
+int instrument_editor_effects_x = 0;
+int instrument_editor_effects_y = 0;
+int visual_instrument_effects = 5;
 int selected_instrument_id = 0;
 int selected_instrument_node_index = 1;
 bool file_editor = false;
@@ -170,6 +174,7 @@ static int color_bg = 0xFF000000;
 #define cengine_color_blue 0xFF0000FF
 #define cengine_color_black 0xFF000000
 #define cengine_color_white 0xFFCCCCCC
+#define cengine_color_grey 0xFF666666
 #define cengine_color_magenta 0xFFFF00FF
 #define cengine_color_dull_green 0xFF117711
 
@@ -223,10 +228,13 @@ static void handle_note_keys(SDL_Keysym* keysym);
 static void handle_pattern_keys(SDL_Keysym* keysym);
 static void handle_instrument_keys(SDL_Keysym* keysym);
 static void handle_effect_keys(SDL_Keysym* keysym);
+static void instrument_effect_remove();
+static void handle_instrument_effect_keys(SDL_Keysym* keysym);
 static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
 static void render_audio(Sint16 *s_byteStream, int begin, int end, int length);
+bool channel_should_be_rendered(int v_i);
 void add_samples(struct CVoice *v, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
@@ -1256,7 +1264,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_a:
                 if(pattern_editor) {
-                    if(pattern_cursor_y > 0) {
+                    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                         if(synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] == 0) {
                             synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 1;
                         } else {
@@ -1282,20 +1290,22 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_e:
-                if(modifier) {
-                    file_editor = true;
-                    file_settings->file_editor_save = true;
-                    export_project = true;
-                    return;
-                }
-                if(pattern_editor) {
-                        if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-                            pattern_editor = false;
-                            current_track = pattern_cursor_y-1+visual_pattern_offset;
-                            visual_cursor_x = pattern_cursor_x*5;
-                            set_info_timer("jump to track");
-                        }
-                    return;
+                if(!instrument_editor && !instrument_editor_effects) {
+                    if(modifier) {
+                        file_editor = true;
+                        file_settings->file_editor_save = true;
+                        export_project = true;
+                        return;
+                    }
+                    if(pattern_editor) {
+                            if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+                                pattern_editor = false;
+                                current_track = pattern_cursor_y-1+visual_pattern_offset;
+                                visual_cursor_x = pattern_cursor_x*5;
+                                set_info_timer("jump to track");
+                            }
+                        return;
+                    }
                 }
                 break;
             case SDLK_s:
@@ -1365,7 +1375,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 pressed_left = true;
                 
                 if(instrument_editor) {
-                    
+                    if(instrument_editor_effects) {
+                        instrument_editor_effects_x--;
+                        if(instrument_editor_effects_x < 0) {
+                            instrument_editor_effects_x = 2;
+                        }
+                    }
                 } else {
                     if(modifier) {
                         octave--;
@@ -1385,7 +1400,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 pressed_right = true;
                 
                 if(instrument_editor) {
-                    
+                    if(instrument_editor_effects) {
+                        instrument_editor_effects_x++;
+                        if(instrument_editor_effects_x > 2) {
+                            instrument_editor_effects_x = 0;
+                        }
+                    }
                 } else {
                     if(modifier) {
                         octave++;
@@ -1405,7 +1425,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 pressed_up = true;
                 
                 if(instrument_editor) {
-                    
+                    if(instrument_editor_effects) {
+                        instrument_editor_effects_y--;
+                        if(instrument_editor_effects_y < 0) {
+                            instrument_editor_effects_y = visual_instrument_effects-1;
+                        }
+                    }
                 } else if(modifier && pattern_editor) {
                     visual_pattern_offset -= 16;
                     if(visual_pattern_offset < 0){
@@ -1431,7 +1456,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 pressed_down = true;
                 
                 if(instrument_editor) {
-                
+                    if(instrument_editor_effects) {
+                        instrument_editor_effects_y++;
+                        if(instrument_editor_effects_y >= visual_instrument_effects) {
+                            instrument_editor_effects_y = 0;
+                        }
+                    }
                 } else if(modifier && pattern_editor) {
                     visual_pattern_offset += 16;
                     if(visual_pattern_offset > 48){
@@ -1454,7 +1484,11 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_BACKSPACE:
             case SDLK_DELETE:
-                if(instrument_editor) {}
+                if(instrument_editor) {
+                    if(instrument_editor_effects) {
+                        instrument_effect_remove();
+                    }
+                }
                 else if(pattern_editor) {}
                 else if(editing) {
                     int x_count = visual_cursor_x%5;
@@ -1523,6 +1557,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_LSHIFT:
                 shift_down = true;
+                
+                if(instrument_editor) {
+                    if(instrument_editor_effects) {
+                        instrument_editor_effects = false;
+                    } else {
+                        instrument_editor_effects = true;
+                    }
+                }
                 break;
             default:
                 break;
@@ -1535,7 +1577,10 @@ void handle_key_down(SDL_Keysym* keysym) {
     
     int x_count = visual_cursor_x%5;
     
-    if(pattern_editor) {
+    if(instrument_editor && instrument_editor_effects) {
+        handle_instrument_effect_keys(keysym);
+        return;
+    } else if(pattern_editor) {
         handle_pattern_keys(keysym);
         return;
     } else if(x_count == 1 && editing) {
@@ -1932,6 +1977,118 @@ static void handle_effect_keys(SDL_Keysym* keysym) {
     }
 }
 
+
+static void instrument_effect_remove() {
+    
+    int instrument = selected_instrument_id;
+    
+    struct CTrackNode *node = synth->instrument_effects[instrument][instrument_editor_effects_y];
+    if(node == NULL) {
+        node = cSynthNewTrackNode();
+        synth->instrument_effects[instrument][instrument_editor_effects_y] = node;
+    }
+    
+    if(instrument_editor_effects_x == 0) {
+        node->effect = '-';
+        node->effect_value = -1;
+    }
+    
+    if(instrument_editor_effects_x == 1) {
+        node->effect_param1 = '-';
+        node->effect_param1_value = -1;
+    }
+    
+    if(instrument_editor_effects_x == 2) {
+        node->effect_param2 = '-';
+        node->effect_param2_value = -1;
+    }
+}
+
+static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
+    
+    int instrument = selected_instrument_id;
+    char value = -1;
+    
+    switch(keysym->sym) {
+        case SDLK_a:
+            value = 10;
+            break;
+        case SDLK_b:
+            value = 11;
+            break;
+        case SDLK_c:
+            value = 12;
+            break;
+        case SDLK_d:
+            value = 13;
+            break;
+        case SDLK_e:
+            value = 14;
+            break;
+        case SDLK_f:
+            value = 15;
+            break;
+        case SDLK_0:
+            value = 0;
+            break;
+        case SDLK_1:
+            value = 1;
+            break;
+        case SDLK_2:
+            value = 2;
+            break;
+        case SDLK_3:
+            value = 3;
+            break;
+        case SDLK_4:
+            value = 4;
+            break;
+        case SDLK_5:
+            value = 5;
+            break;
+        case SDLK_6:
+            value = 6;
+            break;
+        case SDLK_7:
+            value = 7;
+            break;
+        case SDLK_8:
+            value = 8;
+            break;
+        case SDLK_9:
+            value = 9;
+            break;
+        default:
+            break;
+            
+    }
+    
+    printf("value:%d", value);
+    
+    if(value > -1) {
+        struct CTrackNode *node = synth->instrument_effects[instrument][instrument_editor_effects_y];
+        if(node == NULL) {
+            node = cSynthNewTrackNode();
+            synth->instrument_effects[instrument][instrument_editor_effects_y] = node;
+        }
+        
+        if(instrument_editor_effects_x == 0) {
+            node->effect = cSynthGetCharFromParam(value);
+            node->effect_value = value;
+        }
+        
+        if(instrument_editor_effects_x == 1) {
+            node->effect_param1 = cSynthGetCharFromParam(value);
+            node->effect_param1_value = value;
+        }
+        
+        if(instrument_editor_effects_x == 2) {
+            node->effect_param2 = cSynthGetCharFromParam(value);
+            node->effect_param2_value = value;
+        }
+    }
+}
+
 static void check_sdl_events(SDL_Event event) {
     
     while (SDL_PollEvent(&event)) {
@@ -2036,7 +2193,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
         } else if (synth->solo_voice > -1 && voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
             // this is the solo channel. No care if muted.
             advance = true;
-        } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL) {
+        } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL && !voice->linked) {
             advance = true;
         }
         
@@ -2145,9 +2302,45 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
         }
     }
     
+    // render linked channels
+    /*
+     
+     TODO: render all channels to temp_buffers, and mix those that are linked. Mix the rest to master..
+     
+     
+    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
+        if(channel_should_be_rendered(v_i)) {
+            struct CVoice *voice = synth->voices[v_i];
+            if(voice->linked) {
+                if(voice->linked_dist_channel > -1 && voice->linked_dist_channel != v_i) {
+                
+                }
+            }
+        }
+    }*/
+    
     if(playing || exporting) {
         cSynthAdvanceTrack(synth, length);
     }
+}
+
+bool channel_should_be_rendered(int v_i) {
+    
+    struct CVoice *voice = synth->voices[v_i];
+    struct CInstrument *ins = voice->instrument;
+    bool advance = false;
+    if(synth->solo_voice > -1 && v_i != synth->solo_voice) {
+        // if solo is active and this is a channel that is not the solo channel.
+    } else if (synth->solo_voice > -1 && voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
+        // this is the solo channel. No care if muted.
+        advance = true;
+    } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL) {
+        advance = true;
+    }
+    if(advance) {
+        return true;
+    }
+    return false;
 }
 
 void add_samples(struct CVoice *voice, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
@@ -2376,7 +2569,7 @@ static void render_instrument_editor(double dt) {
         speed *= 0.1;
     }
     
-    if(selected_instrument_node_index > 0) {
+    if(selected_instrument_node_index > 0 && !instrument_editor_effects) {
         if (pressed_left) {
             double pos1 = ins->adsr[selected_instrument_node_index-1]->pos;
             double pos2 = ins->adsr[selected_instrument_node_index]->pos;
@@ -2459,21 +2652,42 @@ static void render_instrument_editor(double dt) {
     cEngineRenderLabelWithParams(raster2d, cval, 1, 2, cengine_color_white, cengine_color_black);
     
     // render preset instrument effects.
-    int offset_y = 300;
-    for (int i = 0; i < 5; i++) {
-        
-        //effect type
-        char cval[20];
-        struct CTrackNode *t = synth->instrument_effects[selected_instrument_id][i];
-        if(t != NULL) {
-            sprintf(cval, "%c", t->effect);
-            cEngineRenderLabelWithParams(raster2d, cval, 0, i*10+offset_y, cengine_color_white, cengine_color_black);
-        
-            sprintf(cval, "%c", t->effect_param1);
-            cEngineRenderLabelWithParams(raster2d, cval, 0, i*10+offset_y, cengine_color_white, cengine_color_black);
-        
-            sprintf(cval, "%c", t->effect_param2);
-            cEngineRenderLabelWithParams(raster2d, cval, 0, i*10+offset_y, cengine_color_white, cengine_color_black);
+    int offset_y = 13;
+    for (int x = 0; x < 3; x++) {
+        for (int y = 0; y < visual_instrument_effects; y++) {
+            
+            //effect type
+            char cval[20];
+            struct CTrackNode *t = synth->instrument_effects[selected_instrument_id][y];
+            
+            int color = cengine_color_white;
+            int bg_color = cengine_color_black;
+            if(x == instrument_editor_effects_x && y == instrument_editor_effects_y && instrument_editor_effects) {
+                color = cengine_color_black;
+                bg_color = cengine_color_magenta;
+            } else if(!instrument_editor_effects){
+                color = cengine_color_grey;
+            }
+            
+            if(t != NULL) {
+                
+                if(x == 0) {
+                    sprintf(cval, "%c", t->effect);
+                    cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
+                }
+                
+                if(x == 1) {
+                    sprintf(cval, "%c", t->effect_param1);
+                    cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
+                }
+                
+                if(x == 2) {
+                    sprintf(cval, "%c", t->effect_param2);
+                    cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
+                }
+            } else {
+                cEngineRenderLabelWithParams(raster2d, "-", x+1, y+offset_y, color, bg_color);
+            }
         }
     }
 }
