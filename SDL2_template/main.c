@@ -235,7 +235,8 @@ static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
 static void render_audio(Sint16 *s_byteStream, int begin, int end, int length);
 bool channel_should_be_rendered(int v_i);
-void add_samples(struct CVoice *v, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
+void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, int length);
+void add_samples(int voice_index, struct CVoice *v, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
@@ -1290,23 +1291,24 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_e:
-                if(!instrument_editor && !instrument_editor_effects) {
-                    if(modifier) {
-                        file_editor = true;
-                        file_settings->file_editor_save = true;
-                        export_project = true;
-                        return;
-                    }
-                    if(pattern_editor) {
-                            if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-                                pattern_editor = false;
-                                current_track = pattern_cursor_y-1+visual_pattern_offset;
-                                visual_cursor_x = pattern_cursor_x*5;
-                                set_info_timer("jump to track");
-                            }
-                        return;
-                    }
+                if(instrument_editor) {
                 }
+                else if(modifier) {
+                    file_editor = true;
+                    file_settings->file_editor_save = true;
+                    export_project = true;
+                    return;
+                }
+                else if(pattern_editor) {
+                        if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+                            pattern_editor = false;
+                            current_track = pattern_cursor_y-1+visual_pattern_offset;
+                            visual_cursor_x = pattern_cursor_x*5;
+                            set_info_timer("jump to track");
+                        }
+                    return;
+                }
+                
                 break;
             case SDLK_s:
                 if(modifier) {
@@ -2193,7 +2195,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
         } else if (synth->solo_voice > -1 && voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
             // this is the solo channel. No care if muted.
             advance = true;
-        } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL && !voice->linked) {
+        } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL) {
             advance = true;
         }
         
@@ -2204,7 +2206,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
             cSynthVoiceApplyEffects(synth, voice);
             double delta_phi = (double) (cSynthGetFrequency((double)voice->tone_with_fx) / d_sampleRate * (double)d_waveformLength);
             
-            for (i = begin; i < end; i+=2) {
+            for (i = 0; i < length; i+=2) {
                 if(voice->note_on) {
                     
                     double amp = 0;
@@ -2269,7 +2271,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                         if(s_byteStream != NULL) {
                             int sample_left = (int)((voice->downsample_last_sample * amp_left) * synth->master_amp);
                             int sample_right = (int)((voice->downsample_last_sample * amp_right) * synth->master_amp);
-                            add_samples(voice, sample_left, sample_right, s_byteStream, i, i+1);
+                            add_samples(v_i, voice, sample_left, sample_right, s_byteStream, i, i+1);
                         }
                         
                     } else {
@@ -2279,7 +2281,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                                 if(s_byteStream != NULL) {
                                     int sample_left = (int)((sample * amp_left) * synth->master_amp);
                                     int sample_right = (int)((sample * amp_right) * synth->master_amp);
-                                    add_samples(voice, sample_left, sample_right, s_byteStream, i, i+1);
+                                    add_samples(v_i, voice, sample_left, sample_right, s_byteStream, i, i+1);
                                 }
                             }
                         } else if(voice->phase_int < synth->wave_length) {
@@ -2293,7 +2295,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             if(s_byteStream != NULL) {
                                 int sample_left = (int)((sample * amp_left) * synth->master_amp);
                                 int sample_right = (int)((sample * amp_right) * synth->master_amp);
-                                add_samples(voice, sample_left, sample_right, s_byteStream, i, i+1);
+                                add_samples(v_i, voice, sample_left, sample_right, s_byteStream, i, i+1);
                             }
                         }
                     }
@@ -2303,21 +2305,41 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
     }
     
     // render linked channels
-    /*
+    
      
-     TODO: render all channels to temp_buffers, and mix those that are linked. Mix the rest to master..
+   //  TODO: render all channels to temp_buffers, and mix those that are linked. Mix the rest to master..
      
-     
-    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
-        if(channel_should_be_rendered(v_i)) {
-            struct CVoice *voice = synth->voices[v_i];
-            if(voice->linked) {
-                if(voice->linked_dist_channel > -1 && voice->linked_dist_channel != v_i) {
+    
+    if(s_byteStream != NULL) {
+        for(int v_i = 0; v_i < synth->max_voices; v_i++) {
+            if(channel_should_be_rendered(v_i)) {
+                struct CVoice *voice = synth->voices[v_i];
                 
+                if(voice->linked) {
+                    if(voice->linked_dist_channel > -1) {
+                        for(i = 0; i < length; i+=2) {
+                            synth->temp_mixdown_buffer[v_i][i] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i];
+                            synth->temp_mixdown_buffer[v_i][i+1] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i+1];
+                        }
+                        
+                        dist_clamp(voice, synth->temp_mixdown_buffer[v_i], length);
+                        
+                        for(i = 0; i < length; i+=2) {
+                            //printf("linked_amp:%f\n", voice->linked_amp);
+                            
+                            s_byteStream[i+begin] += (int16_t)synth->temp_mixdown_buffer[v_i][i] * voice->linked_amp;
+                            s_byteStream[i+begin+1] += (int16_t)synth->temp_mixdown_buffer[v_i][i+1] * voice->linked_amp;
+                        }
+                    }
+                } else {
+                    for(i = 0; i < length; i+=2) {
+                        s_byteStream[i+begin] += (int16_t)synth->temp_mixdown_buffer[v_i][i];
+                        s_byteStream[i+begin+1] += (int16_t)synth->temp_mixdown_buffer[v_i][i+1];
+                    }
                 }
             }
         }
-    }*/
+    }
     
     if(playing || exporting) {
         cSynthAdvanceTrack(synth, length);
@@ -2343,9 +2365,24 @@ bool channel_should_be_rendered(int v_i) {
     return false;
 }
 
-void add_samples(struct CVoice *voice, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
+void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, int length) {
     
-    if(voice->dist_active) {
+    //printf("dist_clamp:%f\n", voice->dist_clamp);
+    
+    for(int i = 0; i < length; i++) {
+        if(byte_stream[i] > voice->dist_clamp) {
+            byte_stream[i] = (int16_t)voice->dist_clamp;
+            byte_stream[i] *= voice->dist_amplification;
+        } else if(byte_stream[i] < -voice->dist_clamp) {
+            byte_stream[i] = -(int16_t)voice->dist_clamp;
+            byte_stream[i] *= voice->dist_amplification;
+        }
+    }
+}
+
+void add_samples(int voice_index, struct CVoice *voice, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
+    
+    if(voice->dist_active && !voice->linked) {
         if(sample_left > voice->dist_clamp) {
             sample_left = (int16_t)voice->dist_clamp;
             sample_left *= voice->dist_amplification;
@@ -2362,11 +2399,27 @@ void add_samples(struct CVoice *voice, int sample_left, int sample_right, Sint16
             sample_right *= voice->dist_amplification;
         }
         
-        byte_stream[index_left] += (int16_t)sample_left;
-        byte_stream[index_right] += (int16_t)sample_right;
+        //byte_stream[index_left] += (int16_t)sample_left;
+        //byte_stream[index_right] += (int16_t)sample_right;
+        
+        
+        if(index_left < synth->temp_mixdown_size) {
+            synth->temp_mixdown_buffer[voice_index][index_left] = (int16_t)sample_left;
+        }
+        
+        if(index_right < synth->temp_mixdown_size) {
+            synth->temp_mixdown_buffer[voice_index][index_right] = (int16_t)sample_right;
+        }
     } else {
-        byte_stream[index_left] += (int16_t)sample_left;
-        byte_stream[index_right] += (int16_t)sample_right;
+        //byte_stream[index_left] += (int16_t)sample_left;
+        //byte_stream[index_right] += (int16_t)sample_right;
+        if(index_left < synth->temp_mixdown_size) {
+            synth->temp_mixdown_buffer[voice_index][index_left] = (int16_t)sample_left;
+        }
+        
+        if(index_right < synth->temp_mixdown_size) {
+            synth->temp_mixdown_buffer[voice_index][index_right] = (int16_t)sample_right;
+        }
     }
     
     if(sample_left > INT16_MAX || sample_left < INT16_MIN || sample_right > INT16_MAX || sample_right < INT16_MIN) {

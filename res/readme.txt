@@ -91,7 +91,8 @@ effects
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
 5xx - distortion (clamp, clamp).
-6xx - link distortion (clamp, link)
+6xx - link distortion (channel, amp)
+7xx - detune (amount, amount) 88 is middle
 8xx - PWM (linear position/oscillation depth, oscillation speed) works only on squarewave. If param2 is present, param1 will be used for osc depth.
 9xx - stack effects (positivt value activates, 0 eller - turns off.)
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
