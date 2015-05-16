@@ -846,7 +846,7 @@ static void paste_pattern(int cursor_x, int cursor_y) {
 
 static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     
-    printf("track node value:%d\n", value);
+    //printf("track node value:%d\n", value);
     
     int x_count = visual_cursor_x%5;
     
@@ -910,7 +910,7 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
 static void set_visual_cursor(int diff_x, int diff_y, bool user) {
     
     if(diff_x == 0 && diff_y == 1) {
-        printf("moving down true\n");
+        //printf("moving down true\n");
     }
     
     if(shift_down) {
