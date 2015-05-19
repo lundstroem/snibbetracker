@@ -94,7 +94,6 @@ effects
 6xx - link distortion (channel, amp)
 7xx - detune (amount, amount) 88 is middle
 8xx - PWM (linear position/oscillation depth, oscillation speed) works only on squarewave. If param2 is present, param1 will be used for osc depth.
-9xx - stack effects (positivt value activates, 0 eller - turns off.)
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.

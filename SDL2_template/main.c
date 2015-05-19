@@ -2065,7 +2065,7 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
             
     }
     
-    printf("value:%d", value);
+    printf("value:%d ins:%d", value, instrument);
     
     if(value > -1) {
         struct CTrackNode *node = synth->instrument_effects[instrument][instrument_editor_effects_y];
@@ -2381,6 +2381,7 @@ void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, int length) {
 }
 
 void add_samples(int voice_index, struct CVoice *voice, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
+    
     
     if(voice->dist_active && !voice->linked) {
         if(sample_left > voice->dist_clamp) {
