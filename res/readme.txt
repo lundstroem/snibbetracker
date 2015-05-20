@@ -39,6 +39,7 @@ trackview
 - modifier+c/v: copy paste note (or selection).
 - character keys: play notes or edit effects.
 - modifier+f: toggle play cursor follow.
+- home/end: go to top / bottom.
 track format explanation:
 a = note, b = instrument number, ccc = effects. 6 supported channels.
 a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
@@ -56,6 +57,7 @@ patternview
 - s: solo track (or channel if cursor is at the top)
 - modifier+up/down: cycle tracks (0-63).
 - modifier+c/v: copy paste track data.
+- home/end: go to top / bottom.
 
 instrument view
 ----------------
@@ -111,7 +113,7 @@ Rows - number of active rows in patterns.
 Arp - arpeggio speed.
 Swing - swing amount.
 Preview - toggle for if notes should be audiable when playing on the keyboard.
- 
+Beat - row interval to highlight in track.
 
 changelog
 ----------------

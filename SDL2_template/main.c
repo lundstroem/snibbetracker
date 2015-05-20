@@ -1044,7 +1044,7 @@ static void toggle_playback(void) {
     if(playing == false) {
         playing = true;
         if(pattern_editor) {
-            if(pattern_cursor_y > 0 && pattern_cursor_y < synth->patterns_height) {
+            if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                 cSynthResetTrackProgress(synth, pattern_cursor_y-1+visual_pattern_offset, 0);
             } else {
                 cSynthResetTrackProgress(synth, current_track, 0);
