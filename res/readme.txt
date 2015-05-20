@@ -63,6 +63,8 @@ instrument view
 - modifier+arrow keys: move node slow.
 - tab: cycle nodes.
 - spacebar: go to pattern view.
+- shift: toggle editing of envelop or effects.
+- home/end: cycle instruments.
 
 global controls
 ----------------
@@ -91,8 +93,8 @@ effects
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
 5xx - distortion (clamp, clamp).
-6xx - link distortion (channel, amp)
-7xx - detune (amount, amount) 88 is middle
+6xx - link distortion (channel, amp) premix current channel with another channel (0-6).
+7xx - detune (amount, amount) 88 is middle.
 8xx - PWM (linear position/oscillation depth, oscillation speed) works only on squarewave. If param2 is present, param1 will be used for osc depth.
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.

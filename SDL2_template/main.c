@@ -122,50 +122,6 @@ int sine_scroll = 0;
 #define sheet_height 1024
 int fullscreen = 0;
 
-
-
-/*
- TODO: 
- - formatting.
- - delete old filehandling crap
- - add colors to settings file.
- - move logic out of input handler
-
- 
-static int color_font = 0xFFCCCCCC;
-static int color_font_bg = 0xFF222222;
-
-static int color_cursor_font = 0xFFCCCCCC;
-static int color_cursor_bg = 0xFF771111;
-
-static int color_cursor_active_font = 0xFFCCCCCC;
-static int color_cursor_active_bg = 0xFF992222;
-
-static int color_playing_row_font = 0xFFCCCCCC;
-static int color_playing_row_bg = 0xFF229922;
-
-//static int color_pattern_row_font = 0xFFCCCCCC;
-//static int color_pattern_row_bg = 0xFF771111;
-
-static int color_active_pattern_row_font = 0xFFCCCCCC;
-static int color_active_pattern_row_bg = 0xFF229922;
-
-static int color_playing_pattern_row_font = 0xFFCCCCCC;
-static int color_playing_pattern_row_bg = 0xFF229922;
-
-static int color_instrument_line = 0xFFCCCCCC;
-static int color_adsr_line = 0xFF229922;
-static int color_adsr_inactive_node = 0xFF771111;
-static int color_adsr_active_node = 0xFF229922;
-static int color_voice_1_bg = 0xFF332222;
-static int color_voice_2_bg = 0xFF223322;
-static int color_voice_3_bg = 0xFF222233;
-static int color_voice_4_bg = 0xFF332233;
-static int color_voice_5_bg = 0xFF333322;
-static int color_voice_6_bg = 0xFF223333;
-static int color_bg = 0xFF000000;
-
- */
  
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFFFF0000
@@ -1172,18 +1128,30 @@ void handle_key_down(SDL_Keysym* keysym) {
         
         switch(keysym->sym) {
             case SDLK_HOME:
-                if(pattern_editor) {
+                if(instrument_editor) {
+                    int ins_id = selected_instrument_id-1;
+                    if(ins_id < 0) {
+                        ins_id = synth->max_instruments-1;
+                    }
+                    selected_instrument_id = ins_id;
+                    printf("selected ins:%d", ins_id);
+                } else if(pattern_editor) {
                     pattern_cursor_y = 0;
-                } else if(instrument_editor) {
                 } else {
                     visual_cursor_y = 0;
                 }
                 break;
             case SDLK_END:
-                if(pattern_editor) {
+                if(instrument_editor) {
+                    int ins_id = selected_instrument_id+1;
+                    if(ins_id >= synth->max_instruments) {
+                        ins_id = 0;
+                    }
+                    selected_instrument_id = ins_id;
+                    printf("selected ins:%d", ins_id);
+                } else if(pattern_editor) {
                     pattern_cursor_y = synth->patterns_and_voices_height-1;
-                } else if(instrument_editor) {
-                } else {
+                }  else {
                     visual_cursor_y = synth->track_height-1;
                 }
                 break;
@@ -1558,14 +1526,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_LSHIFT:
-                shift_down = true;
-                
                 if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_editor_effects = false;
                     } else {
                         instrument_editor_effects = true;
                     }
+                } else {
+                    shift_down = true;
                 }
                 break;
             default:
@@ -2531,6 +2499,16 @@ static void change_param(bool plus) {
         } else {
             synth->preview_enabled = true;
         }
+    } else if(y == 21 && x == 1) {
+        if(plus) {
+            synth->track_highlight_interval++;
+        } else {
+            synth->track_highlight_interval--;
+        }
+        if(synth->track_highlight_interval < 2) {
+            synth->track_highlight_interval = 2;
+        }
+    
     } else if(y == 19 && x == 1) {
        
         
@@ -2607,7 +2585,11 @@ static void draw_line(int x0, int y0, int x1, int y1) {
         pos_y += g_vec_y;
         int i_pos_x = (int)pos_x;
         int i_pos_y = (int)pos_y;
-        adsr_invert_y_render(i_pos_x, i_pos_y, 0xff00ff00);
+        if(instrument_editor_effects) {
+            adsr_invert_y_render(i_pos_x, i_pos_y, cengine_color_grey);
+        } else {
+            adsr_invert_y_render(i_pos_x, i_pos_y, cengine_color_green);
+        }
         i++;
     }
 }
@@ -2670,8 +2652,13 @@ static void render_instrument_editor(double dt) {
         double g_pos = (i*(pos_factor*0.001)) + inset_x;
         int top_line_y = (int)(amp_factor + inset_y);
         int bottom_line_y = 0 + inset_y;
-        adsr_invert_y_render(g_pos, top_line_y, cengine_color_white);
-        adsr_invert_y_render(g_pos, bottom_line_y, cengine_color_white);
+        if(instrument_editor_effects) {
+            adsr_invert_y_render(g_pos, top_line_y, cengine_color_grey);
+            adsr_invert_y_render(g_pos, bottom_line_y, cengine_color_grey);
+        } else {
+            adsr_invert_y_render(g_pos, top_line_y, cengine_color_white);
+            adsr_invert_y_render(g_pos, bottom_line_y, cengine_color_white);
+        }
     }
     
     for(i = 0; i < max_nodes-1; i++) {
@@ -2692,7 +2679,9 @@ static void render_instrument_editor(double dt) {
         for(int x = -2; x < 2; x++) {
             for(int y = -2; y < 2; y++) {
                 int color = cengine_color_red;
-                if(i == selected_instrument_node_index) {
+                if(instrument_editor_effects) {
+                    color = cengine_color_grey;
+                } else if(i == selected_instrument_node_index) {
                     color = cengine_color_green;
                 }
                 adsr_invert_y_render(g_pos+x, g_amp+y, color);
@@ -2834,6 +2823,10 @@ static void render_pattern_mapping(void) {
                 } else {
                     cEngineRenderLabelWithParams(raster2d, "Preview 0", x*10+inset_x, y+inset_y, color, bg_color);
                 }
+            } else if(y == 21 && x == 1) {
+                char cval[20];
+                sprintf(cval, "Beat %d", synth->track_highlight_interval);
+                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             }
             else if(y == 19) {
                 //nothing
@@ -3007,7 +3000,7 @@ static void render_track(double dt) {
     for (int y = 0; y < synth->track_height; y++) {
         offset_x = 0;
         node_y++;
-        if(node_y > 3) {
+        if(node_y > synth->track_highlight_interval-1) {
             node_y = 0;
         }
         for (int x = 0; x < visual_track_width; x++) {
@@ -3393,7 +3386,7 @@ static int get_delta(void) {
         if(delta <= 0) {
             delta = 1;
         }
-        double fps = 1000/delta;
+        //double fps = 1000/delta;
         if(fps_print_interval >= print_interval_limit) {
             //printf("fps:%f delta_time:%d\n", fps, delta);
         }
@@ -3727,8 +3720,11 @@ static void export_wav(char *filename) {
     exporting = true;
     synth->looped = false;
     
-    // alloc buffer of
+    // alloc buffer
     buffer = cAllocatorAlloc(sizeof(Sint16) * buffer_size, "export buffer");
+    for(int i = 0; i < buffer_size; i++) {
+        buffer[i] = 0;
+    }
     
     // render to buffer
     for(int i = 0; i < iterations; i++) {
