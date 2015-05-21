@@ -118,6 +118,32 @@ Beat - row interval to highlight in track.
 changelog
 ----------------
 
+build 11 - 2015-05-21 11.00
+- added effect table to instrument editor. These effects (pre-applied effects) will always be applied for the instrument (if not overridden with the same effect in the trackview). All effects will now be turned off after each row (and not as before by effect changes).
+- removed effect 9 (stacking) due to the introduction of instrument effects.
+- fixed bug where tone at the start of pattern disappears when moving a section of notes upwards.
+- instrument numbers on deleted notes get saved to file.
+- fixed bug where cursor does not go down when deleting note while playing.
+- fixed bug where export ignores config working dir.
+- added fullscreen setting to config
+- fixed bug where addnote skips rows when adding.
+- added deletekey, same use as backspace.
+- showing r:0 for example to show which row you are on.
+- added beat option for highlighting row intervals.
+- home/end keys get to top/bottom rows and cycle through instruments.
+- save/load preset effects in json.
+- controls for toggling adsr/effects in instrument (left shift).
+- clamp/dist effect - one linked / one channel wise.
+- added link effect (for pre-mixdown of channels).
+- fixed wrong instrument number when adding notes (unconfirmed).
+- fix bug where volume does not reset when removing A effect.
+- fixed bug where export wav buffer was not zeroed before use.
+- only play from track in pattern view if cursor is < 16 etc otherwise from track 0.
+- scroll for nodes in envelop.
+
+build 10 - 2015-05-10 11.40
+- fixed crash bug on XP when saving/loading/exporting.
+
 build 9 - 2015-05-07 07.48
 - added "move all notes in pattern-row below cursor up/down" in trackview. The notes that are moved out of the pattern area gets deleted.
 - added copy/cut/paste in trackview.
@@ -147,7 +173,7 @@ build 8 - 2015-03-20 10.48
 build 7 - 2015-03-15 08.59
 - edit cursor disconnected from player cursor. (can be toggled with modifier+F)
 - directory browsing completely disabled for saving and loading files, only uses the directory the exe is in.
-when loading files, just type the name without the .json and press enter, same as for saving.
+    when loading files, just type the name without the .json and press enter, same as for saving.
 
 build 6 - 2015-03-13 15.26
 - hopefully prevented crashes when saving (directory browsing is disabled for now).

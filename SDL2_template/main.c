@@ -115,7 +115,7 @@ char *info_string = NULL;
 bool show_tips = true;
 struct FileSettings *file_settings = NULL;
 int sine_scroll = 0;
-
+int envelop_node_camera_offset = 0;
 
 #define MAX_TOUCHES 8
 #define sheet_width 1024
@@ -2153,6 +2153,12 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
     
     Uint32 i;
     
+    for(i = 0; i < synth->max_voices; i++) {
+        for(int s_x = 0; s_x < synth->temp_mixdown_size; s_x++) {
+            synth->temp_mixdown_buffer[i][s_x] = 0;
+        }
+    }
+    
     for(int v_i = 0; v_i < synth->max_voices; v_i++) {
         struct CVoice *voice = synth->voices[v_i];
         struct CInstrument *ins = voice->instrument;
@@ -2274,10 +2280,6 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
     
     // render linked channels
     
-     
-   //  TODO: render all channels to temp_buffers, and mix those that are linked. Mix the rest to master..
-     
-    
     if(s_byteStream != NULL) {
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
             if(channel_should_be_rendered(v_i)) {
@@ -2285,18 +2287,20 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                 
                 if(voice->linked) {
                     if(voice->linked_dist_channel > -1) {
-                        for(i = 0; i < length; i+=2) {
-                            synth->temp_mixdown_buffer[v_i][i] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i];
-                            synth->temp_mixdown_buffer[v_i][i+1] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i+1];
-                        }
-                        
-                        dist_clamp(voice, synth->temp_mixdown_buffer[v_i], length);
-                        
-                        for(i = 0; i < length; i+=2) {
-                            //printf("linked_amp:%f\n", voice->linked_amp);
+                        if(channel_should_be_rendered(voice->linked_dist_channel)) {
+                            for(i = 0; i < length; i+=2) {
+                                synth->temp_mixdown_buffer[v_i][i] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i];
+                                synth->temp_mixdown_buffer[v_i][i+1] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i+1];
+                            }
                             
-                            s_byteStream[i+begin] += (int16_t)synth->temp_mixdown_buffer[v_i][i] * voice->linked_amp;
-                            s_byteStream[i+begin+1] += (int16_t)synth->temp_mixdown_buffer[v_i][i+1] * voice->linked_amp;
+                            if(voice->dist_active) {
+                                dist_clamp(voice, synth->temp_mixdown_buffer[v_i], length);
+                            }
+                            
+                            for(i = 0; i < length; i+=2) {
+                                s_byteStream[i+begin] += (int16_t)synth->temp_mixdown_buffer[v_i][i] * voice->linked_amp;
+                                s_byteStream[i+begin+1] += (int16_t)synth->temp_mixdown_buffer[v_i][i+1] * voice->linked_amp;
+                            }
                         }
                     }
                 } else {
@@ -2368,10 +2372,6 @@ void add_samples(int voice_index, struct CVoice *voice, int sample_left, int sam
             sample_right *= voice->dist_amplification;
         }
         
-        //byte_stream[index_left] += (int16_t)sample_left;
-        //byte_stream[index_right] += (int16_t)sample_right;
-        
-        
         if(index_left < synth->temp_mixdown_size) {
             synth->temp_mixdown_buffer[voice_index][index_left] = (int16_t)sample_left;
         }
@@ -2380,8 +2380,6 @@ void add_samples(int voice_index, struct CVoice *voice, int sample_left, int sam
             synth->temp_mixdown_buffer[voice_index][index_right] = (int16_t)sample_right;
         }
     } else {
-        //byte_stream[index_left] += (int16_t)sample_left;
-        //byte_stream[index_right] += (int16_t)sample_right;
         if(index_left < synth->temp_mixdown_size) {
             synth->temp_mixdown_buffer[voice_index][index_left] = (int16_t)sample_left;
         }
@@ -2665,9 +2663,9 @@ static void render_instrument_editor(double dt) {
         struct CadsrNode *node = ins->adsr[i];
         struct CadsrNode *node2 = ins->adsr[i+1];
         double g_amp = (node->amp*amp_factor) + inset_y;
-        double g_pos = (node->pos*pos_factor) + inset_x;
+        double g_pos = (node->pos*pos_factor) + inset_x - envelop_node_camera_offset;
         double g_amp2 = (node2->amp*amp_factor) + inset_y;
-        double g_pos2 = (node2->pos*pos_factor) + inset_x;
+        double g_pos2 = (node2->pos*pos_factor) + inset_x - envelop_node_camera_offset;
         draw_line((int)g_pos, (int)g_amp, (int)g_pos2, (int)g_amp2);
     }
     
@@ -2676,6 +2674,12 @@ static void render_instrument_editor(double dt) {
         struct CadsrNode *node = ins->adsr[i];
         double g_amp = (node->amp*amp_factor) + inset_y;
         double g_pos = (node->pos*pos_factor) + inset_x;
+        if(i == selected_instrument_node_index) {
+            envelop_node_camera_offset = (int)(g_pos) - (s_width/2);
+            if(envelop_node_camera_offset < 0) {
+                envelop_node_camera_offset = 0;
+            }
+        }
         for(int x = -2; x < 2; x++) {
             for(int y = -2; y < 2; y++) {
                 int color = cengine_color_red;
@@ -2684,7 +2688,7 @@ static void render_instrument_editor(double dt) {
                 } else if(i == selected_instrument_node_index) {
                     color = cengine_color_green;
                 }
-                adsr_invert_y_render(g_pos+x, g_amp+y, color);
+                adsr_invert_y_render(g_pos+x-envelop_node_camera_offset, g_amp+y, color);
             }
         }
     }
