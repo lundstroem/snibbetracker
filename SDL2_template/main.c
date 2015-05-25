@@ -102,6 +102,7 @@ int instrument_editor_effects_y = 0;
 int visual_instrument_effects = 5;
 int selected_instrument_id = 0;
 int selected_instrument_node_index = 1;
+int copied_instrument = -1;
 bool file_editor = false;
 bool file_editor_confirm_action = false;
 bool file_editor_existing_file = false;
@@ -165,6 +166,8 @@ static void update_and_render_info(double dt);
 static void setup_data(void);
 static void convert_input(int x, int y);
 static void cleanup_data(void);
+static void copy_instrument(int instrument);
+static void paste_instrument(int instrument);
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store);
 static void paste_notes(int track, int cursor_x, int cursor_y);
 static void copy_pattern(int cursor_x, int cursor_y);
@@ -756,6 +759,44 @@ static void cleanup_data(void) {
     conf_default_dir = cAllocatorFree(conf_default_dir);
 }
 
+static void copy_instrument(int instrument) {
+    
+    if (instrument > -1 && instrument < synth->max_instruments) {
+        copied_instrument = instrument;
+    }
+}
+
+static void paste_instrument(int instrument) {
+    
+    if (instrument > -1 && instrument < synth->max_instruments
+        && copied_instrument > -1 && copied_instrument < synth->max_instruments) {
+        struct CInstrument *ins = synth->instruments[instrument];
+        struct CInstrument *copied_ins = synth->instruments[copied_instrument];
+        for(int c = 0; c < ins->adsr_nodes; c++) {
+            ins->adsr[c]->amp = copied_ins->adsr[c]->amp;
+            ins->adsr[c]->pos = copied_ins->adsr[c]->pos;
+        }
+        ins->adsr[0]->amp = copied_ins->adsr[0]->amp;
+        ins->adsr[0]->pos = copied_ins->adsr[0]->pos;
+        ins->adsr[1]->amp = copied_ins->adsr[1]->amp;
+        ins->adsr[1]->pos = copied_ins->adsr[1]->pos;
+        ins->adsr[2]->amp = copied_ins->adsr[2]->amp;
+        ins->adsr[2]->pos = copied_ins->adsr[2]->pos;
+        ins->adsr[3]->amp = copied_ins->adsr[3]->amp;
+        ins->adsr[3]->pos = copied_ins->adsr[3]->pos;
+        ins->adsr[4]->amp = copied_ins->adsr[4]->amp;
+        ins->adsr[4]->pos = copied_ins->adsr[4]->pos;
+        for(int c = 0; c < synth->max_instrument_effects; c++) {
+            if (synth->instrument_effects[instrument][c] != NULL) {
+                synth->instrument_effects[instrument][c] = cAllocatorFree(synth->instrument_effects[instrument][c]);
+            }
+            if (synth->instrument_effects[copied_instrument][c] != NULL) {
+                synth->instrument_effects[instrument][c] = cSynthCopyTracknode(synth->instrument_effects[copied_instrument][c]);
+            }
+        }
+    }
+}
+
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store) {
     
     cSynthCopyNotesFromSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, cut, store);
@@ -763,13 +804,6 @@ static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, i
     last_selection_y = cursor_y;
     last_selection_w = selection_x;
     last_selection_h = selection_y;
-    
-    /* TODO
-    - show green bg color when playing over selection.
-    - backspace to cut selection. (no notes should be saved to temp storage)
-    - copypaste should not be enabled without editing true?
-    - copy paste in pattern view
-     */
 }
 
 static void paste_notes(int track, int cursor_x, int cursor_y) {
@@ -1186,8 +1220,26 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
                     else if(pattern_editor) {
-                        if(editing) {
+                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
+                            int instrument = -1;
+                            if(pattern_cursor_y < 19) {
+                                int ins_nr = pattern_cursor_x;
+                                if(pattern_cursor_y == 18) {
+                                    ins_nr += 6;
+                                }
+                                instrument = ins_nr;
+                            } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
+                                int ins_nr = pattern_cursor_x;
+                                ins_nr += 12;
+                                instrument = ins_nr;
+                            }
+                            if(instrument > -1) {
+                                set_info_timer("copy instrument");
+                                copy_instrument(instrument);
+                            }
+                        } else {
                             copy_pattern(pattern_cursor_x, pattern_cursor_y);
+                            set_info_timer("copy pattern");
                         }
                     } else {
                         if(editing) {
@@ -1218,9 +1270,26 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
                     else if(pattern_editor) {
-                        // TODO make copy/paste for pattern editor.
-                        if(editing) {
+                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
+                            int instrument = -1;
+                            if(pattern_cursor_y < 19) {
+                                int ins_nr = pattern_cursor_x;
+                                if(pattern_cursor_y == 18) {
+                                    ins_nr += 6;
+                                }
+                                instrument = ins_nr;
+                            } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
+                                int ins_nr = pattern_cursor_x;
+                                ins_nr += 12;
+                                instrument = ins_nr;
+                            }
+                            if(instrument > -1) {
+                                set_info_timer("paste instrument");
+                                paste_instrument(instrument);
+                            }
+                        } else {
                             paste_pattern(pattern_cursor_x, pattern_cursor_y);
+                            set_info_timer("paste pattern");
                         }
                     } else {
                         if(editing) {
@@ -3223,7 +3292,7 @@ static void setup_sdl(void) {
             }
             
             SDL_GL_SetSwapInterval(1);
-            char title_string[40];
+            char title_string[256];
             sprintf(title_string, "%s (build:%d)", title, synth->build_number);
             SDL_SetWindowTitle(window, title_string);
             visual_track_height = synth->track_height;
