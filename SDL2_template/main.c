@@ -58,7 +58,7 @@ char *conf_default_dir = NULL;
 int current_pattern = 0;
 int current_track = 0;
 int quit = 0;
-char *title = "snibbetracker test (experimental)";
+char *title = "snibbetracker test";
 struct CInput *input = NULL;
 unsigned int *raster = NULL;
 unsigned int **raster2d = NULL;
@@ -1168,7 +1168,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         ins_id = synth->max_instruments-1;
                     }
                     selected_instrument_id = ins_id;
-                    printf("selected ins:%d", ins_id);
+                    //printf("selected ins:%d", ins_id);
                 } else if(pattern_editor) {
                     pattern_cursor_y = 0;
                 } else {
@@ -1182,7 +1182,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         ins_id = 0;
                     }
                     selected_instrument_id = ins_id;
-                    printf("selected ins:%d", ins_id);
+                    //printf("selected ins:%d", ins_id);
                 } else if(pattern_editor) {
                     pattern_cursor_y = synth->patterns_and_voices_height-1;
                 }  else {
@@ -2102,7 +2102,7 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
             
     }
     
-    printf("value:%d ins:%d", value, instrument);
+    //printf("value:%d ins:%d", value, instrument);
     
     if(value > -1) {
         struct CTrackNode *node = synth->instrument_effects[instrument][instrument_editor_effects_y];
@@ -2331,6 +2331,8 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             int16_t sample = 0;
                             if(voice->waveform == synth->square_wave_table && voice->pwm_active) {
                                 sample = cSynthGetPWMSample(synth, voice, voice->phase_int);
+                            } else if(voice->fm_active) {
+                                sample = cSynthGetFMSample(synth, voice);
                             } else {
                                 sample = voice->waveform[voice->phase_int];
                             }

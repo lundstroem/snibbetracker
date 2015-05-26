@@ -97,7 +97,8 @@ effects
 5xx - distortion (clamp, clamp).
 6xx - link distortion (channel, amp) premix current channel with another channel (0-6).
 7xx - detune (amount, amount) 88 is middle.
-8xx - PWM (linear position/oscillation depth, oscillation speed) works only on squarewave. If param2 is present, param1 will be used for osc depth.
+8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
+9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
@@ -111,12 +112,20 @@ Amp - master amplitude, used both for previewing and exporting. Shows red if cli
 Active - number of active pattern rows.
 Rows - number of active rows in patterns.
 Arp - arpeggio speed.
-Swing - swing amount.
+Swing - swing amount. TODO: tempo will not be synced to current BPM, needs to be fixed.
 Preview - toggle for if notes should be audiable when playing on the keyboard.
 Beat - row interval to highlight in track.
 
 changelog
 ----------------
+
+build 12 - 2015-05-26 12.32
+- fixed effects so that they are not reset by the next row if there is no new note. (might be more adjustments needed).
+- made FM for other waveforms other than square for effect 8. (depth, speed).
+- made effect for changing waveform for channel (9). (channel, wavetype)
+- copy/paste instruments in pattern editor.
+- adjusted slow pitch shift param to be a bit faster.
+- decreased detune modifier.
 
 build 11 - 2015-05-21 11.00
 - added effect table to instrument editor. These effects (pre-applied effects) will always be applied for the instrument (if not overridden with the same effect in the trackview). All effects will now be turned off after each row (and not as before by effect changes).
