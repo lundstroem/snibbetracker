@@ -12,6 +12,7 @@
 #include "cJSON.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include "file_settings.h"
 #include <SDL2/SDL.h>
 #include <string.h>
@@ -192,9 +193,9 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym);
 static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
-static void render_audio(Sint16 *s_byteStream, int begin, int end, int length);
+static void render_audio(Sint16 *s_byteStream, long begin, long end, long length);
 bool channel_should_be_rendered(int v_i);
-void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, int length);
+void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, long length);
 void add_samples(int voice_index, struct CVoice *v, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
@@ -2213,7 +2214,7 @@ static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 i
     printf("\n\n");
 }
 
-static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
+static void render_audio(Sint16 *s_byteStream, long begin, long end, long length) {
     
     if(synth == NULL) {
         printf("audioCallback: synthContext is null, returning.\n");
@@ -2332,7 +2333,7 @@ static void render_audio(Sint16 *s_byteStream, int begin, int end, int length) {
                             if(voice->waveform == synth->square_wave_table && voice->pwm_active) {
                                 sample = cSynthGetPWMSample(synth, voice, voice->phase_int);
                             } else if(voice->fm_active) {
-                                sample = cSynthGetFMSample(synth, voice);
+                                sample = cSynthGetFMSample(synth, voice, delta_phi);
                             } else {
                                 sample = voice->waveform[voice->phase_int];
                             }
@@ -2408,7 +2409,7 @@ bool channel_should_be_rendered(int v_i) {
     return false;
 }
 
-void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, int length) {
+void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, long length) {
     
     //printf("dist_clamp:%f\n", voice->dist_clamp);
     
@@ -2476,12 +2477,12 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     Sint16 *s_byteStream = (Sint16 *)byteStream;
     int remain = byteStreamLength / 2;
     
-    int chunk_size = 64;
+    long chunk_size = 64;
     int iterations = remain/chunk_size;
     
-    for(int i = 0; i < iterations; i++) {
-        int begin = i*chunk_size;
-        int end = (i*chunk_size) + chunk_size;
+    for(long i = 0; i < iterations; i++) {
+        long begin = i*chunk_size;
+        long end = (i*chunk_size) + chunk_size;
         render_audio(s_byteStream, begin, end, chunk_size);
     }
 }
@@ -3773,21 +3774,26 @@ static void export_wav(char *filename) {
     synth->looped = false;
     
     unsigned long buffer_size = 0;
-    int chunk_size = 64;
+    long chunk_size = 64;
     Sint16 *buffer = NULL;
-    int iterations = INT16_MAX;
+    long iterations = LONG_MAX;
    
     // calculate size of file and allocate buffer etc
-    for(int i = 0; i < iterations; i++) {
-        int begin = i*chunk_size;
-        int end = (i*chunk_size) + chunk_size;
+    for(long i = 0; i < iterations; i++) {
+        long begin = i*chunk_size;
+        long end = (i*chunk_size) + chunk_size;
         render_audio(NULL, begin, end, chunk_size);
         if(synth->looped) {
+            //printf("synth->looped is now true! breaking.\n");
             synth->looped = false;
             break;
         }
         buffer_size += chunk_size*2;
+        //printf("buffer_size:%lu\n", buffer_size);
     }
+    
+    //4294967295
+    //4194176
     
     printf("export buffer size:%ld\n", buffer_size);
     synth->current_track = starting_track;
@@ -3802,9 +3808,9 @@ static void export_wav(char *filename) {
     }
     
     // render to buffer
-    for(int i = 0; i < iterations; i++) {
-        int begin = i*chunk_size;
-        int end = (i*chunk_size) + chunk_size;
+    for(long i = 0; i < iterations; i++) {
+        long begin = i*chunk_size;
+        long end = (i*chunk_size) + chunk_size;
         render_audio(buffer, begin, end, chunk_size);
         if(synth->looped) {
             synth->looped = false;
