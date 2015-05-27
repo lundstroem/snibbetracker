@@ -3214,7 +3214,7 @@ static int get_delta(void) {
         }
         double fps = 1000/delta;
         if(fps_print_interval >= print_interval_limit) {
-            printf("fps:%f delta_time:%d\n", fps, delta);
+            //printf("fps:%f delta_time:%d\n", fps, delta);
         }
     }
     
@@ -3281,12 +3281,12 @@ static void main_loop(void) {
     int wait_time = delay_ms-dt;
     if(dt < 10) {
         if(fps_print_interval >= print_interval_limit) {
-            printf("dt:%d additional wait_time:%d\n", dt, wait_time);
+            //printf("dt:%d additional wait_time:%d\n", dt, wait_time);
         }
         SDL_Delay(wait_time);
     } else {
         if(fps_print_interval >= print_interval_limit) {
-            printf("frame time:%d\n", dt);
+            //printf("frame time:%d\n", dt);
         }
     }
 }

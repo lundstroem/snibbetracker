@@ -112,12 +112,23 @@ Amp - master amplitude, used both for previewing and exporting. Shows red if cli
 Active - number of active pattern rows.
 Rows - number of active rows in patterns.
 Arp - arpeggio speed.
-Swing - swing amount. TODO: tempo will not be synced to current BPM, needs to be fixed.
+Swing - swing amount.
 Preview - toggle for if notes should be audiable when playing on the keyboard.
 Beat - row interval to highlight in track.
 
 changelog
 ----------------
+
+build 13 - 2015-05-27 18.26
+- fixed bug where active_tracks was not saved properly.
+- default BPM is now 120
+- fixed FM to work better.
+- fixed bug where only a part of the song would be rendered at export.
+- added preview 0 1 to prefs. (add "preview":false to config if you want to disable preview from start).
+- disabled preview on play.
+- removed lock from audiothread.
+- moved mixing functions from client to engine code.
+- fixed bug where audio effect A clipped on loopback, added ramp.
 
 build 12 - 2015-05-26 12.32
 - fixed effects so that they are not reset by the next row if there is no new note. (might be more adjustments needed).
