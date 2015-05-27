@@ -53,6 +53,7 @@ bool release_build = true;
 bool run_with_sdl = true;
 bool redraw_screen = true;
 bool passive_rendering = true;
+bool preview_enabled = true;
 char *conf_default_dir = NULL;
 //int screen_width = 1280;
 //int screen_height = 720;
@@ -193,10 +194,6 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym);
 static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
-static void render_audio(Sint16 *s_byteStream, long begin, long end, long length);
-bool channel_should_be_rendered(int v_i);
-void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, long length);
-void add_samples(int voice_index, struct CVoice *v, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
@@ -843,16 +840,16 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     
     if(instrument_editor || pattern_editor || !editing) {
         // only allow preview of notes in editor
-        cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
+        cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12), playing);
     } else {
         
         if(!editing) {
-            cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12));
+            cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12), playing);
         } else {
             
             bool move_down = false;
             if(x_count == 0) {
-                cSynthAddTrackNode(synth, current_track, x, y, editing, true, value+(octave*12));
+                cSynthAddTrackNode(synth, current_track, x, y, editing, true, value+(octave*12), playing);
                 if(editing) {
                     move_down = true;
                 }
@@ -2214,258 +2211,6 @@ static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 i
     printf("\n\n");
 }
 
-static void render_audio(Sint16 *s_byteStream, long begin, long end, long length) {
-    
-    if(synth == NULL) {
-        printf("audioCallback: synthContext is null, returning.\n");
-        return;
-    }
-    
-    Uint32 i;
-    
-    for(i = 0; i < synth->max_voices; i++) {
-        for(int s_x = 0; s_x < synth->temp_mixdown_size; s_x++) {
-            synth->temp_mixdown_buffer[i][s_x] = 0;
-        }
-    }
-    
-    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
-        struct CVoice *voice = synth->voices[v_i];
-        struct CInstrument *ins = voice->instrument;
-        
-        bool advance = false;
-        if(synth->solo_voice > -1 && v_i != synth->solo_voice) {
-            // if solo is active and this is a channel that is not the solo channel.
-        } else if (synth->solo_voice > -1 && voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
-            // this is the solo channel. No care if muted.
-            advance = true;
-        } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL) {
-            advance = true;
-        }
-        
-        if(advance) {
-            double d_sampleRate = synth->sample_rate;
-            double d_waveformLength = voice->waveform_length;
-            
-            cSynthVoiceApplyEffects(synth, voice);
-            double delta_phi = (double) (cSynthGetFrequency((double)voice->tone_with_fx) / d_sampleRate * (double)d_waveformLength);
-            
-            for (i = 0; i < length; i+=2) {
-                if(voice->note_on) {
-                    
-                    double amp = 0;
-                    double amp_left = 0;
-                    double amp_right = 0;
-                
-                    cSynthAdvanceAmpTargets(synth, voice);
-                    
-                    if(voice->waveform == synth->noise_table) {
-                        voice->phase_double+=voice->tone_with_fx*2;
-                        voice->phase_int = (int)voice->phase_double;
-                        if(voice->phase_double >= synth->noise_length) {
-                            double diff = voice->phase_double - synth->noise_length;
-                            voice->phase_double = diff;
-                            voice->phase_int = (int)diff;
-                        }
-                    } else {
-                        cSynthIncPhase(voice, delta_phi);
-                    }
-                    
-                    if(voice->noteoff_slope) {
-                        double init_amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
-                        amp = voice->noteoff_slope_value*init_amp;
-                        double bpm = synth->bpm;
-                        voice->noteoff_slope_value -= bpm * synth->mod_noteoff_slope;
-                        if(voice->noteoff_slope_value < 0) {
-                            voice->noteoff_slope_value = 0;
-                        }
-                    } else {
-                        amp = cSynthInstrumentVolumeByPos(ins, voice->adsr_cursor)*ins->volume_scalar;
-                    }
-                    
-                    amp_left = amp * voice->amp_left;
-                    amp_right = amp * voice->amp_right;
-                    
-                    voice->adsr_cursor += synth->mod_adsr_cursor;
-                    
-                    if(voice->downsample_sweep_up || voice->downsample_sweep_down) {
-                        
-                        if(voice->downsample_sweep_up) {
-                            cSynthVoiceApplyDownsampleSweep(synth, voice, true);
-                        }
-                        
-                        if(voice->downsample_sweep_down) {
-                            cSynthVoiceApplyDownsampleSweep(synth, voice, false);
-                        }
-                        
-                        if(voice->downsample_next_sample) {
-                            if(voice->waveform == synth->noise_table) {
-                                if(voice->phase_int < synth->noise_length) {
-                                    voice->downsample_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
-                                }
-                            } else {
-                                if(voice->phase_int < synth->wave_length) {
-                                    voice->downsample_last_sample = (int16_t)(voice->waveform[voice->phase_int]);
-                                }
-                            }
-                            
-                            voice->downsample_next_sample = false;
-                        }
-                        
-                        if(s_byteStream != NULL) {
-                            int sample_left = (int)((voice->downsample_last_sample * amp_left) * synth->master_amp);
-                            int sample_right = (int)((voice->downsample_last_sample * amp_right) * synth->master_amp);
-                            add_samples(v_i, voice, sample_left, sample_right, s_byteStream, i, i+1);
-                        }
-                        
-                    } else {
-                        if(voice->waveform == synth->noise_table) {
-                            if(voice->phase_int < synth->noise_length) {
-                                int16_t sample = voice->waveform[voice->phase_int];
-                                if(s_byteStream != NULL) {
-                                    int sample_left = (int)((sample * amp_left) * synth->master_amp);
-                                    int sample_right = (int)((sample * amp_right) * synth->master_amp);
-                                    add_samples(v_i, voice, sample_left, sample_right, s_byteStream, i, i+1);
-                                }
-                            }
-                        } else if(voice->phase_int < synth->wave_length) {
-                            int16_t sample = 0;
-                            if(voice->waveform == synth->square_wave_table && voice->pwm_active) {
-                                sample = cSynthGetPWMSample(synth, voice, voice->phase_int);
-                            } else if(voice->fm_active) {
-                                sample = cSynthGetFMSample(synth, voice, delta_phi);
-                            } else {
-                                sample = voice->waveform[voice->phase_int];
-                            }
-                            
-                            if(s_byteStream != NULL) {
-                                int sample_left = (int)((sample * amp_left) * synth->master_amp);
-                                int sample_right = (int)((sample * amp_right) * synth->master_amp);
-                                add_samples(v_i, voice, sample_left, sample_right, s_byteStream, i, i+1);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // render linked channels
-    
-    if(s_byteStream != NULL) {
-        for(int v_i = 0; v_i < synth->max_voices; v_i++) {
-            if(channel_should_be_rendered(v_i)) {
-                struct CVoice *voice = synth->voices[v_i];
-                
-                if(voice->linked) {
-                    if(voice->linked_dist_channel > -1) {
-                        if(channel_should_be_rendered(voice->linked_dist_channel)) {
-                            for(i = 0; i < length; i+=2) {
-                                synth->temp_mixdown_buffer[v_i][i] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i];
-                                synth->temp_mixdown_buffer[v_i][i+1] += (int16_t)synth->temp_mixdown_buffer[voice->linked_dist_channel][i+1];
-                            }
-                            
-                            if(voice->dist_active) {
-                                dist_clamp(voice, synth->temp_mixdown_buffer[v_i], length);
-                            }
-                            
-                            for(i = 0; i < length; i+=2) {
-                                s_byteStream[i+begin] += (int16_t)synth->temp_mixdown_buffer[v_i][i] * voice->linked_amp;
-                                s_byteStream[i+begin+1] += (int16_t)synth->temp_mixdown_buffer[v_i][i+1] * voice->linked_amp;
-                            }
-                        }
-                    }
-                } else {
-                    for(i = 0; i < length; i+=2) {
-                        s_byteStream[i+begin] += (int16_t)synth->temp_mixdown_buffer[v_i][i];
-                        s_byteStream[i+begin+1] += (int16_t)synth->temp_mixdown_buffer[v_i][i+1];
-                    }
-                }
-            }
-        }
-    }
-    
-    if(playing || exporting) {
-        cSynthAdvanceTrack(synth, length);
-    }
-}
-
-bool channel_should_be_rendered(int v_i) {
-    
-    struct CVoice *voice = synth->voices[v_i];
-    struct CInstrument *ins = voice->instrument;
-    bool advance = false;
-    if(synth->solo_voice > -1 && v_i != synth->solo_voice) {
-        // if solo is active and this is a channel that is not the solo channel.
-    } else if (synth->solo_voice > -1 && voice != NULL && ins != NULL && voice->note_on && voice->instrument != NULL) {
-        // this is the solo channel. No care if muted.
-        advance = true;
-    } else if(voice != NULL && voice->muted == 0 && ins != NULL && voice->note_on && voice->instrument != NULL) {
-        advance = true;
-    }
-    if(advance) {
-        return true;
-    }
-    return false;
-}
-
-void dist_clamp(struct CVoice *voice, Sint16 *byte_stream, long length) {
-    
-    //printf("dist_clamp:%f\n", voice->dist_clamp);
-    
-    for(int i = 0; i < length; i++) {
-        if(byte_stream[i] > voice->dist_clamp) {
-            byte_stream[i] = (int16_t)voice->dist_clamp;
-            byte_stream[i] *= voice->dist_amplification;
-        } else if(byte_stream[i] < -voice->dist_clamp) {
-            byte_stream[i] = -(int16_t)voice->dist_clamp;
-            byte_stream[i] *= voice->dist_amplification;
-        }
-    }
-}
-
-void add_samples(int voice_index, struct CVoice *voice, int sample_left, int sample_right, Sint16 *byte_stream, int index_left, int index_right) {
-    
-    
-    if(voice->dist_active && !voice->linked) {
-        if(sample_left > voice->dist_clamp) {
-            sample_left = (int16_t)voice->dist_clamp;
-            sample_left *= voice->dist_amplification;
-        } else if(sample_left < -voice->dist_clamp) {
-            sample_left = -(int16_t)voice->dist_clamp;
-            sample_left *= voice->dist_amplification;
-        }
-        
-        if(sample_right > voice->dist_clamp) {
-            sample_right = (int16_t)voice->dist_clamp;
-            sample_right *= voice->dist_amplification;
-        } else if(sample_right < -voice->dist_clamp) {
-            sample_right = -(int16_t)voice->dist_clamp;
-            sample_right *= voice->dist_amplification;
-        }
-        
-        if(index_left < synth->temp_mixdown_size) {
-            synth->temp_mixdown_buffer[voice_index][index_left] = (int16_t)sample_left;
-        }
-        
-        if(index_right < synth->temp_mixdown_size) {
-            synth->temp_mixdown_buffer[voice_index][index_right] = (int16_t)sample_right;
-        }
-    } else {
-        if(index_left < synth->temp_mixdown_size) {
-            synth->temp_mixdown_buffer[voice_index][index_left] = (int16_t)sample_left;
-        }
-        
-        if(index_right < synth->temp_mixdown_size) {
-            synth->temp_mixdown_buffer[voice_index][index_right] = (int16_t)sample_right;
-        }
-    }
-    
-    if(sample_left > INT16_MAX || sample_left < INT16_MIN || sample_right > INT16_MAX || sample_right < INT16_MIN) {
-        synth->audio_clips = true;
-    }
-}
-
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     memset(byteStream, 0, byteStreamLength);
@@ -2483,7 +2228,7 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     for(long i = 0; i < iterations; i++) {
         long begin = i*chunk_size;
         long end = (i*chunk_size) + chunk_size;
-        render_audio(s_byteStream, begin, end, chunk_size);
+        cSynthRenderAudio(synth, s_byteStream, begin, end, chunk_size, playing, exporting);
     }
 }
 
@@ -3314,6 +3059,7 @@ static void setup_synth(void) {
     synth = cSynthContextNew();
     synth->interleaved = true;
     synth->chunk_size = 64;
+    synth->preview_enabled = preview_enabled;
     cSynthInit(synth);
     visual_track_height = synth->track_height;
 }
@@ -3608,7 +3354,8 @@ static bool parse_config(char *json) {
     char *param_working_dir_path = "working_dir_path";
     char *param_passive_rendering = "passive_rendering";
     char *param_fullscreen = "fullscreen";
-  
+    char *param_preview = "preview";
+    
     root = cJSON_Parse(json);
     if(root != NULL) {
         
@@ -3668,6 +3415,21 @@ static bool parse_config(char *json) {
             }
         } else {
             printf("could not find fullscreen in config.\n");
+        }
+        
+        // fullscreen
+        object = cJSON_GetObjectItem(root, param_preview);
+        if(object != NULL) {
+            bool fullscreen_value = object->valueint;
+            if(fullscreen_value) {
+                printf("preview in config is true\n");
+                preview_enabled = true;
+            } else {
+                printf("preview in config is false\n");
+                preview_enabled = false;
+            }
+        } else {
+            printf("could not find preview in config.\n");
         }
         
         cJSON_Delete(root);
@@ -3782,7 +3544,7 @@ static void export_wav(char *filename) {
     for(long i = 0; i < iterations; i++) {
         long begin = i*chunk_size;
         long end = (i*chunk_size) + chunk_size;
-        render_audio(NULL, begin, end, chunk_size);
+        cSynthRenderAudio(synth, NULL, begin, end, chunk_size, playing, exporting);
         if(synth->looped) {
             //printf("synth->looped is now true! breaking.\n");
             synth->looped = false;
@@ -3811,7 +3573,7 @@ static void export_wav(char *filename) {
     for(long i = 0; i < iterations; i++) {
         long begin = i*chunk_size;
         long end = (i*chunk_size) + chunk_size;
-        render_audio(buffer, begin, end, chunk_size);
+        cSynthRenderAudio(synth, buffer, begin, end, chunk_size, playing, exporting);
         if(synth->looped) {
             synth->looped = false;
             break;
