@@ -47,12 +47,16 @@
 // POSIX
 #endif
 
+
+const int passive_render_delay_ms = 16;
+const int active_render_delay_ms = 16;
+const bool lock_device = false;
 bool load_gfx = false;
 bool log_file_enabled = true;
 bool release_build = true;
 bool run_with_sdl = true;
 bool redraw_screen = true;
-bool passive_rendering = true;
+bool passive_rendering = false;
 bool preview_enabled = true;
 char *conf_default_dir = NULL;
 //int screen_width = 1280;
@@ -3208,9 +3212,9 @@ static int get_delta(void) {
         if(delta <= 0) {
             delta = 1;
         }
-        //double fps = 1000/delta;
+        double fps = 1000/delta;
         if(fps_print_interval >= print_interval_limit) {
-            //printf("fps:%f delta_time:%d\n", fps, delta);
+            printf("fps:%f delta_time:%d\n", fps, delta);
         }
     }
     
@@ -3230,12 +3234,15 @@ static void redraw_screen_function(void) {
 
 static void main_loop(void) {
     
-    int delay_ms = 64;
+    int delay_ms = active_render_delay_ms;
     if(passive_rendering == false) {
-        delay_ms = 32;
+        delay_ms = passive_render_delay_ms;
     }
     
-    SDL_LockAudioDevice(AudioDevice);
+    if(lock_device) {
+        SDL_LockAudioDevice(AudioDevice);
+    }
+    
     check_sdl_events(event);
     update_and_render_info(last_dt);
     
@@ -3264,19 +3271,22 @@ static void main_loop(void) {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    SDL_UnlockAudioDevice(AudioDevice);
+    
+    if(lock_device) {
+        SDL_UnlockAudioDevice(AudioDevice);
+    }
     
     int dt = get_delta();
     last_dt = dt;
     int wait_time = delay_ms-dt;
-    if(dt < delay_ms) {
+    if(dt < 10) {
         if(fps_print_interval >= print_interval_limit) {
-            //printf("dt:%d additional wait_time:%d\n", dt, wait_time);
+            printf("dt:%d additional wait_time:%d\n", dt, wait_time);
         }
         SDL_Delay(wait_time);
     } else {
         if(fps_print_interval >= print_interval_limit) {
-            //printf("frame time:%d\n", dt);
+            printf("frame time:%d\n", dt);
         }
     }
 }
@@ -3448,8 +3458,7 @@ static void st_log(char *message) {
     printf("*** %s \n", message);
 }
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
     
     #if defined(platform_windows)
         load_config();
@@ -3463,10 +3472,6 @@ int main(int argc, char* argv[])
         //linux
     #endif
     
-    /*
-    conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
-    sprintf(conf_default_dir, "%s", "/Users/d/Documents/snibbetracker/");
-    */
     
     setup_data();
     st_log("setup data successful.");
