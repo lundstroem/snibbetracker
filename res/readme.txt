@@ -119,6 +119,9 @@ Beat - row interval to highlight in track.
 changelog
 ----------------
 
+build 14 - 2015-05-27 20.24
+- fixed resetting bugs of voices and instrument effects.
+
 build 13 - 2015-05-27 18.26
 - fixed bug where active_tracks was not saved properly.
 - default BPM is now 120
