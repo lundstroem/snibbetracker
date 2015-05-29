@@ -1688,25 +1688,22 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
     
     switch( keysym->sym ) {
         case SDLK_a:
-            if(modifier) {
-                if(synth->tempo_map[cursor_x][cursor_y]->active) {
-                    // check so that it's not the last one active. We need at least one.
-                    bool other_active_exists = false;
-                    for (int i = 0; i < synth->tempo_height; i++) {
-                        if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
-                            other_active_exists = true;
-                        }
+            if(synth->tempo_map[cursor_x][cursor_y]->active) {
+                // check so that it's not the last one active. We need at least one.
+                bool other_active_exists = false;
+                for (int i = 0; i < synth->tempo_height; i++) {
+                    if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
+                        other_active_exists = true;
                     }
-                    if(other_active_exists) {
-                        synth->tempo_map[cursor_x][cursor_y]->active = false;
-                    }
-                } else {
-                    synth->tempo_map[cursor_x][cursor_y]->active = true;
+                }
+                if(other_active_exists) {
+                    synth->tempo_map[cursor_x][cursor_y]->active = false;
                 }
             } else {
-                value = 10;
+                synth->tempo_map[cursor_x][cursor_y]->active = true;
             }
             break;
+        /*
         case SDLK_b:
             value = 11;
             break;
@@ -1725,6 +1722,7 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
         case SDLK_0:
             // not permitted.
             break;
+         */
         case SDLK_1:
             value = 1;
             break;
