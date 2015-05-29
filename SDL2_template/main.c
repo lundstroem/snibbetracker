@@ -116,6 +116,9 @@ bool pressed_left = false;
 bool pressed_right = false;
 bool pressed_up = false;
 bool pressed_down = false;
+bool tempo_editor = false;
+int tempo_selection_x = 0;
+int tempo_selection_y = 0;
 struct CSynthContext *synth = NULL;
 struct CTimer *info_timer = NULL;
 char *info_string = NULL;
@@ -193,6 +196,7 @@ static void handle_note_keys(SDL_Keysym* keysym);
 static void handle_pattern_keys(SDL_Keysym* keysym);
 static void handle_instrument_keys(SDL_Keysym* keysym);
 static void handle_effect_keys(SDL_Keysym* keysym);
+static void handle_tempo_keys(SDL_Keysym* keysym);
 static void instrument_effect_remove();
 static void handle_instrument_effect_keys(SDL_Keysym* keysym);
 static void check_sdl_events(SDL_Event event);
@@ -208,6 +212,7 @@ static void render_pattern_mapping(void);
 static char *get_wave_type_as_char(int type);
 static void draw_wave_types(void);
 static void render_visuals(void);
+static void render_tempo_editor(double dt);
 static void render_track(double dt);
 static void setup_sdl(void);
 static void setup_synth(void);
@@ -1164,7 +1169,9 @@ void handle_key_down(SDL_Keysym* keysym) {
         
         switch(keysym->sym) {
             case SDLK_HOME:
-                if(instrument_editor) {
+                if(tempo_editor) {
+                    tempo_selection_y = 0;
+                } else if(instrument_editor) {
                     int ins_id = selected_instrument_id-1;
                     if(ins_id < 0) {
                         ins_id = synth->max_instruments-1;
@@ -1178,7 +1185,9 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_END:
-                if(instrument_editor) {
+                if(tempo_editor) {
+                    tempo_selection_y = synth->tempo_height-1;
+                } else if(instrument_editor) {
                     int ins_id = selected_instrument_id+1;
                     if(ins_id >= synth->max_instruments) {
                         ins_id = 0;
@@ -1415,7 +1424,12 @@ void handle_key_down(SDL_Keysym* keysym) {
             case SDLK_LEFT:
                 pressed_left = true;
                 
-                if(instrument_editor) {
+                if(tempo_editor) {
+                    tempo_selection_x--;
+                    if(tempo_selection_x < 0) {
+                        tempo_selection_x = synth->tempo_width-1;
+                    }
+                } else if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_editor_effects_x--;
                         if(instrument_editor_effects_x < 0) {
@@ -1440,7 +1454,12 @@ void handle_key_down(SDL_Keysym* keysym) {
             case SDLK_RIGHT:
                 pressed_right = true;
                 
-                if(instrument_editor) {
+                if(tempo_editor) {
+                    tempo_selection_x++;
+                    if(tempo_selection_x >= synth->tempo_width) {
+                        tempo_selection_x = 0;
+                    }
+                } else if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_editor_effects_x++;
                         if(instrument_editor_effects_x > 2) {
@@ -1464,8 +1483,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_UP:
                 pressed_up = true;
-                
-                if(instrument_editor) {
+                if(tempo_editor) {
+                    tempo_selection_y--;
+                    if(tempo_selection_y < 0) {
+                        tempo_selection_y = synth->tempo_height-1;
+                    }
+                } else if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_editor_effects_y--;
                         if(instrument_editor_effects_y < 0) {
@@ -1495,8 +1518,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_DOWN:
                 pressed_down = true;
-                
-                if(instrument_editor) {
+                if(tempo_editor) {
+                    tempo_selection_y++;
+                    if(tempo_selection_y >= synth->tempo_height) {
+                        tempo_selection_y = 0;
+                    }
+                } else if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_editor_effects_y++;
                         if(instrument_editor_effects_y >= visual_instrument_effects) {
@@ -1563,10 +1590,22 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_RETURN:
-                if(instrument_editor) {
+                
+                if(tempo_editor) {
+                    if(modifier) {
+                        if (playing) {
+                            synth->pending_tempo_column = tempo_selection_x;
+                        } else {
+                            synth->current_tempo_column = tempo_selection_x;
+                        }
+                    } else {
+                        tempo_editor = false;
+                    }
+                } else if(instrument_editor) {
                     instrument_editor = false;
                 } else {
                     if(pattern_editor) {
+                        
                         if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
                             
                             if(pattern_cursor_y < 19) {
@@ -1590,6 +1629,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                                     instrument_editor = true;
                                 }
                             }
+                        } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
+                            tempo_editor = true;
                         }
                     } else {
                         toggle_editing();
@@ -1618,7 +1659,10 @@ void handle_key_down(SDL_Keysym* keysym) {
     
     int x_count = visual_cursor_x%5;
     
-    if(instrument_editor && instrument_editor_effects) {
+    if(tempo_editor) {
+        handle_tempo_keys(keysym);
+        return;
+    } else if(instrument_editor && instrument_editor_effects) {
         handle_instrument_effect_keys(keysym);
         return;
     } else if(pattern_editor) {
@@ -1633,6 +1677,90 @@ void handle_key_down(SDL_Keysym* keysym) {
     } else {
         handle_note_keys(keysym);
     }
+}
+
+
+static void handle_tempo_keys(SDL_Keysym* keysym) {
+    
+    int cursor_x = tempo_selection_x;
+    int cursor_y = tempo_selection_y;
+    char value = -1;
+    
+    switch( keysym->sym ) {
+        case SDLK_a:
+            if(modifier) {
+                if(synth->tempo_map[cursor_x][cursor_y]->active) {
+                    // check so that it's not the last one active. We need at least one.
+                    bool other_active_exists = false;
+                    for (int i = 0; i < synth->tempo_height; i++) {
+                        if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
+                            other_active_exists = true;
+                        }
+                    }
+                    if(other_active_exists) {
+                        synth->tempo_map[cursor_x][cursor_y]->active = false;
+                    }
+                } else {
+                    synth->tempo_map[cursor_x][cursor_y]->active = true;
+                }
+            } else {
+                value = 10;
+            }
+            break;
+        case SDLK_b:
+            value = 11;
+            break;
+        case SDLK_c:
+            value = 12;
+            break;
+        case SDLK_d:
+            value = 13;
+            break;
+        case SDLK_e:
+            value = 14;
+            break;
+        case SDLK_f:
+            value = 15;
+            break;
+        case SDLK_0:
+            // not permitted.
+            break;
+        case SDLK_1:
+            value = 1;
+            break;
+        case SDLK_2:
+            value = 2;
+            break;
+        case SDLK_3:
+            value = 3;
+            break;
+        case SDLK_4:
+            value = 4;
+            break;
+        case SDLK_5:
+            value = 5;
+            break;
+        case SDLK_6:
+            value = 6;
+            break;
+        case SDLK_7:
+            value = 7;
+            break;
+        case SDLK_8:
+            value = 8;
+            break;
+        case SDLK_9:
+            value = 9;
+            break;
+        default:
+            break;
+    }
+    
+    
+    if(value > -1) {
+        synth->tempo_map[cursor_x][cursor_y]->ticks = value;
+    }
+
 }
 
 static void handle_note_keys(SDL_Keysym* keysym) {
@@ -1883,21 +2011,6 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
         synth->arpeggio_speed = number;
     }
     
-    // swing
-    if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
-        int old_swing = synth->swing;
-        if(old_swing < 100) {
-            old_swing *= 10;
-            number += old_swing;
-        } else if(old_swing < 10) {
-            old_swing *= 10;
-            number += old_swing;
-        }
-        if(number >= 600) {
-            number = 600;
-        }
-        synth->swing = number;
-    }
 }
 
 void handle_instrument_keys(SDL_Keysym* keysym) {
@@ -2360,14 +2473,8 @@ static void change_param(bool plus) {
             }
         }
     } else if(y == 20 && x == 4) {
-        if(plus) {
-            synth->swing++;
-        } else {
-            synth->swing--;
-            if(synth->swing < 0) {
-                synth->swing = 0;
-            }
-        }
+        
+        // TODO groove editor
     }
     else if(y == 20) {
         //nothing
@@ -2639,9 +2746,9 @@ static void render_pattern_mapping(void) {
                 sprintf(cval, "Arp %d", synth->arpeggio_speed);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 4) {
-                char cval[20];
-                sprintf(cval, "Swing %d", synth->swing);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+                //char cval[20];
+                //sprintf(cval, "Groove %d", synth->swing);
+                cEngineRenderLabelWithParams(raster2d, "Tempo", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 21 && x == 0) {
                 if(synth->preview_enabled) {
                     cEngineRenderLabelWithParams(raster2d, "Preview 1", x*10+inset_x, y+inset_y, color, bg_color);
@@ -2784,10 +2891,76 @@ int is_in_bounds(int x, int y, int width, int height) {
     }
 }
 
+static void render_tempo_editor(double dt) {
+    
+    int inset_x = 5;
+    int inset_y = 2;
+
+    /* if playing, make the column swap pending to let the current bar finish before switching. Make the pending bar blink to indicate the coming change.*/
+    
+    if(synth->pending_tempo_column > -1) {
+        synth->pending_tempo_blink_counter += dt;
+        if (synth->pending_tempo_blink_counter > 200) {
+            synth->pending_tempo_blink_counter_toggle = !synth->pending_tempo_blink_counter_toggle;
+            redraw_screen = true;
+            synth->pending_tempo_blink_counter = 0;
+        }
+    }
+    
+    for(int x = 0; x < synth->tempo_width; x++) {
+        for(int y = 0; y < synth->tempo_height; y++) {
+            
+            int color = cengine_color_grey;
+            int bg_color = cengine_color_black;
+            
+            char cval[10];
+            struct CTempoNode *t = synth->tempo_map[x][y];
+            char node_value = t->ticks;
+            char c = cSynthGetCharFromParam((char)node_value);
+            sprintf(cval, "%c", c);
+            
+            if(synth->current_tempo_column == x) {
+                if(t->active) {
+                    bg_color = cengine_color_dull_green;
+                    color = cengine_color_black;
+                }
+                
+                if(synth->tempo_index == y) {
+                    if(t->active) {
+                        bg_color = cengine_color_green;
+                        color = cengine_color_black;
+                    }
+                }
+            } else if(synth->pending_tempo_column == x) {
+                if(t->active && synth->pending_tempo_blink_counter_toggle) {
+                    bg_color = cengine_color_dull_green;
+                    color = cengine_color_black;
+                }
+            } else {
+                if(t->active) {
+                    bg_color = cengine_color_grey;
+                    color = cengine_color_black;
+                }
+            }
+            
+            
+            if(tempo_selection_x == x && tempo_selection_y == y) {
+                bg_color = cengine_color_magenta;
+                color = cengine_color_black;
+            }
+            
+            cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+        }
+    }
+}
+
 static void render_track(double dt) {
     
     if(instrument_editor && !file_editor) {
         render_instrument_editor(dt);
+        return;
+    } else if(tempo_editor) {
+        render_tempo_editor(dt);
         return;
     } else if(pattern_editor && !file_editor) {
         render_pattern_mapping();
