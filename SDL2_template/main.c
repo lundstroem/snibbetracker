@@ -70,6 +70,7 @@ unsigned int *raster = NULL;
 unsigned int **raster2d = NULL;
 unsigned int **sheet = NULL;
 unsigned int *raw_sheet = NULL;
+unsigned int **credits2d = NULL;
 int width = 256*4;
 int height = 144*4;
 int s_width = 256*2;
@@ -83,6 +84,7 @@ bool selection_enabled = false;
 bool selection_set = false;
 bool follow = false;
 bool visualiser = false;
+bool credits = false;
 bool export_project = false;
 int octave = 2;
 int visual_pattern_offset = 0;
@@ -161,6 +163,7 @@ int fullscreen = 0;
 
 static void init_file_settings(void);
 static bool file_exists(char *path);
+static void handle_credits_keys(SDL_Keysym* keysym);
 static void handle_key_down_file(SDL_Keysym* keysym);
 static void exit_file_editor(void);
 static void render_files(void);
@@ -212,6 +215,7 @@ static void render_pattern_mapping(void);
 static char *get_wave_type_as_char(int type);
 static void draw_wave_types(void);
 static void render_visuals(void);
+static void render_credits(void);
 static void render_tempo_editor(double dt);
 static void render_track(double dt);
 static void setup_sdl(void);
@@ -285,6 +289,7 @@ static bool file_exists(char *path) {
     }
     return exists;
 }
+
 
 static void handle_key_down_file(SDL_Keysym* keysym) {
    
@@ -690,6 +695,27 @@ static void setup_data(void) {
         }
     }
     
+    credits2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c credits 2");
+    if(credits2d == NULL) {
+        fprintf(stderr, "out of memory\n");
+    } else {
+        for(i = 0; i < s_width; i++) {
+            credits2d[i] = cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c credits 3");
+            if(credits2d[i] == NULL)
+            {
+                fprintf(stderr, "out of memory\n");
+            }
+        }
+    }
+    
+    for(r_x = 0; r_x < s_width; r_x++) {
+        for(r_y = 0; r_y < s_height; r_y++) {
+            if(credits2d != NULL && credits2d[r_x] != NULL) {
+                credits2d[r_x][r_y] = 0;
+            }
+        }
+    }
+    
     input = cInputNew();
     
     input->touches = cAllocatorAlloc(MAX_TOUCHES * sizeof(struct CTouch*), "main.c touches");
@@ -731,6 +757,7 @@ static void convert_input(int x, int y) {
 }
 
 static void cleanup_data(void) {
+    
     int i = 0;
     
     raster = cAllocatorFree(raster);
@@ -738,6 +765,10 @@ static void cleanup_data(void) {
         raster2d[i] = cAllocatorFree(raster2d[i]);
     }
     raster2d = cAllocatorFree(raster2d);
+    for(i = 0; i < s_width; i++) {
+        credits2d[i] = cAllocatorFree(credits2d[i]);
+    }
+    credits2d = cAllocatorFree(credits2d);
     cSynthCleanup(synth);
     cEngineCleanup();
     input = cInputCleanup(input);
@@ -1162,6 +1193,11 @@ void handle_key_up(SDL_Keysym* keysym) {
 void handle_key_down(SDL_Keysym* keysym) {
     
     redraw_screen = true;
+    
+    if(credits) {
+        handle_credits_keys(keysym);
+        return;
+    }
     
     if(file_editor) {
         handle_key_down_file(keysym);
@@ -1632,6 +1668,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                             }
                         } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
                             tempo_editor = true;
+                        } else if(pattern_cursor_y == 21 && pattern_cursor_x == 5) {
+                            credits = true;
                         }
                     } else {
                         toggle_editing();
@@ -2882,6 +2920,279 @@ static void render_visuals(void) {
     }
 }
 
+static double credits_x = 0;
+static double credits_y = 0;
+static double credits_x_inc = 1.435;
+static double credits_y_inc = 1.351;
+static int credits_cursor_x = 0;
+static int credits_cursor_y = 0;
+static bool credits_up = false;
+static bool credits_down = false;
+static bool credits_left = false;
+static bool credits_right = false;
+
+static void handle_credits_keys(SDL_Keysym* keysym) {
+    
+    credits_left = false;
+    credits_right = false;
+    credits_up = false;
+    credits_down = false;
+    
+    switch( keysym->sym ) {
+        case SDLK_RETURN:
+            credits = false;
+        case SDLK_LEFT:
+            credits_left = true;
+            break;
+        case SDLK_RIGHT:
+            credits_right = true;
+            break;
+        case SDLK_UP:
+            credits_up = true;
+            break;
+        case SDLK_DOWN:
+            credits_down = true;
+            break;
+        case SDLK_BACKSPACE:
+            break;
+        case SDLK_SPACE:
+            break;
+        default:
+            break;
+    }
+}
+
+static int credits_color = cengine_color_white;
+static int credits_bg_color = cengine_color_black;
+static int credits_brush_color = cengine_color_black;
+
+static void render_credits(void) {
+    
+    if (credits_left) {
+        credits_cursor_x--;
+        if (credits_cursor_x < 10) {
+            credits_cursor_x = 10;
+        }
+    } else if(credits_right) {
+        credits_cursor_x++;
+        if (credits_cursor_x > s_width) {
+            credits_cursor_x = s_width;
+        }
+    } else if(credits_up) {
+        credits_cursor_y--;
+        if (credits_cursor_y < 10) {
+            credits_cursor_y = 0;
+        }
+    } else if(credits_down) {
+        credits_cursor_y++;
+        if (credits_cursor_y > s_height) {
+            credits_cursor_y = s_height;
+        }
+    }
+   
+    
+    redraw_screen = true;
+    int int_x = 0;
+    int inset_x = 0;
+    int inset_y = 0;
+    int int_y = 4;
+    int inc = 10;
+
+    
+    int brush_size = 10;
+    for(int x = credits_cursor_x-brush_size; x < credits_cursor_x+brush_size; x++) {
+        for(int y = credits_cursor_y-brush_size; y < credits_cursor_y+brush_size; y++) {
+            if(check_screen_bounds(x, y)) {
+                credits2d[x][y] = credits_brush_color;
+            }
+        }
+    }
+    
+    for(int x = 0; x < s_width; x++) {
+        for(int y = 0; y < s_height; y++) {
+            raster2d[x][y] = credits2d[x][y];
+        }
+    }
+    
+    int color = credits_color;
+    int bg_color = credits_bg_color;
+    
+    credits_x += credits_x_inc;
+    credits_y += credits_y_inc;
+    
+    int_x = (int)credits_x;
+    int_y = (int)credits_y;
+    
+    if(credits_x > s_width-200) {
+        credits_x_inc = -credits_x_inc;
+        credits_color = rand();
+        credits_bg_color = rand();
+        credits_brush_color = rand();
+    }
+    
+    if(credits_y > s_height-100) {
+        credits_y_inc = -credits_y_inc;
+        credits_color = rand();
+        credits_bg_color = rand();
+        credits_brush_color = rand();
+    }
+    
+    if(credits_x < 0) {
+        credits_x_inc = -credits_x_inc;
+        credits_color = rand();
+        credits_bg_color = rand();
+        credits_brush_color = rand();
+    }
+    
+    if(credits_y < 0) {
+        credits_y_inc = -credits_y_inc;
+        credits_color = rand();
+        credits_bg_color = rand();
+        credits_brush_color = rand();
+    }
+    
+    //cEngineRenderLabelByPixelPos(unsigned int **raster, char *string, int s_x, int s_y, int color, int bg_color) {
+    
+    cEngineRenderLabelByPixelPos(credits2d, "_code_and_design_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   lundstroem", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "_design_and_testing_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   salkinitzor", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   nordloef", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   Linde", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   sunfl0wr", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "_a_very_special_thanks_to_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   Olofsson Arcade", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "_other_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   (C) Palestone Software 2015", int_x+inset_x, int_y+inset_y, color, bg_color);
+
+}
+
+float c_hue_a = 0;
+float c_hue_r = 0;
+float c_hue_g = 0;
+float c_hue_b = 0;
+
+float c_new_hue_a = 0;
+float c_new_hue_r = 0;
+float c_new_hue_g = 0;
+float c_new_hue_b = 0;
+
+void resetColorValues()
+{
+    c_hue_a = 0;
+    c_hue_r = 0;
+    c_hue_g = 0;
+    c_hue_b = 0;
+    
+    c_new_hue_a = 0;
+    c_new_hue_r = 0;
+    c_new_hue_g = 0;
+    c_new_hue_b = 0;
+}
+
+
+void TtransformHSV(float H, float S, float V)
+{
+    float VSU = V*S*cos(H*M_PI/180);
+    float VSW = V*S*sin(H*M_PI/180);
+    
+    c_new_hue_r = (.299*V+.701*VSU+.168*VSW)*c_hue_r
+    + (.587*V-.587*VSU+.330*VSW)*c_hue_g
+    + (.114*V-.114*VSU-.497*VSW)*c_hue_b;
+    c_new_hue_g = (.299*V-.299*VSU-.328*VSW)*c_hue_r
+    + (.587*V+.413*VSU+.035*VSW)*c_hue_g
+    + (.114*V-.114*VSU+.292*VSW)*c_hue_b;
+    c_new_hue_b = (.299*V-.3*VSU+1.25*VSW)*c_hue_r
+    + (.587*V-.588*VSU-1.05*VSW)*c_hue_g
+    + (.114*V+.886*VSU-.203*VSW)*c_hue_b;
+}
+
+void renderPixels(char *data, int w, int h, float rotation)
+{
+    if (data != NULL)
+    {
+        // **** You have a pointer to the image data ****
+        // **** Do stuff with the data here ****
+        
+        for(int i = 0; i < w*h; i++)
+        {
+            
+            int offset = 4*i;
+            unsigned char alpha = data[offset];
+            unsigned char red = data[offset+1];
+            unsigned char green = data[offset+2];
+            unsigned char blue = data[offset+3];
+            
+            float ascale = alpha /255.0f;
+            float rscale = red /255.0f;
+            float gscale = green /255.0f;
+            float bscale = blue /255.0f;
+            
+            c_hue_a = ascale;
+            c_hue_r = rscale;
+            c_hue_g = gscale;
+            c_hue_b = bscale;
+            
+            c_new_hue_a = ascale;
+            
+            TtransformHSV(rotation, 1.0, 0.99);
+            
+            c_new_hue_a = (c_new_hue_a*255.0);
+            c_new_hue_r = (c_new_hue_r*255.0);
+            c_new_hue_g = (c_new_hue_g*255.0);
+            c_new_hue_b = (c_new_hue_b*255.0);
+            
+            if (c_new_hue_a > 255)
+            {
+                c_new_hue_a = 255;
+            }
+            if (c_new_hue_r > 255)
+            {
+                c_new_hue_r = 255;
+            }
+            if (c_new_hue_g > 255)
+            {
+                c_new_hue_g = 255;
+            }
+            if (c_new_hue_b > 255)
+            {
+                c_new_hue_b = 255;
+            }
+            
+            if(c_new_hue_a < 0)
+                c_new_hue_a = 0;
+            
+            if(c_new_hue_r < 0)
+                c_new_hue_r = 0;
+            
+            if(c_new_hue_g < 0)
+                c_new_hue_g = 0;
+            
+            if(c_new_hue_b < 0)
+                c_new_hue_b = 0;
+            
+            //data[offset] = new_hue_a;
+            data[offset+1] = c_new_hue_r;
+            data[offset+2] = c_new_hue_g;
+            data[offset+3] = c_new_hue_b;
+            
+        }
+    }
+}
+
 int is_in_bounds(int x, int y, int width, int height) {
     
     if(x > -1 && y > -1 && x < width && y < height) {
@@ -2975,7 +3286,10 @@ static void render_tempo_editor(double dt) {
 
 static void render_track(double dt) {
     
-    if(instrument_editor && !file_editor) {
+    if(credits) {
+        render_credits();
+        return;
+    } else if(instrument_editor && !file_editor) {
         render_instrument_editor(dt);
         return;
     } else if(tempo_editor && !file_editor) {

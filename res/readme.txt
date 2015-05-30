@@ -94,8 +94,8 @@ effects
 1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
-5xx - distortion (clamp, clamp).
-6xx - link distortion (channel, amp) premix current channel with another channel (0-6).
+5xx - distortion (amp, amp).
+6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
 7xx - detune (amount, amount) 88 is middle.
 8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
 9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
