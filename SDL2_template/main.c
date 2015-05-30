@@ -131,12 +131,12 @@ int envelop_node_camera_offset = 0;
 
 
 static float credits_hue_rotation = 0;
-static float credits_hue_rotation_inc = 1.0f;
+static float credits_hue_rotation_inc = 0.2f;
 static bool credits_init = false;
 static double credits_x = 0;
 static double credits_y = 0;
-static double credits_x_inc = 1.435;
-static double credits_y_inc = 1.351;
+static double credits_x_inc = 0.435;
+static double credits_y_inc = 0.351;
 static int credits_cursor_x = 0;
 static int credits_cursor_y = 0;
 static bool credits_up = false;
@@ -148,7 +148,7 @@ static int credits_bg_color = 0xFF000000;
 static int credits_brush_color = 0xFF000000;
 static void resetColorValues();
 static void TtransformHSV(float H, float S, float V);
-static void renderPixels(char *data, int w, int h, float rotation);
+static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation);
 
 
 
@@ -3515,10 +3515,6 @@ static void main_loop(void) {
             }
         }
         
-        if(credits) {
-           renderPixels((char*)raster, s_width, s_height, credits_hue_rotation);
-        }
-        
         for(int x = 0; x < s_width; x++) {
             for(int y = 0; y < s_height; y++) {
                 raster2d[x][y] = cengine_color_bg;
@@ -3967,6 +3963,9 @@ static void handle_credits_keys(SDL_Keysym* keysym) {
 }
 
 
+static int credits_horizontal_timer = 0;
+static int credits_vertical_timer = 0;
+static int credits_timer_limit = 20;
 
 static void render_credits(void) {
     
@@ -4029,35 +4028,54 @@ static void render_credits(void) {
     int_x = (int)credits_x;
     int_y = (int)credits_y;
     
-    if(credits_x > s_width-200) {
+    bool change_colors = false;
+    if(credits_x > s_width-235) {
         credits_x_inc = -credits_x_inc;
-        credits_color = rand();
-        credits_bg_color = rand();
-        credits_brush_color = rand();
-    }
-    
-    if(credits_y > s_height-100) {
-        credits_y_inc = -credits_y_inc;
-        credits_color = rand();
-        credits_bg_color = rand();
-        credits_brush_color = rand();
-    }
-    
-    if(credits_x < 0) {
+        credits_x = s_width-236;
+        change_colors = true;
+    } else if(credits_x < 0) {
         credits_x_inc = -credits_x_inc;
-        credits_color = rand();
-        credits_bg_color = rand();
-        credits_brush_color = rand();
+        credits_x = 1;
+        change_colors = true;
     }
     
-    if(credits_y < 0) {
+    if(credits_y > s_height-185) {
         credits_y_inc = -credits_y_inc;
-        credits_color = rand();
-        credits_bg_color = rand();
-        credits_brush_color = rand();
+        credits_y = s_height-186;
+        change_colors = true;
+    } else if(credits_y < 0) {
+        credits_y_inc = -credits_y_inc;
+        credits_y = 1;
+        change_colors = true;
     }
     
-    //cEngineRenderLabelByPixelPos(unsigned int **raster, char *string, int s_x, int s_y, int color, int bg_color) {
+    
+    if(change_colors) {
+        
+        if(credits_x_inc < 0) {
+            credits_x_inc = (double)(rand() % 150 / 100.0);
+            credits_x_inc = -credits_x_inc;
+        } else {
+            credits_x_inc = (double)(rand() % 150 / 100.0);
+        }
+        if(credits_y_inc < 0) {
+            credits_y_inc = (double)(rand() % 150 / 100.0);
+            credits_y_inc = -credits_y_inc;
+        } else {
+            credits_y_inc = (double)(rand() % 150 / 100.0);
+        }
+        
+        credits_hue_rotation_inc = (float)(rand() % 100 / 100.0);
+        credits_bg_color = rand();
+        credits_color = abs(INT_MAX-credits_bg_color);
+        credits_brush_color = rand();
+        
+        if(rand() % 2 == 1) {
+            credits_bg_color = -1;
+        }
+        change_colors = false;
+    }
+    
     
     cEngineRenderLabelByPixelPos(credits2d, "_code_and_design_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
@@ -4070,26 +4088,66 @@ static void render_credits(void) {
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   nordloef", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   Linde", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   linde", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   sunfl0wr", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   rockard", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "_a_very_special_thanks_to_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   Olofsson Arcade", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   olofsonarcade", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   goto80", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   lolloise", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   crabinfo", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "_other_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "_etc_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   (C) Palestone Software 2015", int_x+inset_x, int_y+inset_y, color, bg_color);
     
+    int hue_x = int_x;
+    int hue_y = int_y;
+    int hue_width = 235;
+    int hue_height = 185;
+   
+    if (hue_x >= s_width) {
+        hue_x = s_width-1;
+    }
+    
+    if (hue_y >= s_height) {
+        hue_y = s_height-1;
+    }
+
+    if (hue_width+hue_x >= s_width) {
+        hue_width = s_width-hue_x-1;
+        if(hue_width < 0) {
+            hue_width = 0;
+        }
+    }
+    
+    if (hue_height+hue_y > s_height) {
+        hue_height = s_height-hue_y-1;
+        if(hue_height < 0) {
+            hue_height = 0;
+        }
+    }
+    
+    if(hue_x+hue_width <= s_width && hue_y+hue_height <= s_height && hue_x > 0 && hue_y > 0) {
+        renderPixels(credits2d, hue_x, hue_y, hue_width, hue_height, credits_hue_rotation);
+    }
     
     for(int x = 0; x < s_width; x++) {
         for(int y = 0; y < s_height; y++) {
             raster2d[x][y] = credits2d[x][y];
         }
     }
+    
+    
 }
 
 
@@ -4125,21 +4183,34 @@ static void TtransformHSV(float H, float S, float V)
     + (.114*V+.886*VSU-.203*VSW)*c_hue_b;
 }
 
-static void renderPixels(char *data, int w, int h, float rotation)
+static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation)
 {
     if (data != NULL)
     {
         // **** You have a pointer to the image data ****
         // **** Do stuff with the data here ****
         
-        for(int i = 0; i < w*h; i++)
+        //int i = 0;
+        for(int x = start_x; x < w+start_x; x++)
+        {
+        for(int y = start_y; y < h+start_y; y++)
         {
             
-            int offset = 4*i;
+            
+            //int offset = 4*i;
+            
+            //i++;
+            unsigned int rast = data[x][y];
+            /*
             unsigned char alpha = data[offset];
             unsigned char red = data[offset+1];
             unsigned char green = data[offset+2];
             unsigned char blue = data[offset+3];
+            */
+            unsigned char alpha = 255;
+            unsigned char red = rast & 0xff;
+            unsigned char green = (rast >> 8) & 0xff;
+            unsigned char blue = (rast >> 16) & 0xff;
             
             float ascale = alpha /255.0f;
             float rscale = red /255.0f;
@@ -4190,10 +4261,108 @@ static void renderPixels(char *data, int w, int h, float rotation)
                 c_new_hue_b = 0;
             
             //data[offset] = new_hue_a;
-            data[offset+1] = c_new_hue_r;
-            data[offset+2] = c_new_hue_g;
-            data[offset+3] = c_new_hue_b;
             
-        }
+            /*for (int r_x = 0; r_x < s_width; r_x++) {
+             for (int r_y = 0; r_y < s_height; r_y++) {
+             raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
+             }
+             }*/
+            
+            //unsigned int rast = raster[x][y];
+            //unsigned char red = rast & 0xff;
+            //unsigned char green = (rast >> 8) & 0xff;
+            //unsigned char blue = (rast >> 16) & 0xff;
+            
+            data[x][y] = (255 << 24) | ((unsigned char)c_new_hue_b << 16) | ((unsigned char)c_new_hue_g << 8) | (unsigned char)c_new_hue_r;
+            
+            
+            /*
+             data[offset+1] = c_new_hue_r;
+             data[offset+2] = c_new_hue_g;
+             data[offset+3] = c_new_hue_b;
+             */
+        }}
     }
 }
+
+
+//static void renderPixels(char *data, int w, int h, float rotation)
+//{
+//    if (data != NULL)
+//    {
+//        // **** You have a pointer to the image data ****
+//        // **** Do stuff with the data here ****
+//        
+//        for(int i = 0; i < w*h; i++)
+//        {
+//            
+//            int offset = 4*i;
+//            unsigned char alpha = data[offset];
+//            unsigned char red = data[offset+1];
+//            unsigned char green = data[offset+2];
+//            unsigned char blue = data[offset+3];
+//            
+//            float ascale = alpha /255.0f;
+//            float rscale = red /255.0f;
+//            float gscale = green /255.0f;
+//            float bscale = blue /255.0f;
+//            
+//            c_hue_a = ascale;
+//            c_hue_r = rscale;
+//            c_hue_g = gscale;
+//            c_hue_b = bscale;
+//            
+//            c_new_hue_a = ascale;
+//            
+//            TtransformHSV(rotation, 1.0, 0.99);
+//            
+//            c_new_hue_a = (c_new_hue_a*255.0);
+//            c_new_hue_r = (c_new_hue_r*255.0);
+//            c_new_hue_g = (c_new_hue_g*255.0);
+//            c_new_hue_b = (c_new_hue_b*255.0);
+//            
+//            if (c_new_hue_a > 255)
+//            {
+//                c_new_hue_a = 255;
+//            }
+//            if (c_new_hue_r > 255)
+//            {
+//                c_new_hue_r = 255;
+//            }
+//            if (c_new_hue_g > 255)
+//            {
+//                c_new_hue_g = 255;
+//            }
+//            if (c_new_hue_b > 255)
+//            {
+//                c_new_hue_b = 255;
+//            }
+//            
+//            if(c_new_hue_a < 0)
+//                c_new_hue_a = 0;
+//            
+//            if(c_new_hue_r < 0)
+//                c_new_hue_r = 0;
+//            
+//            if(c_new_hue_g < 0)
+//                c_new_hue_g = 0;
+//            
+//            if(c_new_hue_b < 0)
+//                c_new_hue_b = 0;
+//            
+//            //data[offset] = new_hue_a;
+//            
+//            /*for (int r_x = 0; r_x < s_width; r_x++) {
+//             for (int r_y = 0; r_y < s_height; r_y++) {
+//             raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
+//             }
+//             }*/
+//            
+//            /*
+//            data[offset+1] = c_new_hue_r;
+//            data[offset+2] = c_new_hue_g;
+//            data[offset+3] = c_new_hue_b;
+//            */
+//        }
+//    }
+//}
