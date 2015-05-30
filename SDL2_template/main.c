@@ -1093,6 +1093,7 @@ static void toggle_playback(void) {
         } else {
             cSynthResetTrackProgress(synth, current_track, 0);
         }
+        synth->tempo_index = 1;
     } else {
         // note off to all voices when stopping playing.
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
@@ -1682,47 +1683,54 @@ void handle_key_down(SDL_Keysym* keysym) {
 
 static void handle_tempo_keys(SDL_Keysym* keysym) {
     
+    bool zero = false;
     int cursor_x = tempo_selection_x;
     int cursor_y = tempo_selection_y;
     char value = -1;
     
-    switch( keysym->sym ) {
+    switch(keysym->sym) {
+        case SDLK_PLUS:
+            if(cursor_y == 0) {
+                synth->tempo_map[cursor_x][cursor_y]->bpm++;
+                if(synth->tempo_map[cursor_x][cursor_y]->bpm > 999) {
+                    synth->tempo_map[cursor_x][cursor_y]->bpm = 999;
+                }
+            }
+            break;
+        case SDLK_MINUS:
+            if(cursor_y == 0) {
+                synth->tempo_map[cursor_x][cursor_y]->bpm--;
+                if(synth->tempo_map[cursor_x][cursor_y]->bpm < 0) {
+                    synth->tempo_map[cursor_x][cursor_y]->bpm = 0;
+                }
+            }
+            break;
+        case SDLK_BACKSPACE:
+        case SDLK_DELETE:
+            zero = true;
+            break;
         case SDLK_a:
             if(synth->tempo_map[cursor_x][cursor_y]->active) {
                 // check so that it's not the last one active. We need at least one.
                 bool other_active_exists = false;
-                for (int i = 0; i < synth->tempo_height; i++) {
+                for (int i = 1; i < synth->tempo_height; i++) {
                     if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
                         other_active_exists = true;
                     }
                 }
-                if(other_active_exists) {
+                if(other_active_exists && cursor_y > 0) {
                     synth->tempo_map[cursor_x][cursor_y]->active = false;
                 }
             } else {
                 synth->tempo_map[cursor_x][cursor_y]->active = true;
             }
-            break;
-        /*
-        case SDLK_b:
-            value = 11;
-            break;
-        case SDLK_c:
-            value = 12;
-            break;
-        case SDLK_d:
-            value = 13;
-            break;
-        case SDLK_e:
-            value = 14;
-            break;
-        case SDLK_f:
-            value = 15;
+            
+            cSynthUpdateHighlightInterval(synth);
+            
             break;
         case SDLK_0:
-            // not permitted.
+            value = 0;
             break;
-         */
         case SDLK_1:
             value = 1;
             break;
@@ -1754,11 +1762,32 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
             break;
     }
     
-    
-    if(value > -1) {
-        synth->tempo_map[cursor_x][cursor_y]->ticks = value;
+    if(cursor_y > 0) {
+        if(zero) {
+            synth->tempo_map[cursor_x][cursor_y]->ticks = 0;
+        } else if(value > 0) {
+            synth->tempo_map[cursor_x][cursor_y]->ticks = value;
+        }
+    } else if(cursor_y == 0) {
+        // bpm
+        if(zero) {
+            synth->tempo_map[cursor_x][cursor_y]->bpm = 0;
+        } else if(value > -1) {
+            int old_bpm = synth->tempo_map[cursor_x][cursor_y]->bpm;
+            int number = value;
+            if(old_bpm < 100) {
+                old_bpm *= 10;
+                number += old_bpm;
+            } else if(old_bpm < 10) {
+                old_bpm *= 10;
+                number += old_bpm;
+            }
+            if(number >= 999) {
+                number = 999;
+            }
+            synth->tempo_map[cursor_x][cursor_y]->bpm = number;
+        }
     }
-
 }
 
 static void handle_note_keys(SDL_Keysym* keysym) {
@@ -1874,8 +1903,13 @@ static void handle_note_keys(SDL_Keysym* keysym) {
 
 static void handle_pattern_keys(SDL_Keysym* keysym) {
     
+    bool zero = false;
     int number = 0;
-    switch( keysym->sym ) {
+    switch(keysym->sym) {
+        case SDLK_BACKSPACE:
+        case SDLK_DELETE:
+            zero = true;
+            break;
         case SDLK_0:
             number = 0;
             break;
@@ -1913,107 +1947,97 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
 
     
     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-        
-        if(number < 0){
-            number = 0;
-        }
-        
-        int old_pattern = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
-        if(old_pattern < 10) {
-            old_pattern *= 10;
-            number += old_pattern;
-            if(number >= synth->patterns_height) {
-                number = synth->patterns_height-1;
+        if(zero) {
+            synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = 0;
+        } else {
+            if(number < 0){
+                number = 0;
             }
+            int old_pattern = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
+            if(old_pattern < 10) {
+                old_pattern *= 10;
+                number += old_pattern;
+                if(number >= synth->patterns_height) {
+                    number = synth->patterns_height-1;
+                }
+            }
+            synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = number;
         }
-        
-        synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = number;
-    }
-    
-    // bpm
-    if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
-        //int new_bpm = 0;
-        int old_bpm = synth->bpm;
-        
-        if(old_bpm < 100) {
-            old_bpm *= 10;
-            number += old_bpm;
-        } else if(old_bpm < 10) {
-            old_bpm *= 10;
-            number += old_bpm;
-        }
-        
-        if(number >= 999) {
-             number = 999;
-        }
-
-        synth->bpm = number;
     }
     
     // master amp
     if(pattern_cursor_y == 20 && pattern_cursor_x == 1) {
-        //int new_bpm = 0;
-        int old_master_amp = synth->master_amp_percent;
-        
-        if(old_master_amp < 1000) {
-            old_master_amp *= 10;
-            number += old_master_amp;
-        } else if(old_master_amp < 100) {
-            old_master_amp *= 10;
-            number += old_master_amp;
-        } else if(old_master_amp < 10) {
-            old_master_amp *= 10;
-            number += old_master_amp;
+        if(zero) {
+            synth->master_amp_percent = 0;
+            synth->master_amp = 0;
+        } else {
+            int old_master_amp = synth->master_amp_percent;
+            
+            if(old_master_amp < 1000) {
+                old_master_amp *= 10;
+                number += old_master_amp;
+            } else if(old_master_amp < 100) {
+                old_master_amp *= 10;
+                number += old_master_amp;
+            } else if(old_master_amp < 10) {
+                old_master_amp *= 10;
+                number += old_master_amp;
+            }
+            
+            if(number >= 9999) {
+                number = 9999;
+            }
+            
+            synth->master_amp_percent = number;
+            synth->master_amp = synth->master_amp_percent*0.01;
         }
-        
-        if(number >= 9999) {
-            number = 9999;
-        }
-        
-        synth->master_amp_percent = number;
-        synth->master_amp = synth->master_amp_percent*0.01;
     }
-    
-
     
     // rows
     if(pattern_cursor_y == 20 && pattern_cursor_x == 2) {
-        int track_height = synth->track_height;
-        if(track_height < 10) {
-            track_height *= 10;
-            number += track_height;
-        }
-        if(number >= synth->track_max_height) {
-            number = synth->track_max_height-1;
-        }
-        synth->track_height = number;
-        if(synth->track_height < 1) {
+        if(zero) {
             synth->track_height = 1;
+            visual_track_height = synth->track_height;
+        } else {
+            int track_height = synth->track_height;
+            if(track_height < 10) {
+                track_height *= 10;
+                number += track_height;
+            }
+            if(number >= synth->track_max_height) {
+                number = synth->track_max_height-1;
+            }
+            synth->track_height = number;
+            if(synth->track_height < 1) {
+                synth->track_height = 1;
+            }
+            visual_track_height = synth->track_height;
         }
-        visual_track_height = synth->track_height;
     }
     
     // arp
     if(pattern_cursor_y == 20 && pattern_cursor_x == 3) {
-        int old_arp = synth->arpeggio_speed;
-        if(old_arp < 100) {
-            old_arp *= 10;
-            number += old_arp;
-        } else if(old_arp < 10) {
-            old_arp *= 10;
-            number += old_arp;
+        if(zero) {
+            synth->arpeggio_speed = 1;
+        } else {
+            int old_arp = synth->arpeggio_speed;
+            if(old_arp < 100) {
+                old_arp *= 10;
+                number += old_arp;
+            } else if(old_arp < 10) {
+                old_arp *= 10;
+                number += old_arp;
+            }
+            if(number >= 600) {
+                number = 600;
+            }
+            synth->arpeggio_speed = number;
         }
-        if(number >= 600) {
-            number = 600;
-        }
-        synth->arpeggio_speed = number;
     }
-    
 }
 
 void handle_instrument_keys(SDL_Keysym* keysym) {
     
-    //int cursor_y = synth->track_cursor_y;
     int cursor_y = visual_cursor_y;
     
     switch( keysym->sym ) {
@@ -2393,20 +2417,6 @@ static void change_param(bool plus) {
         if(y == 18) {
             //ins_nr += 6;
         }
-    } else if(y == 20 && x == 0) {
-        //BPM
-        int bpm = synth->bpm;
-        if(plus) {
-            bpm++;
-            synth->bpm = bpm;
-        } else {
-            bpm--;
-            if(bpm < 1) {
-                bpm = 1;
-            }
-            synth->bpm = bpm;
-        }
-    
     } else if(y == 20 && x == 1) {
         //master amp
         int amp = synth->master_amp_percent;
@@ -2429,6 +2439,8 @@ static void change_param(bool plus) {
         } else {
             synth->preview_enabled = true;
         }
+    /*
+     This is now auto set from tempo.
     } else if(y == 21 && x == 1) {
         if(plus) {
             synth->track_highlight_interval++;
@@ -2438,7 +2450,7 @@ static void change_param(bool plus) {
         if(synth->track_highlight_interval < 2) {
             synth->track_highlight_interval = 2;
         }
-    
+    */
     } else if(y == 19 && x == 1) {
        
         
@@ -2471,10 +2483,7 @@ static void change_param(bool plus) {
             }
         }
     } else if(y == 20 && x == 4) {
-        
-        // TODO groove editor
-    }
-    else if(y == 20) {
+    } else if(y == 20) {
         //nothing
     } else {
         // pattern nr.
@@ -2722,10 +2731,6 @@ static void render_pattern_mapping(void) {
                 char c = cSynthGetCharFromParam((char)ins_nr);
                 sprintf(cval, "Ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            } else if(y == 20 && x == 0) {
-                char cval[10];
-                sprintf(cval, "BPM %d", synth->bpm);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 1) {
                 //nothing
                 char cval[10];
@@ -2755,23 +2760,20 @@ static void render_pattern_mapping(void) {
                 }
             } else if(y == 21 && x == 1) {
                 char cval[20];
-                sprintf(cval, "Beat %d", synth->track_highlight_interval);
+                sprintf(cval, "Beats %d", synth->track_highlight_interval);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-            }
-            else if(y == 19) {
+            } else if(y == 21 && x == 5) {
+                cEngineRenderLabelWithParams(raster2d, "Credits", x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 19) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
-            }
-            else if(y == 20) {
+            } else if(y == 20) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
-            }
-            else if(y == 21) {
+            } else if(y == 21) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
-            }
-            else {
-
+            } else {
                 if(synth->active_tracks[y-1+visual_pattern_offset] == 1) {
                     bg_color = cengine_color_dull_green;
                     color = cengine_color_black;
@@ -2892,7 +2894,7 @@ int is_in_bounds(int x, int y, int width, int height) {
 static void render_tempo_editor(double dt) {
     
     int inset_x = 5;
-    int inset_y = 2;
+    int inset_y = 1;
 
     /* if playing, make the column swap pending to let the current bar finish before switching. Make the pending bar blink to indicate the coming change.*/
     
@@ -2908,22 +2910,34 @@ static void render_tempo_editor(double dt) {
     for(int x = 0; x < synth->tempo_width; x++) {
         for(int y = 0; y < synth->tempo_height; y++) {
             
+            if(x == 0 && y > 0) {
+                // print track numbers
+                int track_nr = y-1;
+                char cval[3];
+                sprintf(cval, "%d", track_nr);
+                int x_offset = 1;
+                if(track_nr < 10) {
+                    x_offset = 2;
+                }
+                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, cengine_color_white, cengine_color_black);
+            }
+
             int color = cengine_color_grey;
             int bg_color = cengine_color_black;
             
             char cval[10];
             struct CTempoNode *t = synth->tempo_map[x][y];
-            char node_value = t->ticks;
-            char c = cSynthGetCharFromParam((char)node_value);
-            sprintf(cval, "%c", c);
+            
             
             if(synth->current_tempo_column == x) {
                 if(t->active) {
                     bg_color = cengine_color_dull_green;
                     color = cengine_color_black;
+                } else {
+                    color = cengine_color_white;
                 }
                 
-                if(synth->tempo_index == y) {
+                if(synth->tempo_index == y && playing) {
                     if(t->active) {
                         bg_color = cengine_color_green;
                         color = cengine_color_black;
@@ -2941,12 +2955,19 @@ static void render_tempo_editor(double dt) {
                 }
             }
             
-            
             if(tempo_selection_x == x && tempo_selection_y == y) {
                 bg_color = cengine_color_magenta;
                 color = cengine_color_black;
             }
             
+            if (y == 0) {
+                int bpm = t->bpm;
+                sprintf(cval, "BPM %d", bpm);
+            } else {
+                char node_value = t->ticks;
+                char c = cSynthGetCharFromParam((char)node_value);
+                sprintf(cval, "%c", c);
+            }
             cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
         }
     }
@@ -2957,7 +2978,7 @@ static void render_track(double dt) {
     if(instrument_editor && !file_editor) {
         render_instrument_editor(dt);
         return;
-    } else if(tempo_editor) {
+    } else if(tempo_editor && !file_editor) {
         render_tempo_editor(dt);
         return;
     } else if(pattern_editor && !file_editor) {
