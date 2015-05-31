@@ -130,6 +130,24 @@ int sine_scroll = 0;
 int envelop_node_camera_offset = 0;
 
 
+
+
+
+
+float c_hue_a = 0;
+float c_hue_r = 0;
+float c_hue_g = 0;
+float c_hue_b = 0;
+
+//float c_new_hue_a = 0;
+float c_new_hue_r = 0;
+float c_new_hue_g = 0;
+float c_new_hue_b = 0;
+
+bool credits_higher_contrast = false;
+bool credits_scanlines_x = false;
+bool credits_scanlines_y = false;
+
 static float credits_hue_rotation = 0;
 static float credits_hue_rotation_inc = 0.2f;
 static bool credits_init = false;
@@ -1745,6 +1763,7 @@ void handle_key_down(SDL_Keysym* keysym) {
 static void handle_tempo_keys(SDL_Keysym* keysym) {
     
     bool zero = false;
+    bool move_cursor_down = false;
     int cursor_x = tempo_selection_x;
     int cursor_y = tempo_selection_y;
     char value = -1;
@@ -1769,6 +1788,7 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
         case SDLK_BACKSPACE:
         case SDLK_DELETE:
             zero = true;
+            move_cursor_down = true;
             break;
         case SDLK_a:
             if(synth->tempo_map[cursor_x][cursor_y]->active) {
@@ -1781,13 +1801,13 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
                 }
                 if(other_active_exists && cursor_y > 0) {
                     synth->tempo_map[cursor_x][cursor_y]->active = false;
+                    move_cursor_down = true;
                 }
             } else {
                 synth->tempo_map[cursor_x][cursor_y]->active = true;
+                move_cursor_down = true;
             }
-            
             cSynthUpdateHighlightInterval(synth);
-            
             break;
         case SDLK_0:
             value = 0;
@@ -1825,10 +1845,13 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
     
     if(cursor_y > 0) {
         if(zero) {
-            synth->tempo_map[cursor_x][cursor_y]->ticks = 0;
+            synth->tempo_map[cursor_x][cursor_y]->ticks = 1;
+            move_cursor_down = true;
         } else if(value > 0) {
             synth->tempo_map[cursor_x][cursor_y]->ticks = value;
+            move_cursor_down = true;
         }
+        
     } else if(cursor_y == 0) {
         // bpm
         if(zero) {
@@ -1847,6 +1870,13 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
                 number = 999;
             }
             synth->tempo_map[cursor_x][cursor_y]->bpm = number;
+        }
+    }
+    
+    if(move_cursor_down) {
+        tempo_selection_y++;
+        if(tempo_selection_y >= synth->tempo_height) {
+            tempo_selection_y = 1;
         }
     }
 }
@@ -2820,9 +2850,10 @@ static void render_pattern_mapping(void) {
                     cEngineRenderLabelWithParams(raster2d, "Preview 0", x*10+inset_x, y+inset_y, color, bg_color);
                 }
             } else if(y == 21 && x == 1) {
-                char cval[20];
-                sprintf(cval, "Beats %d", synth->track_highlight_interval);
-                cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+                //char cval[20];
+                //sprintf(cval, "Beats %d", synth->track_highlight_interval);
+                //cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 21 && x == 5) {
                 cEngineRenderLabelWithParams(raster2d, "Credits", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19) {
@@ -3915,22 +3946,6 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
 }
 
 
-
-
-
-
-
-
-float c_hue_a = 0;
-float c_hue_r = 0;
-float c_hue_g = 0;
-float c_hue_b = 0;
-
-float c_new_hue_a = 0;
-float c_new_hue_r = 0;
-float c_new_hue_g = 0;
-float c_new_hue_b = 0;
-
 static void handle_credits_keys(SDL_Keysym* keysym) {
     
     credits_left = false;
@@ -3961,11 +3976,6 @@ static void handle_credits_keys(SDL_Keysym* keysym) {
             break;
     }
 }
-
-
-static int credits_horizontal_timer = 0;
-static int credits_vertical_timer = 0;
-static int credits_timer_limit = 20;
 
 static void render_credits(void) {
     
@@ -4073,6 +4083,23 @@ static void render_credits(void) {
         if(rand() % 2 == 1) {
             credits_bg_color = -1;
         }
+        
+        credits_higher_contrast = false;
+        credits_scanlines_x = false;
+        credits_scanlines_y = false;
+        /*
+        if(rand() % 2 == 1) {
+            credits_higher_contrast = true;
+        }
+        
+        if(rand() % 2 == 1) {
+            credits_scanlines_x = true;
+        }
+        
+        if(rand() % 2 == 1) {
+            credits_scanlines_y = true;
+        }*/
+        
         change_colors = false;
     }
     
@@ -4146,8 +4173,6 @@ static void render_credits(void) {
             raster2d[x][y] = credits2d[x][y];
         }
     }
-    
-    
 }
 
 
@@ -4159,7 +4184,7 @@ static void resetColorValues(void)
     c_hue_g = 0;
     c_hue_b = 0;
     
-    c_new_hue_a = 0;
+    //c_new_hue_a = 0;
     c_new_hue_r = 0;
     c_new_hue_g = 0;
     c_new_hue_b = 0;
@@ -4169,119 +4194,98 @@ static void resetColorValues(void)
 
 static void TtransformHSV(float H, float S, float V)
 {
-    float VSU = V*S*cos(H*M_PI/180);
-    float VSW = V*S*sin(H*M_PI/180);
+    float VSU = 0.1f;
+    float VSW = 0.1f;
     
-    c_new_hue_r = (.299*V+.701*VSU+.168*VSW)*c_hue_r
-    + (.587*V-.587*VSU+.330*VSW)*c_hue_g
-    + (.114*V-.114*VSU-.497*VSW)*c_hue_b;
-    c_new_hue_g = (.299*V-.299*VSU-.328*VSW)*c_hue_r
-    + (.587*V+.413*VSU+.035*VSW)*c_hue_g
-    + (.114*V-.114*VSU+.292*VSW)*c_hue_b;
-    c_new_hue_b = (.299*V-.3*VSU+1.25*VSW)*c_hue_r
-    + (.587*V-.588*VSU-1.05*VSW)*c_hue_g
-    + (.114*V+.886*VSU-.203*VSW)*c_hue_b;
+    if(credits_higher_contrast) {
+        VSU = (float)(credits_hue_rotation * 0.01);
+        VSW = (float)(credits_hue_rotation * 0.01);
+    } else {
+        VSU = (float)(V*S*cos(H*M_PI/180.0f));
+        VSW = (float)(V*S*sin(H*M_PI/180));
+    }
+    
+    c_new_hue_r = (float)(.299*V+.701*VSU+.168*VSW)*c_hue_r
+    + (float)(.587*V-.587*VSU+.330*VSW)*c_hue_g
+    + (float)(.114*V-.114*VSU-.497*VSW)*c_hue_b;
+    
+    c_new_hue_g = (float)(.299*V-.299*VSU-.328*VSW)*c_hue_r
+    + (float)(.587*V+.413*VSU+.035*VSW)*c_hue_g
+    + (float)(.114*V-.114*VSU+.292*VSW)*c_hue_b;
+    
+    c_new_hue_b = (float)(.299*V-.3*VSU+1.25*VSW)*c_hue_r
+    + (float)(.587*V-.588*VSU-1.05*VSW)*c_hue_g
+    + (float)(.114*V+.886*VSU-.203*VSW)*c_hue_b;
 }
 
-static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation)
-{
-    if (data != NULL)
-    {
-        // **** You have a pointer to the image data ****
-        // **** Do stuff with the data here ****
-        
-        //int i = 0;
-        for(int x = start_x; x < w+start_x; x++)
-        {
-        for(int y = start_y; y < h+start_y; y++)
-        {
-            
-            
-            //int offset = 4*i;
-            
-            //i++;
-            unsigned int rast = data[x][y];
-            /*
-            unsigned char alpha = data[offset];
-            unsigned char red = data[offset+1];
-            unsigned char green = data[offset+2];
-            unsigned char blue = data[offset+3];
-            */
-            unsigned char alpha = 255;
-            unsigned char red = rast & 0xff;
-            unsigned char green = (rast >> 8) & 0xff;
-            unsigned char blue = (rast >> 16) & 0xff;
-            
-            float ascale = alpha /255.0f;
-            float rscale = red /255.0f;
-            float gscale = green /255.0f;
-            float bscale = blue /255.0f;
-            
-            c_hue_a = ascale;
-            c_hue_r = rscale;
-            c_hue_g = gscale;
-            c_hue_b = bscale;
-            
-            c_new_hue_a = ascale;
-            
-            TtransformHSV(rotation, 1.0, 0.99);
-            
-            c_new_hue_a = (c_new_hue_a*255.0);
-            c_new_hue_r = (c_new_hue_r*255.0);
-            c_new_hue_g = (c_new_hue_g*255.0);
-            c_new_hue_b = (c_new_hue_b*255.0);
-            
-            if (c_new_hue_a > 255)
-            {
-                c_new_hue_a = 255;
-            }
-            if (c_new_hue_r > 255)
-            {
-                c_new_hue_r = 255;
-            }
-            if (c_new_hue_g > 255)
-            {
-                c_new_hue_g = 255;
-            }
-            if (c_new_hue_b > 255)
-            {
-                c_new_hue_b = 255;
+static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation) {
+    
+    if (data != NULL) {
+
+        for(int x = start_x; x < w+start_x; x++) {
+
+            if(credits_scanlines_x) {
+                if (x % 2 == 0) {
+                    continue;
+                }
             }
             
-            if(c_new_hue_a < 0)
-                c_new_hue_a = 0;
-            
-            if(c_new_hue_r < 0)
-                c_new_hue_r = 0;
-            
-            if(c_new_hue_g < 0)
-                c_new_hue_g = 0;
-            
-            if(c_new_hue_b < 0)
-                c_new_hue_b = 0;
-            
-            //data[offset] = new_hue_a;
-            
-            /*for (int r_x = 0; r_x < s_width; r_x++) {
-             for (int r_y = 0; r_y < s_height; r_y++) {
-             raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
-             }
-             }*/
-            
-            //unsigned int rast = raster[x][y];
-            //unsigned char red = rast & 0xff;
-            //unsigned char green = (rast >> 8) & 0xff;
-            //unsigned char blue = (rast >> 16) & 0xff;
-            
-            data[x][y] = (255 << 24) | ((unsigned char)c_new_hue_b << 16) | ((unsigned char)c_new_hue_g << 8) | (unsigned char)c_new_hue_r;
-            
-            
-            /*
-             data[offset+1] = c_new_hue_r;
-             data[offset+2] = c_new_hue_g;
-             data[offset+3] = c_new_hue_b;
-             */
-        }}
+            for(int y = start_y; y < h+start_y; y++) {
+
+                if(credits_scanlines_y) {
+                    if (y % 2 == 0) {
+                        continue;
+                    }
+                }
+                
+                unsigned int rast = data[x][y];
+                unsigned char red = rast & 0xff;
+                unsigned char green = (rast >> 8) & 0xff;
+                unsigned char blue = (rast >> 16) & 0xff;
+                
+                float rscale = red /255.0f;
+                float gscale = green /255.0f;
+                float bscale = blue /255.0f;
+                
+                c_hue_r = rscale;
+                c_hue_g = gscale;
+                c_hue_b = bscale;
+                
+
+                TtransformHSV(rotation, 1.0f, 0.99f);
+                
+                c_new_hue_r = (float)(c_new_hue_r*255.0);
+                c_new_hue_g = (float)(c_new_hue_g*255.0);
+                c_new_hue_b = (float)(c_new_hue_b*255.0);
+                
+                if (c_new_hue_r > 255) {
+                    c_new_hue_r = 255;
+                }
+                
+                if (c_new_hue_g > 255) {
+                    c_new_hue_g = 255;
+                }
+                
+                if (c_new_hue_b > 255) {
+                    c_new_hue_b = 255;
+                }
+                
+                if(c_new_hue_r < 0) {
+                    c_new_hue_r = 0;
+                }
+                
+                if(c_new_hue_g < 0) {
+                    c_new_hue_g = 0;
+                }
+                
+                if(c_new_hue_b < 0) {
+                    c_new_hue_b = 0;
+                }
+                
+                data[x][y] = (255 << 24) | ((unsigned char)c_new_hue_b << 16) | ((unsigned char)c_new_hue_g << 8) | (unsigned char)c_new_hue_r;
+                
+            }
+        }
     }
 }
 

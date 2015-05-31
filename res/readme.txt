@@ -44,7 +44,6 @@ track format explanation:
 a = note, b = instrument number, ccc = effects. 6 supported channels.
 a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
 
- 
 patternview
 ----------------
 - arrow keys: move around grid.
@@ -68,6 +67,13 @@ instrument view
 - shift: toggle editing of envelop or effects.
 - home/end: cycle instruments.
 
+tempo view
+----------------
+- a: activate/inactivate row. each column must have at least one active row.
+- plus/minus: change BPM on top row.
+- 1-9: change BPM on top row, or beats.
+- modifier+enter: switch tempo column. while playing, column will be armed and switched to when the current pattern has finished.
+
 global controls
 ----------------
 - modifier+s: go to save view
@@ -87,7 +93,6 @@ load view
 - enter: load the file.
 - escape: exit load view.
 
-
 effects
 ----------------
 0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
@@ -102,23 +107,20 @@ effects
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-Dxx - ends pattern.
+Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 
-
-BPM - beats per minute.
 Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
 Active - number of active pattern rows.
 Rows - number of active rows in patterns.
 Arp - arpeggio speed.
-Swing - swing amount.
 Preview - toggle for if notes should be audiable when playing on the keyboard.
-Beat - row interval to highlight in track.
+Tempo - open tempo editor.
+Credits - show credits.
 
 changelog
 ----------------
-
 build 14 - 2015-05-27 20.24
 - fixed resetting bugs of voices and instrument effects.
 
