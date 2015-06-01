@@ -75,7 +75,7 @@ int getDirectoryListWin(char *dir_string, struct FileSettings *f) {
     char sPath[2048];
 
     //Specify a file mask. *.* = We want everything!
-    sprintf(sPath, "%s*.*", dir_string);
+    sprintf(sPath, "%s*.json", dir_string);
 
     if((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE) {
         printf("Path not found: [%s]\n", sPath);

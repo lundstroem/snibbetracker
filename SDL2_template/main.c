@@ -29,10 +29,11 @@ codesign --force -s "Developer ID Application: Harry Lundstrom" /Library/Framewo
 #ifdef _WIN64
 //define something for Windows (64-bit)
     #define platform_windows
+	#include "dir_win.h"
 #elif _WIN32
 //define something for Windows (32-bit)
     #define platform_windows
-	//#include "dir_win.h"
+	#include "dir_win.h"
 #elif __APPLE__
     #include "TargetConditionals.h"
     #if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
@@ -57,7 +58,7 @@ codesign --force -s "Developer ID Application: Harry Lundstrom" /Library/Framewo
 
 static bool load_gfx = false; // used when loading in new GFX from file.
 //static unsigned int **sheet = NULL; // used when loading in new GFX from file.
-static const bool debuglog = true;
+static const bool debuglog = false;
 static const bool errorlog = true;
 static const int passive_render_delay_ms = 16;
 static const int active_render_delay_ms = 16;
@@ -71,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker test";
+static char *title = "snibbetracker test (experimental)";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -513,6 +514,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             if(file_settings->file_cursor_y < file_settings->file_dir_max_length-1) {
                 if(file_settings->file_dirs[file_settings->file_cursor_y+1] != NULL) {
                     file_settings->file_cursor_y++;
+					
                 }
             }
             set_list_file_name();
@@ -532,8 +534,8 @@ static void set_list_file_name(void) {
     
     // must remove file ending..
     char *list_name = file_settings->file_dirs[file_settings->file_cursor_y];
-    int length = (int)strlen(list_name);
-    if(list_name != NULL) {
+	if(list_name != NULL) {
+		int length = (int)strlen(list_name);
         file_settings->file_name = cAllocatorFree(file_settings->file_name);
         char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
         sprintf(temp_chars, "%s", list_name);
@@ -580,7 +582,14 @@ static void render_files(void) {
     if(file_settings->file_dirs[0] == NULL && conf_default_dir != NULL) {
         getDirectoryList(conf_default_dir);
     }
-    
+	
+	/*
+	else  {
+		#if defined(platform_windows)
+			getDirectoryListWin("", file_settings);
+		#endif
+    }*/
+	
     int offset_y = 0;
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
         if (file_settings->file_dirs[i] != NULL) {
@@ -1885,26 +1894,30 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
         case SDLK_BACKSPACE:
         case SDLK_DELETE:
             zero = true;
-            move_cursor_down = true;
+			if(cursor_y > 0) {
+				move_cursor_down = true;
+			}
             break;
         case SDLK_a:
-            if(synth->tempo_map[cursor_x][cursor_y]->active) {
-                // check so that it's not the last one active. We need at least one.
-                bool other_active_exists = false;
-                for (int i = 1; i < synth->tempo_height; i++) {
-                    if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
-                        other_active_exists = true;
-                    }
-                }
-                if(other_active_exists && cursor_y > 0) {
-                    synth->tempo_map[cursor_x][cursor_y]->active = false;
-                    move_cursor_down = true;
-                }
-            } else {
-                synth->tempo_map[cursor_x][cursor_y]->active = true;
-                move_cursor_down = true;
-            }
-            cSynthUpdateHighlightInterval(synth);
+			if(cursor_y > 0) {
+				if(synth->tempo_map[cursor_x][cursor_y]->active) {
+					// check so that it's not the last one active. We need at least one.
+					bool other_active_exists = false;
+					for (int i = 1; i < synth->tempo_height; i++) {
+						if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
+							other_active_exists = true;
+						}
+					}
+					if(other_active_exists) {
+						synth->tempo_map[cursor_x][cursor_y]->active = false;
+					}
+					move_cursor_down = true;
+				} else {
+					synth->tempo_map[cursor_x][cursor_y]->active = true;
+					move_cursor_down = true;
+				}
+				cSynthUpdateHighlightInterval(synth);
+			}
             break;
         case SDLK_0:
             value = 0;
@@ -3100,10 +3113,10 @@ static void render_tempo_editor(double dt) {
     /* if playing, make the column swap pending to let the current bar finish before switching. Make the pending bar blink to indicate the coming change.*/
     
     if(synth->pending_tempo_column > -1) {
+		redraw_screen = true;
         synth->pending_tempo_blink_counter += dt;
         if (synth->pending_tempo_blink_counter > 200) {
             synth->pending_tempo_blink_counter_toggle = !synth->pending_tempo_blink_counter_toggle;
-            redraw_screen = true;
             synth->pending_tempo_blink_counter = 0;
         }
     }
@@ -3658,6 +3671,9 @@ static void main_loop(void) {
         synth->needs_redraw = true;
     }
     
+	if(tempo_editor) {
+		synth->needs_redraw = true; 
+	}
     
     if(redraw_screen || synth->needs_redraw || !passive_rendering) {
         render_track(last_dt);
@@ -3887,7 +3903,10 @@ static bool parse_config(char *json) {
                 sprintf(conf_default_dir, "%s", default_dir);
                 if(debuglog) { printf("using default dir:%s\n", conf_default_dir); }
                 free(default_dir);
-            #endif
+            #elif defined(platform_windows)
+				conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
+				sprintf(conf_default_dir, "%s", "");
+			#endif
         }
         
         // passive rendering
