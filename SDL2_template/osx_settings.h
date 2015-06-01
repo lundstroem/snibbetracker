@@ -9,5 +9,6 @@
 #ifndef snibbetracker_osx_settings_h
 #define snibbetracker_osx_settings_h
 
+char *get_user_default_dir(void);
 char *get_settings_json(void);
 #endif

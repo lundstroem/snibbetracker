@@ -27,6 +27,7 @@ struct FileSettings {
     char *file_name;
     int file_name_limit;
     bool file_enter_pressed;
+    bool file_moved_in_list;
 };
 
 struct PeekDirResult {

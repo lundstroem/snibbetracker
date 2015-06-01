@@ -8,6 +8,18 @@
 
 #import <Foundation/Foundation.h>
 
+char *get_user_default_dir(void) {
+    // TODO how to handle memory here..
+    NSString *content = [[NSString alloc] initWithFormat:@"%@/Documents/", NSHomeDirectory()];
+    if (content) {
+        const char *chars = [content UTF8String];
+        char *my_str = strdup(chars);
+        printf("user dir:%s", my_str);
+        return my_str;
+    }
+    return NULL;
+}
+
 char *get_settings_json(void) {
     
     NSString *filePath = [[NSBundle mainBundle] pathForResource:@"config" ofType:@"txt"];
@@ -18,14 +30,12 @@ char *get_settings_json(void) {
     if(error) { // If error object was instantiated, handle it.
         NSLog(@"ERROR while loading from file: %@", error);
     }
-    
     if (content) {
         const char *chars = [content UTF8String];
         char *my_str = strdup(chars);
-        printf("osx config:%s", my_str);
+        //printf("osx config:%s", my_str);
         return my_str;
 
     }
-    
     return NULL;
 }

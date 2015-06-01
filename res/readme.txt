@@ -29,8 +29,8 @@ Edit the json value for "working_dir_path" to an existing folder in you Document
 
 trackview
 ----------------
-- spacebar: toggle editing on/off.
-- enter: play/stop.
+- enter: toggle editing on/off.
+- space: play/stop.
 - arrow keys: move cursor.
 - tab: go to pattern view.
 - modifier+left/right: change octave up/down.

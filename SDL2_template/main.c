@@ -1,6 +1,13 @@
 
+/*
+codesign -f -s - LICENSE.webp.txt
+codesign -f -s - webp
+codesign --force -s "Developer ID Application: Harry Lundstrom" /Library/Frameworks/SDL2_image.framework/Versions/A/Frameworks/webp.framework
+*/
 
 //#include <SDL2_image/SDL_image.h>
+
+
 #include <stdbool.h>
 #include "CEngine.h"
 #include "CInput.h"
@@ -48,106 +55,99 @@
 #endif
 
 
-const int passive_render_delay_ms = 16;
-const int active_render_delay_ms = 16;
-const bool lock_device = false;
-bool load_gfx = false;
-bool log_file_enabled = true;
-bool release_build = true;
-bool run_with_sdl = true;
-bool redraw_screen = true;
-bool passive_rendering = true;
-bool preview_enabled = true;
-char *conf_default_dir = NULL;
-//int screen_width = 1280;
-//int screen_height = 720;
-int current_pattern = 0;
-int current_track = 0;
-int quit = 0;
-char *title = "snibbetracker test";
-struct CInput *input = NULL;
-unsigned int *raster = NULL;
-unsigned int **raster2d = NULL;
-unsigned int **sheet = NULL;
-unsigned int *raw_sheet = NULL;
-unsigned int **credits2d = NULL;
-int width = 256*4;
-int height = 144*4;
-int s_width = 256*2;
-int s_height = 144*2;
-bool playing = false;
-bool exporting = false;
-bool editing = false;
-bool modifier = false;
-bool shift_down = false;
-bool selection_enabled = false;
-bool selection_set = false;
-bool follow = false;
-bool visualiser = false;
-bool credits = false;
-bool export_project = false;
-int octave = 2;
-int visual_pattern_offset = 0;
-int visual_track_width = 30;
-int visual_track_height = 16;
-int visual_cursor_x = 0;
-int visual_cursor_y = 0;
-int selection_x = 0;
-int selection_y = 0;
-int last_selection_x = 0;
-int last_selection_y = 0;
-int last_selection_w = 0;
-int last_selection_h = 0;
-int last_copied_pattern_x = 0;
-int last_copied_pattern_y = 0;
-bool pattern_editor = false;
-int pattern_cursor_x = 0;
-int pattern_cursor_y = 0;
-bool instrument_editor = false;
-bool instrument_editor_effects = false;
-int instrument_editor_effects_x = 0;
-int instrument_editor_effects_y = 0;
-int visual_instrument_effects = 5;
-int selected_instrument_id = 0;
-int selected_instrument_node_index = 1;
-int copied_instrument = -1;
-bool file_editor = false;
-bool file_editor_confirm_action = false;
-bool file_editor_existing_file = false;
-bool pressed_left = false;
-bool pressed_right = false;
-bool pressed_up = false;
-bool pressed_down = false;
-bool tempo_editor = false;
-int tempo_selection_x = 0;
-int tempo_selection_y = 0;
-struct CSynthContext *synth = NULL;
-struct CTimer *info_timer = NULL;
-char *info_string = NULL;
-bool show_tips = true;
-struct FileSettings *file_settings = NULL;
-int sine_scroll = 0;
-int envelop_node_camera_offset = 0;
+static bool load_gfx = false; // used when loading in new GFX from file.
+//static unsigned int **sheet = NULL; // used when loading in new GFX from file.
+static const bool debuglog = true;
+static const bool errorlog = true;
+static const int passive_render_delay_ms = 16;
+static const int active_render_delay_ms = 16;
+static const bool lock_device = false;
+static bool log_file_enabled = true;
+static bool run_with_sdl = true;
+static bool redraw_screen = true;
+static bool passive_rendering = true;
+static bool preview_enabled = true;
+static char *conf_default_dir = NULL;
+static int current_pattern = 0;
+static int current_track = 0;
+static int quit = 0;
+static char *title = "snibbetracker test";
+static struct CInput *input = NULL;
+static unsigned int *raster = NULL;
+static unsigned int **raster2d = NULL;
+static unsigned int *raw_sheet = NULL;
+static unsigned int **credits2d = NULL;
+static int width = 256*4;
+static int height = 144*4;
+static int s_width = 256*2;
+static int s_height = 144*2;
+static bool playing = false;
+static bool exporting = false;
+static bool editing = false;
+static bool modifier = false;
+static bool shift_down = false;
+static bool selection_enabled = false;
+//static bool selection_set = false;
+static bool follow = false;
+static bool visualiser = false;
+static bool credits = false;
+static bool help = false;
+static int help_index = 0;
+static int help_index_max = 7;
+static bool export_project = false;
+static int octave = 2;
+static int visual_pattern_offset = 0;
+static int visual_track_width = 30;
+static int visual_track_height = 16;
+static int visual_cursor_x = 0;
+static int visual_cursor_y = 0;
+static int selection_x = 0;
+static int selection_y = 0;
+static int last_selection_x = 0;
+static int last_selection_y = 0;
+static int last_selection_w = 0;
+static int last_selection_h = 0;
+static int last_copied_pattern_x = 0;
+static int last_copied_pattern_y = 0;
+static bool pattern_editor = false;
+static int pattern_cursor_x = 0;
+static int pattern_cursor_y = 0;
+static bool instrument_editor = false;
+static bool instrument_editor_effects = false;
+static int instrument_editor_effects_x = 0;
+static int instrument_editor_effects_y = 0;
+static int visual_instrument_effects = 5;
+static int selected_instrument_id = 0;
+static int selected_instrument_node_index = 1;
+static int copied_instrument = -1;
+static bool file_editor = false;
+static bool file_editor_confirm_action = false;
+static bool file_editor_existing_file = false;
+static bool pressed_left = false;
+static bool pressed_right = false;
+static bool pressed_up = false;
+static bool pressed_down = false;
+static bool tempo_editor = false;
+static int tempo_selection_x = 0;
+static int tempo_selection_y = 0;
+static struct CSynthContext *synth = NULL;
+static struct CTimer *info_timer = NULL;
+static char *info_string = NULL;
+static struct FileSettings *file_settings = NULL;
+static int envelop_node_camera_offset = 0;
 
 
-
-
-
-
-float c_hue_a = 0;
-float c_hue_r = 0;
-float c_hue_g = 0;
-float c_hue_b = 0;
-
-//float c_new_hue_a = 0;
-float c_new_hue_r = 0;
-float c_new_hue_g = 0;
-float c_new_hue_b = 0;
-
-bool credits_higher_contrast = false;
-bool credits_scanlines_x = false;
-bool credits_scanlines_y = false;
-
+// credits
+static float c_hue_a = 0;
+static float c_hue_r = 0;
+static float c_hue_g = 0;
+static float c_hue_b = 0;
+static float c_new_hue_r = 0;
+static float c_new_hue_g = 0;
+static float c_new_hue_b = 0;
+static bool credits_higher_contrast = false;
+static bool credits_scanlines_x = false;
+static bool credits_scanlines_y = false;
 static float credits_hue_rotation = 0;
 static float credits_hue_rotation_inc = 0.2f;
 static bool credits_init = false;
@@ -175,7 +175,8 @@ static void renderPixels(unsigned int **data, int start_x, int start_y, int w, i
 #define sheet_height 1024
 int fullscreen = 0;
 
- 
+
+
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFFFF0000
 #define cengine_color_green 0xFF00FF00
@@ -195,17 +196,57 @@ int fullscreen = 0;
 #define cengine_color_bg5 0xFF333322
 #define cengine_color_bg6 0xFF223333
 
-#define cengine_color_bg1_brighter 0xFF443333
-#define cengine_color_bg2_brighter 0xFF334433
-#define cengine_color_bg3_brighter 0xFF333344
-#define cengine_color_bg4_brighter 0xFF443344
-#define cengine_color_bg5_brighter 0xFF444433
-#define cengine_color_bg6_brighter 0xFF334444
+#define cengine_color_bg1_highlight 0xFF443333
+#define cengine_color_bg2_highlight 0xFF334433
+#define cengine_color_bg3_highlight 0xFF333344
+#define cengine_color_bg4_highlight 0xFF443344
+#define cengine_color_bg5_highlight 0xFF444433
+#define cengine_color_bg6_highlight 0xFF334444
+
+
+
+unsigned int color_info_text_bg = cengine_color_black;
+unsigned int color_file_name_text = cengine_color_red;
+unsigned int color_inactive_instrument_node = cengine_color_red;
+unsigned int color_active_instrument_node = cengine_color_green;
+unsigned int color_envelop = cengine_color_green;
+unsigned int color_inactive_text = cengine_color_grey;
+unsigned int color_text = cengine_color_white;
+unsigned int color_text_bg = cengine_color_black;
+unsigned int color_marker = cengine_color_dull_red;
+unsigned int color_solo = cengine_color_blue;
+unsigned int color_solo_text = cengine_color_black;
+unsigned int color_mute = cengine_color_dull_red;
+unsigned int color_mute_text = cengine_color_black;
+unsigned int color_active_row = cengine_color_dull_green;
+unsigned int color_active_row_text = cengine_color_black;
+unsigned int color_playing_row = cengine_color_green;
+unsigned int color_playing_row_text = cengine_color_black;
+unsigned int color_edit_marker = cengine_color_magenta;
+unsigned int color_edit_text = cengine_color_black;
+unsigned int color_selection_marker = cengine_color_cyan;
+unsigned int color_selection_text = cengine_color_black;
+unsigned int color_bg = cengine_color_black;
+unsigned int color_bg1 = cengine_color_bg1;
+unsigned int color_bg2 = cengine_color_bg2;
+unsigned int color_bg3 = cengine_color_bg3;
+unsigned int color_bg4 = cengine_color_bg4;
+unsigned int color_bg5 = cengine_color_bg5;
+unsigned int color_bg6 = cengine_color_bg6;
+unsigned int color_bg1_highlight = cengine_color_bg1_highlight;
+unsigned int color_bg2_highlight = cengine_color_bg2_highlight;
+unsigned int color_bg3_highlight = cengine_color_bg3_highlight;
+unsigned int color_bg4_highlight = cengine_color_bg4_highlight;
+unsigned int color_bg5_highlight = cengine_color_bg5_highlight;
+unsigned int color_bg6_highlight = cengine_color_bg6_highlight;
+
 
 static void init_file_settings(void);
 static bool file_exists(char *path);
 static void handle_credits_keys(SDL_Keysym* keysym);
+static void handle_help_keys(SDL_Keysym* keysym);
 static void handle_key_down_file(SDL_Keysym* keysym);
+static void set_list_file_name(void);
 static void exit_file_editor(void);
 static void render_files(void);
 static void add_filename_char(char c);
@@ -256,6 +297,7 @@ static void render_pattern_mapping(void);
 static char *get_wave_type_as_char(int type);
 static void draw_wave_types(void);
 static void render_visuals(void);
+static void render_help(void);
 static void render_credits(void);
 static void render_tempo_editor(double dt);
 static void render_track(double dt);
@@ -299,6 +341,7 @@ static void init_file_settings(void) {
     f->file_name = NULL;
     f->file_name_limit = 20;
     f->file_enter_pressed = false;
+    f->file_moved_in_list = false;
     
     file_settings = f;
     
@@ -413,7 +456,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                             exit_file_editor();
                             file_editor_confirm_action = false;
                         }
-                        printf("confirm action\n");
+                        if(debuglog) { printf("confirm action\n"); }
                     }
                     cAllocatorFree(file_path);
                 }
@@ -439,7 +482,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                         if(file_settings->file_editor_save) {
                             if(file_exists(file_path)) {
                                 file_editor_existing_file = true;
-                                printf("confirm action\n");
+                                if(debuglog) { printf("confirm action\n"); }
                             } else {
                                 // just proceed
                                 save_project_file();
@@ -448,7 +491,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                         } else {
                             // load file.
                             file_editor_confirm_action = true;
-                            printf("confirm action\n");
+                            if(debuglog) { printf("confirm action\n"); }
                         }
                     }
                     cAllocatorFree(file_path);
@@ -464,6 +507,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             if(file_settings->file_cursor_y < 0) {
                 file_settings->file_cursor_y = 0;
             }
+            set_list_file_name();
             break;
         case SDLK_DOWN:
             if(file_settings->file_cursor_y < file_settings->file_dir_max_length-1) {
@@ -471,6 +515,7 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
                     file_settings->file_cursor_y++;
                 }
             }
+            set_list_file_name();
             break;
         case SDLK_BACKSPACE:
                 remove_filename_char();
@@ -479,6 +524,29 @@ static void handle_key_down_file(SDL_Keysym* keysym) {
             break;
         default:
             break;
+    }
+}
+
+
+static void set_list_file_name(void) {
+    
+    // must remove file ending..
+    char *list_name = file_settings->file_dirs[file_settings->file_cursor_y];
+    int length = (int)strlen(list_name);
+    if(list_name != NULL) {
+        file_settings->file_name = cAllocatorFree(file_settings->file_name);
+        char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
+        sprintf(temp_chars, "%s", list_name);
+        file_settings->file_name = temp_chars;
+        
+        // a list_name cannot be added unless it has the correct file endings, so we can assume
+        // it will be of at least a certain size.
+        if(file_settings->file_name[length-2] == 'a') {
+            // wav file
+            file_settings->file_name[length-4] = '\0';
+        } else {
+            file_settings->file_name[length-5] = '\0';
+        }
     }
 }
 
@@ -499,15 +567,27 @@ static void exit_file_editor(void) {
 }
 
 
+static int getDirectoryList(char *dir_string) {
+#if defined(platform_osx)
+    return getDirectoryListPosix(dir_string, file_settings);
+#elif defined(platform_windows)
+    return getDirectoryListWin(dir_string, file_settings);
+#endif
+}
+
 static void render_files(void) {
+    
+    if(file_settings->file_dirs[0] == NULL && conf_default_dir != NULL) {
+        getDirectoryList(conf_default_dir);
+    }
     
     int offset_y = 0;
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
         if (file_settings->file_dirs[i] != NULL) {
             if(i == file_settings->file_cursor_y) {
-                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, cengine_color_green, cengine_color_black);
+                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, color_text, -1);
             } else {
-                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, cengine_color_white, cengine_color_black);
+                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, color_inactive_text, -1);
             }
         }
         offset_y++;
@@ -515,25 +595,30 @@ static void render_files(void) {
     
     int offset_x = 0;
     
-    if(file_settings->file_path != NULL && !file_editor_confirm_action) {
-        cEngineRenderLabelWithParams(raster2d, "path:                                                                                            ", offset_x, 23, cengine_color_red, cengine_color_black);
-        cEngineRenderLabelWithParams(raster2d, file_settings->file_path, offset_x+5, 23, cengine_color_red, cengine_color_black);
+    
+    if(conf_default_dir != NULL) {
+        cEngineRenderLabelWithParams(raster2d, "path:                                                                                            ", offset_x, 23, color_text, color_text_bg);
+        cEngineRenderLabelWithParams(raster2d, conf_default_dir, offset_x+5, 23, color_text, color_text_bg);
     }
 
+    int file_name_offset = 0;
     if(export_project && !file_editor_confirm_action) {
-        cEngineRenderLabelWithParams(raster2d, "  export wav as:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, "export wav as:                                                                                            ", offset_x, 22, color_file_name_text, color_text_bg);
+        file_name_offset = 1;
     } else if(!file_settings->file_editor_save && !file_editor_confirm_action) {
-        cEngineRenderLabelWithParams(raster2d, "   open project:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, "open project:                                                                                            ", offset_x, 22, color_file_name_text, color_text_bg);
+        file_name_offset = 0;
     } else if(!file_editor_confirm_action) {
-        cEngineRenderLabelWithParams(raster2d, "save project as:                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, "save project as:                                                                                            ", offset_x, 22, color_file_name_text, color_text_bg);
+        file_name_offset = 3;
     } else if(file_editor_existing_file) {
-         cEngineRenderLabelWithParams(raster2d, "overwrite file? [PRESS RETURN]                                                                                             ", offset_x, 22, cengine_color_red, cengine_color_black);
+         cEngineRenderLabelWithParams(raster2d, "overwrite file? [PRESS RETURN]                                                                                             ", offset_x, 22, color_file_name_text, color_text_bg);
     } else {
-        cEngineRenderLabelWithParams(raster2d, " current project will be reset. continue? [PRESS RETURN]                                                                                            ", offset_x, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, "current project will be reset. continue? [PRESS RETURN]                                                                                            ", offset_x, 22, color_file_name_text, color_text_bg);
     }
     
     if(file_settings->file_name != NULL && !file_editor_confirm_action) {
-        cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+16, 22, cengine_color_red, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, file_settings->file_name, offset_x+13+file_name_offset, 22, color_file_name_text, color_text_bg);
     }
 }
 
@@ -588,14 +673,14 @@ static char *load_file(char *path) {
                 fread(b, sz, 1, fp);
                 return b;
             } else {
-                printf("buffer is null\n");
+                if(errorlog) { printf("buffer is null\n"); }
             }
             fclose(fp);
         } else {
-            printf("file pointer is null\n");
+            if(errorlog) { printf("file pointer is null\n"); }
         }
     } else {
-        printf("cannot load, path is null\n");
+        if(errorlog) { printf("cannot load, path is null\n"); }
     }
     return NULL;
 }
@@ -614,7 +699,7 @@ static void load_project_file(char *path) {
             exit_file_editor();
         }
     } else {
-        printf("could not load file.\n");
+        if(errorlog) { printf("could not load file.\n"); }
 		set_info_timer("could not load file.");
     }
 }
@@ -647,7 +732,7 @@ static void save_project_file(void) {
         cAllocatorFree(save_path);
         exit_file_editor();
     } else {
-        printf("cannot save, filename or path is null\n");
+        if(errorlog) { printf("cannot save, filename or path is null\n"); }
     }
 }
 
@@ -665,7 +750,7 @@ static void set_info_timer(char *string) {
             info_string = info;
             cTimerReset(info_timer);
         } else {
-            printf("setInfoTimerWithInt: string too large\n");
+            if(errorlog) { printf("setInfoTimerWithInt: string too large\n"); }
         }
     }
 }
@@ -684,7 +769,7 @@ static void set_info_timer_with_int(char *string, int data) {
             info_string = info;
             cTimerReset(info_timer);
         } else {
-            printf("setInfoTimerWithInt: string too large\n");
+            if(errorlog) { printf("setInfoTimerWithInt: string too large\n"); }
         }
     }
 }
@@ -697,7 +782,7 @@ static void update_and_render_info(double dt) {
             if(cTimerIsReady(info_timer)) {
                 redraw_screen = true;
             }
-            cEngineRenderLabelWithParams(raster2d, info_string, 0, 23, cengine_color_white, cengine_color_black);
+            cEngineRenderLabelWithParams(raster2d, info_string, 0, 23, color_text, color_info_text_bg);
         }
     }
 }
@@ -898,7 +983,7 @@ static void copy_pattern(int cursor_x, int cursor_y) {
     if(cursor_y > 0 && cursor_y < 17) {
         last_copied_pattern_x = cursor_x;
         last_copied_pattern_y = cursor_y-1+visual_pattern_offset;
-        printf("copy pattern x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y);
+        if(debuglog) { printf("copy pattern x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y); }
     }
     
 }
@@ -909,7 +994,7 @@ static void paste_pattern(int cursor_x, int cursor_y) {
     if(target_y > 0 && target_y < 17) {
         target_y = target_y-1+visual_pattern_offset;
         cSynthPasteNotesFromPattern(synth, last_copied_pattern_x, last_copied_pattern_y, target_x, target_y);
-        printf("paste pattern to x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y);
+        if(debug_log) { printf("paste pattern to x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y); }
     }
 }
 
@@ -1041,7 +1126,11 @@ static void set_visual_cursor(int diff_x, int diff_y, bool user) {
         selection_x = visual_cursor_x;
         selection_y = visual_cursor_y;
         selection_enabled = false;
-    } else {
+    } else if(!editing) {
+        selection_x = visual_cursor_x;
+        selection_y = visual_cursor_y;
+        selection_enabled = false;
+    } else if(editing) {
         selection_enabled = true;
     }
 }
@@ -1165,7 +1254,8 @@ static void toggle_playback(void) {
         } else {
             cSynthResetTrackProgress(synth, current_track, 0);
         }
-        synth->tempo_index = 1;
+        cSynthResetTempoIndex(synth);
+        synth->tempo_skip_step = true;
     } else {
         // note off to all voices when stopping playing.
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
@@ -1234,6 +1324,11 @@ void handle_key_up(SDL_Keysym* keysym) {
 void handle_key_down(SDL_Keysym* keysym) {
     
     redraw_screen = true;
+    
+    if(help) {
+        handle_help_keys(keysym);
+        return;
+    }
     
     if(credits) {
         handle_credits_keys(keysym);
@@ -1711,6 +1806,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                             tempo_editor = true;
                         } else if(pattern_cursor_y == 21 && pattern_cursor_x == 5) {
                             credits = true;
+                        } else if(pattern_cursor_y == 21 && pattern_cursor_x == 1) {
+                            help = true;
                         }
                     } else {
                         toggle_editing();
@@ -1733,7 +1830,7 @@ void handle_key_down(SDL_Keysym* keysym) {
         }
     }
     
-    if(shift_down) {
+    if(shift_down && editing) {
         selection_enabled = true;
     }
     
@@ -2610,9 +2707,9 @@ static void draw_line(int x0, int y0, int x1, int y1) {
         int i_pos_x = (int)pos_x;
         int i_pos_y = (int)pos_y;
         if(instrument_editor_effects) {
-            adsr_invert_y_render(i_pos_x, i_pos_y, cengine_color_grey);
+            adsr_invert_y_render(i_pos_x, i_pos_y, color_inactive_text);
         } else {
-            adsr_invert_y_render(i_pos_x, i_pos_y, cengine_color_green);
+            adsr_invert_y_render(i_pos_x, i_pos_y, color_envelop);
         }
         i++;
     }
@@ -2677,11 +2774,11 @@ static void render_instrument_editor(double dt) {
         int top_line_y = (int)(amp_factor + inset_y);
         int bottom_line_y = 0 + inset_y;
         if(instrument_editor_effects) {
-            adsr_invert_y_render(g_pos, top_line_y, cengine_color_grey);
-            adsr_invert_y_render(g_pos, bottom_line_y, cengine_color_grey);
+            adsr_invert_y_render(g_pos, top_line_y, color_inactive_text);
+            adsr_invert_y_render(g_pos, bottom_line_y, color_inactive_text);
         } else {
-            adsr_invert_y_render(g_pos, top_line_y, cengine_color_white);
-            adsr_invert_y_render(g_pos, bottom_line_y, cengine_color_white);
+            adsr_invert_y_render(g_pos, top_line_y, color_text);
+            adsr_invert_y_render(g_pos, bottom_line_y, color_text);
         }
     }
     
@@ -2708,21 +2805,21 @@ static void render_instrument_editor(double dt) {
         }
         for(int x = -2; x < 2; x++) {
             for(int y = -2; y < 2; y++) {
-                int color = cengine_color_red;
+                int color = color_inactive_instrument_node;
                 if(instrument_editor_effects) {
-                    color = cengine_color_grey;
+                    color = color_inactive_text;
                 } else if(i == selected_instrument_node_index) {
-                    color = cengine_color_green;
+                    color = color_active_instrument_node;
                 }
                 adsr_invert_y_render(g_pos+x-envelop_node_camera_offset, g_amp+y, color);
             }
         }
     }
     
-    char cval[10];
+    char cval[64];
     char c = cSynthGetCharFromParam((char)selected_instrument_id);
-    sprintf(cval, "Ins %c", c);
-    cEngineRenderLabelWithParams(raster2d, cval, 1, 2, cengine_color_white, cengine_color_black);
+    sprintf(cval, "instrument %c", c);
+    cEngineRenderLabelWithParams(raster2d, cval, 1, 2, color_text, -1);
     
     // render preset instrument effects.
     int offset_y = 13;
@@ -2733,13 +2830,13 @@ static void render_instrument_editor(double dt) {
             char cval[20];
             struct CTrackNode *t = synth->instrument_effects[selected_instrument_id][y];
             
-            int color = cengine_color_white;
-            int bg_color = cengine_color_black;
+            int color = color_text;
+            int bg_color = -1;
             if(x == instrument_editor_effects_x && y == instrument_editor_effects_y && instrument_editor_effects) {
-                color = cengine_color_black;
-                bg_color = cengine_color_magenta;
+                color = color_edit_text;
+                bg_color = color_edit_marker;
             } else if(!instrument_editor_effects){
-                color = cengine_color_grey;
+                color = color_inactive_text;
             }
             
             if(t != NULL) {
@@ -2780,24 +2877,33 @@ static void render_pattern_mapping(void) {
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
             
-            int bg_color = cengine_color_black;
-            int color = cengine_color_white;
+            int bg_color = -1;
+            int color = color_text;
             if(x == pattern_cursor_x && y == pattern_cursor_y) {
-                bg_color = cengine_color_magenta;
-                color = cengine_color_black;
+                bg_color = color_edit_marker;
+                color = color_edit_text;
             }
             
             if(y == 0) {
                 int wave_color = color;
                 if(synth->solo_voice > -1) {
                     if(x == synth->solo_voice) {
-                        wave_color = cengine_color_blue;
+                        wave_color = color_solo_text;
+                        bg_color = color_solo;
                     } else {
-                        wave_color = cengine_color_dull_red;
+                        wave_color = color_mute_text;
+                        bg_color = color_mute;
                     }
                 } else if(synth->voices[x]->muted == 1) {
-                    wave_color = cengine_color_dull_red;
+                    wave_color = color_mute_text;
+                    bg_color = color_mute;
                 }
+                
+                if(x == pattern_cursor_x && y == pattern_cursor_y) {
+                    bg_color = color_edit_marker;
+                    wave_color = color_edit_text;
+                }
+                
                 int val = synth->patterns_and_voices[x][y];
                 char cval[3];
                 sprintf(cval, "%d", val);
@@ -2806,56 +2912,55 @@ static void render_pattern_mapping(void) {
                 char cval[10];
                 int ins_nr = x;
                 char c = cSynthGetCharFromParam((char)ins_nr);
-                sprintf(cval, "Ins %c", c);
+                sprintf(cval, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 18) {
                 char cval[10];
                 int ins_nr = x;
                 ins_nr += 6;
                 char c = cSynthGetCharFromParam((char)ins_nr);
-                sprintf(cval, "Ins %c", c);
+                sprintf(cval, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19 && x < 4) {
                 char cval[10];
                 int ins_nr = x;
                 ins_nr += 12;
                 char c = cSynthGetCharFromParam((char)ins_nr);
-                sprintf(cval, "Ins %c", c);
+                sprintf(cval, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 1) {
                 //nothing
                 char cval[10];
-                sprintf(cval, "Amp %d%%", synth->master_amp_percent);
+                sprintf(cval, "amp %d%%", synth->master_amp_percent);
                 if(synth->audio_clips) {
-                    bg_color = cengine_color_red;
+                    bg_color = color_file_name_text;
                     synth->audio_clips = false;
                 }
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 2) {
                 char cval[20];
-                sprintf(cval, "Rows %d", synth->track_height);
+                sprintf(cval, "rows %d", synth->track_height);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 3) {
                 char cval[20];
-                sprintf(cval, "Arp %d", synth->arpeggio_speed);
+                sprintf(cval, "arp %d", synth->arpeggio_speed);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 4) {
                 //char cval[20];
                 //sprintf(cval, "Groove %d", synth->swing);
-                cEngineRenderLabelWithParams(raster2d, "Tempo", x*10+inset_x, y+inset_y, color, bg_color);
+                cEngineRenderLabelWithParams(raster2d, "tempo", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 21 && x == 0) {
                 if(synth->preview_enabled) {
-                    cEngineRenderLabelWithParams(raster2d, "Preview 1", x*10+inset_x, y+inset_y, color, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, "preview 1", x*10+inset_x, y+inset_y, color, bg_color);
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, "Preview 0", x*10+inset_x, y+inset_y, color, bg_color);
+                    cEngineRenderLabelWithParams(raster2d, "preview 0", x*10+inset_x, y+inset_y, color, bg_color);
                 }
             } else if(y == 21 && x == 1) {
                 //char cval[20];
                 //sprintf(cval, "Beats %d", synth->track_highlight_interval);
-                //cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
-                cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
+                cEngineRenderLabelWithParams(raster2d, "help", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 21 && x == 5) {
-                cEngineRenderLabelWithParams(raster2d, "Credits", x*10+inset_x, y+inset_y, color, bg_color);
+                cEngineRenderLabelWithParams(raster2d, "credits", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
@@ -2866,31 +2971,35 @@ static void render_pattern_mapping(void) {
                 //nothing
                 cEngineRenderLabelWithParams(raster2d, "-", x*10+inset_x, y+inset_y, color, bg_color);
             } else {
+                
+                color = color_inactive_text;
+                
                 if(synth->active_tracks[y-1+visual_pattern_offset] == 1) {
-                    bg_color = cengine_color_dull_green;
-                    color = cengine_color_black;
+                    bg_color = color_active_row;
+                    color = color_active_row_text;
                     if(synth->solo_track == y-1+visual_pattern_offset) {
-                        bg_color = cengine_color_blue;
+                        bg_color = color_solo;
+                        color = color_solo_text;
                     }
                 }
                 
                 if(synth->solo_track == y-1) {
-                    bg_color = cengine_color_blue;
-                    color = cengine_color_black;
+                    bg_color = color_solo;
+                    color = color_solo_text;
                 }
                 
                 if(y-1+visual_pattern_offset == synth->current_track && playing) {
                     if(synth->current_track == synth->solo_track) {
-                        bg_color = cengine_color_blue;
+                        bg_color = color_solo;
                     } else {
-                        bg_color = cengine_color_green;
+                        bg_color = color_playing_row;
                     }
-                    color = cengine_color_black;
+                    color = color_playing_row_text;
                 }
                 
                 if(x == pattern_cursor_x && y == pattern_cursor_y) {
-                    bg_color = cengine_color_magenta;
-                    color = cengine_color_black;
+                    bg_color = color_edit_marker;
+                    color = color_edit_text;
                 }
                 
                 int pattern = synth->patterns[x][y-1+visual_pattern_offset];
@@ -2907,7 +3016,7 @@ static void render_pattern_mapping(void) {
                     if(track_nr < 10) {
                         x_offset = 2;
                     }
-                    cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, cengine_color_white, cengine_color_black);
+                    cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, -1);
                 }
             }
         }
@@ -2923,7 +3032,7 @@ static void render_pattern_mapping(void) {
     if(track_at_cursor > -1 && pattern_at_cursor > -1) {
         char cval[20];
         sprintf(cval, "p:%d t:%d", pattern_at_cursor, track_at_cursor);
-        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, -1);
     }
 }
 
@@ -2951,17 +3060,17 @@ static void draw_wave_types(void) {
     
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         int val = synth->patterns_and_voices[x][0];
-        int wave_color = cengine_color_white;
+        int wave_color = color_text;
         if(synth->solo_voice > -1) {
             if(x == synth->solo_voice) {
-                wave_color = cengine_color_blue;
+                wave_color = color_solo;
             } else {
-                wave_color = cengine_color_dull_red;
+                wave_color = color_mute;
             }
         } else if(synth->voices[x]->muted == 1) {
-            wave_color = cengine_color_dull_red;
+            wave_color = color_mute;
         }
-        cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), 2+x*10, -visual_cursor_y+5, wave_color, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), 2+x*10, -visual_cursor_y+5, wave_color, -1);
     }
 }
 
@@ -3011,11 +3120,11 @@ static void render_tempo_editor(double dt) {
                 if(track_nr < 10) {
                     x_offset = 2;
                 }
-                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, cengine_color_white, cengine_color_black);
+                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, -1);
             }
 
-            int color = cengine_color_grey;
-            int bg_color = cengine_color_black;
+            int color = color_inactive_text;
+            int bg_color = -1;
             
             char cval[10];
             struct CTempoNode *t = synth->tempo_map[x][y];
@@ -3023,33 +3132,33 @@ static void render_tempo_editor(double dt) {
             
             if(synth->current_tempo_column == x) {
                 if(t->active) {
-                    bg_color = cengine_color_dull_green;
-                    color = cengine_color_black;
+                    bg_color = color_active_row;
+                    color = color_active_row_text;
                 } else {
-                    color = cengine_color_white;
+                    color = color_text;
                 }
                 
                 if(synth->tempo_index == y && playing) {
                     if(t->active) {
-                        bg_color = cengine_color_green;
-                        color = cengine_color_black;
+                        bg_color = color_playing_row;
+                        color = color_playing_row_text;
                     }
                 }
             } else if(synth->pending_tempo_column == x) {
                 if(t->active && synth->pending_tempo_blink_counter_toggle) {
-                    bg_color = cengine_color_dull_green;
-                    color = cengine_color_black;
+                    bg_color = color_active_row;
+                    color = color_active_row_text;
                 }
             } else {
                 if(t->active) {
-                    bg_color = cengine_color_grey;
-                    color = cengine_color_black;
+                    bg_color = color_inactive_text;
+                    color = color_active_row_text;
                 }
             }
             
             if(tempo_selection_x == x && tempo_selection_y == y) {
-                bg_color = cengine_color_magenta;
-                color = cengine_color_black;
+                bg_color = color_edit_marker;
+                color = color_edit_text;
             }
             
             if (y == 0) {
@@ -3067,7 +3176,10 @@ static void render_tempo_editor(double dt) {
 
 static void render_track(double dt) {
     
-    if(credits) {
+    if(help) {
+        render_help();
+        return;
+    } else if(credits) {
         render_credits();
         return;
     } else if(instrument_editor && !file_editor) {
@@ -3117,49 +3229,49 @@ static void render_track(double dt) {
         }
         for (int x = 0; x < visual_track_width; x++) {
             
-            int bg_color = cengine_color_black;
-            int color = cengine_color_white;
+            int bg_color = bg_color;
+            int color = color_text;
             
             if(x >= 0 && x < 5) {
-                bg_color = cengine_color_bg1;
+                bg_color = color_bg1;
                 if(node_y == node_y_bright) {
-                    bg_color = cengine_color_bg1_brighter;
+                    bg_color = color_bg1_highlight;
                 }
             }
             if(x >= 5 && x < 10) {
-                bg_color = cengine_color_bg2;
+                bg_color = color_bg2;
                 if(node_y == node_y_bright) {
-                    bg_color = cengine_color_bg2_brighter;
+                    bg_color = color_bg2_highlight;
                 }
             }
             if(x >= 10 && x < 15) {
-                bg_color = cengine_color_bg3;
+                bg_color = color_bg3;
                 if(node_y == node_y_bright) {
-                    bg_color = cengine_color_bg3_brighter;
+                    bg_color = color_bg3_highlight;
                 }
             }
             if(x >= 15 && x < 20) {
-                bg_color = cengine_color_bg4;
+                bg_color = color_bg4;
                 if(node_y == node_y_bright) {
-                    bg_color = cengine_color_bg4_brighter;
+                    bg_color = color_bg4_highlight;
                 }
             }
             if(x >= 20 && x < 25) {
-                bg_color = cengine_color_bg5;
+                bg_color = color_bg5;
                 if(node_y == node_y_bright) {
-                    bg_color = cengine_color_bg5_brighter;
+                    bg_color = color_bg5_highlight;
                 }
             }
             if(x >= 25 && x < 30) {
-                bg_color = cengine_color_bg6;
+                bg_color = color_bg6;
                 if(node_y == node_y_bright) {
-                    bg_color = cengine_color_bg6_brighter;
+                    bg_color = color_bg6_highlight;
                 }
             }
             
             node_x = (int)floor(x/5);
             
-            if(selection_enabled) {
+            if(selection_enabled && editing) {
                 int sel_x = (int)floor(selection_x/5);
                 int vis_x = (int)floor(visual_cursor_x/5);
                 
@@ -3186,27 +3298,27 @@ static void render_track(double dt) {
                 }
                 
                 if(inside_selection_x && inside_selection_y && editing) {
-                    color = cengine_color_black;
-                    bg_color = cengine_color_cyan;
+                    color = color_selection_text;
+                    bg_color = color_selection_marker;
                     if(visual_cursor_x == x && visual_cursor_y == y) {
-                        bg_color = cengine_color_magenta;
+                        bg_color = color_edit_marker;
                     }
                 }
             }
 
             if(synth->track_progress_int == y && playing == 1) {
                 if(synth->current_track == current_track) {
-                    bg_color = cengine_color_green;
-                    color = cengine_color_black;
+                    bg_color = color_playing_row;
+                    color = color_playing_row_text;
                 }
             }
             
             if(visual_cursor_x == x && visual_cursor_y == y) {
                 if(editing == 1) {
-                    bg_color = cengine_color_magenta;
-                    color = cengine_color_black;
+                    bg_color = color_edit_marker;
+                    color = color_edit_text;
                 } else {
-                    bg_color = cengine_color_dull_red;
+                    bg_color = color_marker;
                 }
             }
             
@@ -3274,7 +3386,7 @@ static void render_track(double dt) {
         current_pattern = pattern_at_cursor;
         char cval[20];
         sprintf(cval, "p:%d t:%d r:%d", current_pattern, current_track, visual_cursor_y);
-        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, cengine_color_white, cengine_color_black);
+        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, color_text, -1);
     }
 }
 
@@ -3294,11 +3406,11 @@ static void setup_sdl(void) {
 		int should_be_zero = SDL_GetCurrentDisplayMode(i, &current);
 		if(should_be_zero != 0) {
 			// In case of error...
-			SDL_Log("Could not get display mode for video display #%d: %s", i, SDL_GetError());
+            if(debuglog) { SDL_Log("Could not get display mode for video display #%d: %s", i, SDL_GetError()); }
 			st_pause();
 		} else {
 			// On success, print the current display mode.
-			SDL_Log("Display #%d: current display mode is %dx%dpx @ %dhz. \n", i, current.w, current.h, current.refresh_rate);
+            if(debuglog) { SDL_Log("Display #%d: current display mode is %dx%dpx @ %dhz. \n", i, current.w, current.h, current.refresh_rate); }
 		}
 	}
 	
@@ -3308,8 +3420,7 @@ static void setup_sdl(void) {
     } else {
         window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
     }
-    //window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
-	
+    
     if(window != NULL) {
 		
 		context = SDL_GL_CreateContext(window);
@@ -3336,11 +3447,11 @@ static void setup_sdl(void) {
             SDL_SetWindowTitle(window, title_string);
             visual_track_height = synth->track_height;
         } else {
-            printf("Failed to create renderer: %s", SDL_GetError());
+            if(errorlog) { printf("Failed to create renderer: %s", SDL_GetError()); }
 			st_pause();
         }
 	} else {
-        printf("Failed to create window:%s", SDL_GetError());
+        if(errorlog) { printf("Failed to create window:%s", SDL_GetError()); }
 		st_pause();
     }
 }
@@ -3349,6 +3460,8 @@ static void setup_synth(void) {
     
     synth = cSynthContextNew();
     synth->interleaved = true;
+    synth->debuglog = debuglog;
+    synth->errorlog = errorlog;
     synth->chunk_size = 64;
     synth->preview_enabled = preview_enabled;
     cSynthInit(synth);
@@ -3414,31 +3527,35 @@ static int setup_sdl_audio(void) {
     want.samples = bufferSize;
     want.callback = audio_callback;
     
-    printf("\naudioSpec want\n");
-    printf("----------------\n");
-    printf("sample rate:%d\n", want.freq);
-    printf("channels:%d\n", want.channels);
-    printf("samples:%d\n", want.samples);
-    printf("----------------\n\n");
+    if(debuglog) {
+        printf("\naudioSpec want\n");
+        printf("----------------\n");
+        printf("sample rate:%d\n", want.freq);
+        printf("channels:%d\n", want.channels);
+        printf("samples:%d\n", want.samples);
+        printf("----------------\n\n");
+    }
     
     AudioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, 0);
     
-    printf("\naudioSpec get\n");
-    printf("----------------\n");
-    printf("sample rate:%d\n", audioSpec.freq);
-    printf("channels:%d\n", audioSpec.channels);
-    printf("samples:%d\n", audioSpec.samples);
-    printf("size:%d\n", audioSpec.size);
-    printf("----------------\n");
+    if(debuglog) {
+        printf("\naudioSpec get\n");
+        printf("----------------\n");
+        printf("sample rate:%d\n", audioSpec.freq);
+        printf("channels:%d\n", audioSpec.channels);
+        printf("samples:%d\n", audioSpec.samples);
+        printf("size:%d\n", audioSpec.size);
+        printf("----------------\n");
+    }
     
     if (AudioDevice == 0) {
-        printf("\nFailed to open audio: %s\n", SDL_GetError());
+        if(errorlog) { printf("\nFailed to open audio: %s\n", SDL_GetError()); }
 		st_pause();
         return 1;
     }
     
     if (audioSpec.format != want.format) {
-        printf("\nCouldn't get requested audio format.\n");
+        if(errorlog) { printf("\nCouldn't get requested audio format.\n"); }
 		st_pause();
         return 2;
     }
@@ -3471,10 +3588,10 @@ static void setup_cengine(void) {
 }
 
 static void cleanup_synth(void) {
-    printf("allocs before cleanup:\n");
+    if(debuglog) { printf("allocs before cleanup:\n"); }
     cAllocatorPrintAllocationCount();
     cleanup_data();
-    printf("allocs after cleanup:\n");
+    if(debuglog) { printf("allocs after cleanup:\n"); }
     cAllocatorPrintAllocations();
     cAllocatorPrintAllocationCount();
     
@@ -3537,6 +3654,11 @@ static void main_loop(void) {
         synth->needs_redraw = true;
     }
     
+    if(credits) {
+        synth->needs_redraw = true;
+    }
+    
+    
     if(redraw_screen || synth->needs_redraw || !passive_rendering) {
         render_track(last_dt);
         
@@ -3548,7 +3670,7 @@ static void main_loop(void) {
         
         for(int x = 0; x < s_width; x++) {
             for(int y = 0; y < s_height; y++) {
-                raster2d[x][y] = cengine_color_bg;
+                raster2d[x][y] = color_bg;
             }
         }
         redraw_screen = false;
@@ -3623,7 +3745,6 @@ static int get_buffer_size_from_index(int i) {
 
 static void load_config(void) {
     
-    
     bool success = false;
     char *b = load_file("config.txt");
     
@@ -3634,7 +3755,7 @@ static void load_config(void) {
     }
     
     if(!success) {
-        printf("could not find config file. Writing config.txt.\n");
+        if(debuglog) { printf("could not find config file. Writing config.txt.\n"); }
         bufferSize = 8192;
         FILE * fp;
         fp = fopen("config.txt", "w+");
@@ -3643,6 +3764,41 @@ static void load_config(void) {
             fclose(fp);
         }
     }
+}
+
+static unsigned int get_color_from_json_config(cJSON *color_obj) {
+    
+    cJSON *rgb_obj = NULL;
+    unsigned int ret = 0;
+    if(color_obj != NULL) {
+        rgb_obj = cJSON_GetObjectItem(color_obj, "r");
+        int r = rgb_obj->valueint;
+        rgb_obj = cJSON_GetObjectItem(color_obj, "g");
+        int g = rgb_obj->valueint;
+        rgb_obj = cJSON_GetObjectItem(color_obj, "b");
+        int b = rgb_obj->valueint;
+        
+        // 255 255 255 makes it transparent for some reason..
+        
+        if(r > 254) {
+            r = 254;
+        }
+        
+        if(g > 254) {
+            g = 254;
+        }
+        
+        if(b > 254) {
+            b = 254;
+        }
+        
+        unsigned char c_r = (unsigned char)r;
+        unsigned char c_g = (unsigned char)g;
+        unsigned char c_b = (unsigned char)b;
+        ret = (255 << 24) | ((unsigned char)c_r << 16) | ((unsigned char)c_g << 8) | (unsigned char)c_b;
+    }
+    
+    return ret;
 }
 
 static bool parse_config(char *json) {
@@ -3655,6 +3811,42 @@ static bool parse_config(char *json) {
     char *param_fullscreen = "fullscreen";
     char *param_preview = "preview";
     
+    char *param_color_info_text_bg = "color_info_text_bg";
+    char *param_color_file_name_text = "color_file_name_text";
+    char *param_color_inactive_instrument_node = "color_inactive_instrument_node";
+    char *param_color_active_instrument_node = "color_active_instrument_node";
+    char *param_color_envelop = "color_envelop";
+    char *param_color_inactive_text = "color_inactive_text";
+    char *param_color_text = "color_text";
+    char *param_color_text_bg = "color_text_bg";
+    char *param_color_marker = "color_marker";
+    char *param_color_solo = "color_solo";
+    char *param_color_solo_text = "color_solo_text";
+    char *param_color_mute = "color_mute";
+    char *param_color_mute_text = "color_mute_text";
+    char *param_color_active_row = "color_active_row";
+    char *param_color_active_row_text = "color_active_row_text";
+    char *param_color_playing_row = "color_playing_row";
+    char *param_color_playing_row_text = "color_playing_row_text";
+    char *param_color_edit_marker = "color_edit_marker";
+    char *param_color_edit_text = "color_edit_text";
+    char *param_color_selection_marker = "color_selection_marker";
+    char *param_color_selection_text = "color_selection_text";
+    char *param_color_bg = "color_bg";
+    char *param_color_bg1 = "color_bg1";
+    char *param_color_bg2 = "color_bg2";
+    char *param_color_bg3 = "color_bg3";
+    char *param_color_bg4 = "color_bg4";
+    char *param_color_bg5 = "color_bg5";
+    char *param_color_bg6 = "color_bg6";
+    char *param_color_bg1_highlight = "color_bg1_highlight";
+    char *param_color_bg2_highlight = "color_bg2_highlight";
+    char *param_color_bg3_highlight = "color_bg3_highlight";
+    char *param_color_bg4_highlight = "color_bg4_highlight";
+    char *param_color_bg5_highlight = "color_bg5_highlight";
+    char *param_color_bg6_highlight = "color_bg6_highlight";
+    
+
     root = cJSON_Parse(json);
     if(root != NULL) {
         
@@ -3665,10 +3857,11 @@ static bool parse_config(char *json) {
             int buffer_index_value = object->valueint;
             bufferSize = (Uint16)buffer_index_value;
         } else {
-            printf("could not find buffersize in config.\n");
+            if(errorlog) { printf("could not find buffersize in config.\n"); }
         }
         
         // path
+        bool path_in_config = false;
         object = cJSON_GetObjectItem(root, param_working_dir_path);
         if(object != NULL) {
             char *path = object->valuestring;
@@ -3676,29 +3869,40 @@ static bool parse_config(char *json) {
                 if(strlen(path) > 0) {
                     conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
                     sprintf(conf_default_dir, "%s", path);
-                    printf("path in config:%s\n", conf_default_dir);
+                    if(debuglog) { printf("path in config:%s\n", conf_default_dir); }
+                    path_in_config = true;
                 }
             } else {
-                printf("could not find path in config 1.\n");
+                if(debuglog) { printf("could not find path in config 1.\n"); }
             }
         } else {
-            printf("could not find path in config 2.\n");
+            if(debuglog) { printf("could not find path in config 2.\n"); }
         }
         
+        if (!path_in_config) {
+            #if defined(platform_osx)
+                // get default path from ObjC.
+                char *default_dir = get_user_default_dir();
+                conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
+                sprintf(conf_default_dir, "%s", default_dir);
+                if(debuglog) { printf("using default dir:%s\n", conf_default_dir); }
+                free(default_dir);
+            #endif
+        }
         
         // passive rendering
         object = cJSON_GetObjectItem(root, param_passive_rendering);
         if(object != NULL) {
             bool passive_render_val = object->valueint;
             if(passive_render_val) {
-                printf("passive rendering in config is true\n");
+                if(debuglog) { printf("passive rendering in config is true\n"); }
                 passive_rendering = true;
             } else {
-                printf("passive rendering in config is false\n");
+                if(debuglog) { printf("passive rendering in config is false\n"); }
                 passive_rendering = false;
             }
         } else {
-            printf("could not find passive rendering in config.\n");
+            if(debuglog) { printf("could not find passive rendering in config.\n"); }
         }
         
         // fullscreen
@@ -3706,30 +3910,134 @@ static bool parse_config(char *json) {
         if(object != NULL) {
             bool fullscreen_value = object->valueint;
             if(fullscreen_value) {
-                printf("fullscreen in config is true\n");
+                if(debuglog) { printf("fullscreen in config is true\n"); }
                 fullscreen = true;
             } else {
-                printf("fullscreen in config is false\n");
+                if(debuglog) { printf("fullscreen in config is false\n"); }
                 fullscreen = false;
             }
         } else {
-            printf("could not find fullscreen in config.\n");
+            if(debuglog) { printf("could not find fullscreen in config.\n"); }
         }
         
-        // fullscreen
+        // preview
         object = cJSON_GetObjectItem(root, param_preview);
         if(object != NULL) {
             bool fullscreen_value = object->valueint;
             if(fullscreen_value) {
-                printf("preview in config is true\n");
+                if(debuglog) { printf("preview in config is true\n"); }
                 preview_enabled = true;
             } else {
-                printf("preview in config is false\n");
+                if(debuglog) { printf("preview in config is false\n"); }
                 preview_enabled = false;
             }
         } else {
-            printf("could not find preview in config.\n");
+            if(debuglog) { printf("could not find preview in config.\n"); }
         }
+        
+        object = cJSON_GetObjectItem(root, param_color_info_text_bg);
+        if(object != NULL) { color_info_text_bg = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_file_name_text);
+        if(object != NULL) { color_file_name_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_inactive_instrument_node);
+        if(object != NULL) { color_inactive_instrument_node = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_active_instrument_node);
+        if(object != NULL) { color_active_instrument_node = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_envelop);
+        if(object != NULL) { color_envelop = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_inactive_text);
+        if(object != NULL) { color_inactive_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_text);
+        if(object != NULL) { color_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_text_bg);
+        if(object != NULL) { color_text_bg = get_color_from_json_config(object); }
+       
+        object = cJSON_GetObjectItem(root, param_color_marker);
+        if(object != NULL) { color_marker = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_solo);
+        if(object != NULL) { color_solo = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_solo_text);
+        if(object != NULL) { color_solo_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_mute);
+        if(object != NULL) { color_mute = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_mute_text);
+        if(object != NULL) { color_mute_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_active_row);
+        if(object != NULL) { color_active_row = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_active_row_text);
+        if(object != NULL) { color_active_row_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_playing_row);
+        if(object != NULL) { color_playing_row = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_playing_row_text);
+        if(object != NULL) { color_playing_row_text = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_edit_marker);
+        if(object != NULL) { color_edit_marker = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_edit_text);
+        if(object != NULL) { color_edit_text = get_color_from_json_config(object); }
+       
+        object = cJSON_GetObjectItem(root, param_color_selection_marker);
+        if(object != NULL) { color_selection_marker = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_selection_text);
+        if(object != NULL) { color_selection_text = get_color_from_json_config(object); }
+        
+        
+        object = cJSON_GetObjectItem(root, param_color_bg);
+        if(object != NULL) { color_bg = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg1);
+        if(object != NULL) { color_bg1 = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg2);
+        if(object != NULL) { color_bg2 = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg3);
+        if(object != NULL) { color_bg3 = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg4);
+        if(object != NULL) { color_bg4 = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg5);
+        if(object != NULL) { color_bg5 = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg6);
+        if(object != NULL) { color_bg6 = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg1_highlight);
+        if(object != NULL) { color_bg1_highlight = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg2_highlight);
+        if(object != NULL) { color_bg2_highlight = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg3_highlight);
+        if(object != NULL) { color_bg3_highlight = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg4_highlight);
+        if(object != NULL) { color_bg4_highlight = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg5_highlight);
+        if(object != NULL) { color_bg5_highlight = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_bg6_highlight);
+        if(object != NULL) { color_bg6_highlight = get_color_from_json_config(object); }
+        
         
         cJSON_Delete(root);
         return true;
@@ -3744,7 +4052,9 @@ static void st_pause(void) {
 }
 static void st_log(char *message) {
     
-    printf("*** %s \n", message);
+    if(debuglog) {
+        printf("*** %s \n", message);
+    }
 }
 
 int main(int argc, char* argv[]) {
@@ -3848,10 +4158,7 @@ static void export_wav(char *filename) {
         //printf("buffer_size:%lu\n", buffer_size);
     }
     
-    //4294967295
-    //4194176
-    
-    printf("export buffer size:%ld\n", buffer_size);
+    if(debuglog) { printf("export buffer size:%ld\n", buffer_size); }
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
     exporting = true;
@@ -3875,11 +4182,9 @@ static void export_wav(char *filename) {
     }
     
     write_wav(filename, buffer_size, buffer, synth->sample_rate);
-    printf("total buffer size: %lu\n", buffer_size);
+    if(debuglog) { printf("total buffer size: %lu\n", buffer_size); }
     cAllocatorFree(buffer);
     exporting = false;
-    
-    printf("\n\n");
 }
 
 static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file) {
@@ -3955,7 +4260,9 @@ static void handle_credits_keys(SDL_Keysym* keysym) {
     
     switch( keysym->sym ) {
         case SDLK_RETURN:
+        case SDLK_ESCAPE:
             credits = false;
+            break;
         case SDLK_LEFT:
             credits_left = true;
             break;
@@ -3971,10 +4278,470 @@ static void handle_credits_keys(SDL_Keysym* keysym) {
         case SDLK_BACKSPACE:
             break;
         case SDLK_SPACE:
+            toggle_playback();
             break;
         default:
             break;
     }
+}
+
+static void handle_help_keys(SDL_Keysym* keysym) {
+    
+    switch( keysym->sym ) {
+        case SDLK_RETURN:
+        case SDLK_ESCAPE:
+            help = false;
+            break;
+        case SDLK_LEFT:
+            break;
+        case SDLK_RIGHT:
+            break;
+        case SDLK_UP:
+            help_index--;
+            if(help_index < 0) {
+                help_index = help_index_max-1;
+            }
+            break;
+        case SDLK_DOWN:
+            help_index++;
+            if(help_index >= help_index_max) {
+                help_index = 0;
+            }
+            break;
+        case SDLK_BACKSPACE:
+            break;
+        case SDLK_SPACE:
+            toggle_playback();
+            break;
+        default:
+            break;
+    }
+}
+
+static void render_help(void) {
+    
+    /*
+     
+     The movement should feel light fluid and responsive but still have weight.
+     Most of the weight is in attacking, getting attacked, block, parry, roll etc.
+     
+     
+     How to know which page relates to which view?
+     If switching to a page automatically because of context, it can get annoying
+     if you only want to read about effects.
+     
+     Only make scroller for now.
+     */
+    
+    int x = 0;
+    int offset_x = 1;
+    int inset_x = 1;
+    int y = 1;
+    int color = color_text;
+    int bg_color = -1;
+    
+    // make char* to
+    int page = help_index;
+    
+    if(page == 0) {
+        cEngineRenderLabelWithParams(raster2d, "trackview", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- enter: toggle editing on/off.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- space: play/stop.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- arrow keys: move cursor.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- tab: go to pattern view.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        #if defined(platform_windows)
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+left/right: change octave up/down.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: move notes below cursor.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+c/v: copy paste note (or selection).", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #elif defined(platform_osx)
+            cEngineRenderLabelWithParams(raster2d, "- cmd+left/right: change octave up/down.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+up/down: move notes below cursor.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+c/v: copy paste note (or selection).", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #endif
+        cEngineRenderLabelWithParams(raster2d, "- shift+arrow keys: make selection.(if edit is on)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- character keys: play notes or edit effects.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- home/end: go to top / bottom.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "[note] [instrument number] [effects]", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "E-2", inset_x+x+offset_x, y, color, cengine_color_bg1_highlight);
+        cEngineRenderLabelWithParams(raster2d, "0", inset_x+x+offset_x+4, y, color, cengine_color_bg1_highlight);
+        cEngineRenderLabelWithParams(raster2d, "047", inset_x+x+offset_x+6, y, color, cengine_color_bg1_highlight);
+        y++;
+        
+        cEngineRenderLabelWithParams(raster2d, "1 / 7", 1, 22, color, bg_color);
+    }
+    
+    if(page == 1) {
+        cEngineRenderLabelWithParams(raster2d, "patternview", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- arrow keys: move around grid.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- plus/minus: cycle waveform, pattern numbers, rows etc.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- enter: go to instrument view (when gridcursor is at Ins 0-F)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- tab: go to track view.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- e: jump to trackview with current position.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- m: mute track (or channel if cursor is at the top)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- a: activate/inactivate track.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- s: solo track (or channel if cursor is at the top)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        #if defined(platform_windows)
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: cycle tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+c/v: copy paste track data.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #elif defined(platform_osx)
+            cEngineRenderLabelWithParams(raster2d, "- cmd+up/down: cycle tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+c/v: copy paste track data.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #endif
+        cEngineRenderLabelWithParams(raster2d, "- home/end: go to top / bottom.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "amp - master amplitude.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "rows - number of active rows in patterns.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "arp - general arpeggio speed.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "preview - 1 or 0. if notes are audiable when editing.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "tempo - open tempo editor.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "credits - show credits.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        /*
+         Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
+         Rows - number of active rows in patterns.
+         Arp - arpeggio speed.
+         Preview - toggle for if notes should be audiable when playing on the keyboard.
+         Tempo - open tempo editor.
+         Credits - show credits.
+         */
+        
+        cEngineRenderLabelWithParams(raster2d, "2 / 7", 1, 22, color, bg_color);
+    }
+    
+    if(page == 2) {
+        cEngineRenderLabelWithParams(raster2d, "instrument view", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- arrow keys: move node.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        #if defined(platform_windows)
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+arrow keys: move node slow.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #elif defined(platform_osx)
+            cEngineRenderLabelWithParams(raster2d, "- cmd+arrow keys: move node slow.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #endif
+        cEngineRenderLabelWithParams(raster2d, "- tab: cycle nodes.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- spacebar: go to pattern view.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- shift: toggle editing of envelop or effects.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- home/end: cycle instruments.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        
+        cEngineRenderLabelWithParams(raster2d, "3 / 7", 1, 22, color, bg_color);
+    }
+    
+    if(page == 3) {
+        cEngineRenderLabelWithParams(raster2d, "tempo view", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- a: activate/inactivate row. each column", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "  must have at least one active row.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- plus/minus: change BPM on top row.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- 1-9: change BPM on top row, or beats.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        #if defined(platform_windows)
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+enter: switch tempo column. while", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #elif defined(platform_osx)
+            cEngineRenderLabelWithParams(raster2d, "- cmd+enter: switch tempo column. while", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #endif
+        cEngineRenderLabelWithParams(raster2d, "  playing, column will be armed and switched", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "  to when the current pattern has finished.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        
+        cEngineRenderLabelWithParams(raster2d, "4 / 7", 1, 22, color, bg_color);
+    }
+    
+    if(page == 4) {
+        
+        cEngineRenderLabelWithParams(raster2d, "global controls", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        #if defined(platform_windows)
+            cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+s: go to save view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+o: go to load view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+e: export to wav.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #elif defined(platform_osx)
+            cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+s: go to save view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+o: go to load view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+e: export to wav.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+        #endif
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "save/load view", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- character keys: enter filename.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- enter: save/load file.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        
+        cEngineRenderLabelWithParams(raster2d, "5 / 7", 1, 22, color, bg_color);
+        
+    }
+    
+    if(page == 5) {
+        cEngineRenderLabelWithParams(raster2d, "effects 1(2)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "0xx - arpeggio (second tone halfsteps, third tone halfsteps)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      change speed in settings:Arp xx.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "1xx - arpeggio speed (speed, speed) use one of the values or", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "       both multiplied.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "3xx - portamento (speed, speed) uses a single value if other", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      is 0 or a multiplication of both. sets the speed to when", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      new notes will be reached.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "4xx - vibrato (speed, depth).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "5xx - distortion (amp, amp).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "6xx - link distortion (channel, [unused]) premix current", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      channel with another channel (0-6).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "7xx - detune (amount, amount) 88 is middle.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "8xx - PWM (linear position/oscillation depth, oscillation", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      speed) on squarewave. if param2 is present, param1", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      will be used for osc depth. FM for other wavetypes", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      (depth, speed).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw,", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      square, tri, noise).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+       
+        
+        cEngineRenderLabelWithParams(raster2d, "6 / 7", 1, 22, color, bg_color);
+        
+    }
+    
+    if(page == 6) {
+        cEngineRenderLabelWithParams(raster2d, "effects 2(2)", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "Axx - (left amplitud, right amplitud) can be used for", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      amplitude, pan och turning off a note.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "Bxx - downsample sweep down (linear, sweep) sweep works on", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      noise channel. choose either linear or sweep.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "Cxx - downsample sweep up (linear, sweep) sweep works on", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      noise channel. choose either linear or sweep.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "Dxx - ends pattern. D11 - jump to next pattern and reset", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      tempo seq. D1x - reset tempo seq. D2x - switch", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      tempo_seq column. x = tempo seq column (0-5).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "Exx - pitch up (fast, slow) Works on non-noise channels.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      both values can be combined to increase effect.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "Fxx - pitch down (fast, slow) Works on non-noise channels.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      both values can be combined to increase effect.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        
+        cEngineRenderLabelWithParams(raster2d, "7 / 7", 1, 22, color, bg_color);
+    }
+    /*
+     effects
+     ----------------
+     0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
+     1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
+     3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
+     4xx - vibrato (speed, depth).
+     5xx - distortion (amp, amp).
+     6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
+     7xx - detune (amount, amount) 88 is middle.
+     8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
+     9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
+     Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
+     Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+     Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+     Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
+     Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
+     Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
+    */
+    
+    /*
+     
+     tempo view
+     ----------------
+     - a: activate/inactivate row. each column must have at least one active row.
+     - plus/minus: change BPM on top row.
+     - 1-9: change BPM on top row, or beats.
+     - modifier+enter: switch tempo column. while playing, column will be armed and switched to when the current pattern has finished.
+     
+     
+     instrument view
+     ----------------
+     - arrow keys: move node.
+     - modifier+arrow keys: move node slow.
+     - tab: cycle nodes.
+     - spacebar: go to pattern view.
+     - shift: toggle editing of envelop or effects.
+     - home/end: cycle instruments.
+     
+     trackview
+     ----------------
+     - spacebar: toggle editing on/off.
+     - enter: play/stop.
+     - arrow keys: move cursor.
+     - tab: go to pattern view.
+     - modifier+left/right: change octave up/down.
+     - modifier+up/down: move notes below cursor.
+     - shift+arrow keys: make selection.
+     - modifier+c/v: copy paste note (or selection).
+     - character keys: play notes or edit effects.
+     - modifier+f: toggle play cursor follow.
+     - home/end: go to top / bottom.
+     track format explanation:
+     a = note, b = instrument number, ccc = effects. 6 supported channels.
+     a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
+     
+     patternview
+     ----------------
+     - arrow keys: move around grid.
+     - plus/minus: cycle waveform, pattern numbers, bpm, swing, active etc.
+     - spacebar: go to instrument view (when gridcursor is at Ins 0-F)
+     - tab: go to track view.
+     - e: jump to trackview with current position.
+     - m: mute track (or channel if cursor is at the top)
+     - a: activate/inactivate track.
+     - s: solo track (or channel if cursor is at the top)
+     - modifier+up/down: cycle tracks (0-63).
+     - modifier+c/v: copy paste track data.
+     - home/end: go to top / bottom.
+     
+    
+     
+     
+     global controls
+     ----------------
+     - modifier+s: go to save view
+     - modifier+o: go to load view
+     - modifier+e: export to wav.
+     
+     save view
+     ----------------
+     - arrow keys: navigate file system.
+     - character keys: enter filename.
+     - enter: save file at the current location.
+     - escape: exit save view.
+     
+     load view
+     ----------------
+     - arrow keys: navigate file system.
+     - enter: load the file.
+     - escape: exit load view.
+     
+     effects
+     ----------------
+     0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
+     1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
+     3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
+     4xx - vibrato (speed, depth).
+     5xx - distortion (amp, amp).
+     6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
+     7xx - detune (amount, amount) 88 is middle.
+     8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
+     9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
+     Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
+     Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+     Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+     Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
+     Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
+     Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
+     
+     Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
+     Active - number of active pattern rows.
+     Rows - number of active rows in patterns.
+     Arp - arpeggio speed.
+     Preview - toggle for if notes should be audiable when playing on the keyboard.
+     Tempo - open tempo editor.
+     Credits - show credits.
+     */
 }
 
 static void render_credits(void) {
@@ -4049,9 +4816,9 @@ static void render_credits(void) {
         change_colors = true;
     }
     
-    if(credits_y > s_height-185) {
+    if(credits_y > s_height-195) {
         credits_y_inc = -credits_y_inc;
-        credits_y = s_height-186;
+        credits_y = s_height-196;
         change_colors = true;
     } else if(credits_y < 0) {
         credits_y_inc = -credits_y_inc;
@@ -4063,16 +4830,16 @@ static void render_credits(void) {
     if(change_colors) {
         
         if(credits_x_inc < 0) {
-            credits_x_inc = (double)(rand() % 150 / 100.0);
+            credits_x_inc = (double)(rand() % 120 / 100.0);
             credits_x_inc = -credits_x_inc;
         } else {
-            credits_x_inc = (double)(rand() % 150 / 100.0);
+            credits_x_inc = (double)(rand() % 120 / 100.0);
         }
         if(credits_y_inc < 0) {
-            credits_y_inc = (double)(rand() % 150 / 100.0);
+            credits_y_inc = (double)(rand() % 120 / 100.0);
             credits_y_inc = -credits_y_inc;
         } else {
-            credits_y_inc = (double)(rand() % 150 / 100.0);
+            credits_y_inc = (double)(rand() % 120 / 100.0);
         }
         
         credits_hue_rotation_inc = (float)(rand() % 100 / 100.0);
@@ -4087,6 +4854,7 @@ static void render_credits(void) {
         credits_higher_contrast = false;
         credits_scanlines_x = false;
         credits_scanlines_y = false;
+        
         /*
         if(rand() % 2 == 1) {
             credits_higher_contrast = true;
@@ -4098,7 +4866,8 @@ static void render_credits(void) {
         
         if(rand() % 2 == 1) {
             credits_scanlines_y = true;
-        }*/
+        }
+        */
         
         change_colors = false;
     }
@@ -4109,22 +4878,24 @@ static void render_credits(void) {
     cEngineRenderLabelByPixelPos(credits2d, "   lundstroem", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "_design_and_testing_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "_feedback_and_testing_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   salkinitzor", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   nordloef", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   linde", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   Linde", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   sunfl0wr", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   rockard", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   Rockard", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "   0c0", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "_a_very_special_thanks_to_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "_special_thanks_to_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   olofsonarcade", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   OlofsonArcade", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   goto80", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
@@ -4139,8 +4910,8 @@ static void render_credits(void) {
     
     int hue_x = int_x;
     int hue_y = int_y;
-    int hue_width = 235;
-    int hue_height = 185;
+    int hue_width = 240;
+    int hue_height = 195;
    
     if (hue_x >= s_width) {
         hue_x = s_width-1;
