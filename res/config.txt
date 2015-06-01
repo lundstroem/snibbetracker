@@ -1,11 +1,11 @@
 {
 "buffer_size":4096,
 "buffer_size_info":"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384",
-"working_dir_path":"/Users/d/Documents/snibbetracker/",
+"working_dir_path":"",
 "working_dir_path_info":"Use full path like /Users/d/Documents/snibbetracker/ dir must be created manually. The default (empty path) will use the directory the executable is in on Win, OSX needs permissive dir like Documents.",
 "passive_rendering":true,
-"fullscreen":false, "preview":true,
-
+"fullscreen":false,
+"preview":true,
 "color_info_text_bg" : {"r" : 0, "g" : 0, "b" : 0},
 "color_file_name_text" : {"r" : 240, "g" : 240, "b" : 240},
 "color_inactive_instrument_node" : {"r" : 100, "g" : 100, "b" : 0},
