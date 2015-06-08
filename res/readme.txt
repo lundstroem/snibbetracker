@@ -64,7 +64,7 @@ instrument view
 - modifier+arrow keys: move node slow.
 - tab: cycle nodes.
 - spacebar: go to pattern view.
-- shift: toggle editing of envelop or effects.
+- shift: toggle editing of envelope or effects.
 - home/end: cycle instruments.
 
 tempo view
@@ -164,7 +164,7 @@ build 11 - 2015-05-21 11.00
 - fix bug where volume does not reset when removing A effect.
 - fixed bug where export wav buffer was not zeroed before use.
 - only play from track in pattern view if cursor is < 16 etc otherwise from track 0.
-- scroll for nodes in envelop.
+- scroll for nodes in envelope.
 
 build 10 - 2015-05-10 11.40
 - fixed crash bug on XP when saving/loading/exporting.
@@ -177,7 +177,7 @@ build 9 - 2015-05-07 07.48
 - will remember the last filename you saved as (or loaded) when going in to the save/load screen.
 - safety pass so you don't accidentally save over an existing song, or load a new song when you have a currently unsaved one.
 - first param of PWM effect control modulation depth if the second param (speed) is present.
-- changed default instrument envelop to one with fast attack.
+- changed default instrument envelope to one with fast attack.
 - make config file with default save/load path, buffersize etc.
 - optimize to use less CPU while running (passive rendering).
 - export songs to .wav.

@@ -851,35 +851,6 @@ static void setup_data(void) {
         }
     }
     
-    input = cInputNew();
-    
-    input->touches = cAllocatorAlloc(MAX_TOUCHES * sizeof(struct CTouch*), "main.c touches");
-    if(input->touches == NULL) {
-        fprintf(stderr, "touchlist out of memory\n");
-    }
-    
-    for(i = 0; i < MAX_TOUCHES; i++) {
-        if(input->touches != NULL) {
-            input->touches[i] = cTouchNew();
-            if(input->touches[i] == NULL) {
-                fprintf(stderr, "touchlist out of memory\n");
-            }
-        }
-    }
-    
-    input->ended_touches = cAllocatorAlloc(MAX_TOUCHES * sizeof(struct CTouch*), "main.c ended touches");
-    if(input->ended_touches == NULL) {
-        fprintf(stderr, "ended touchlist out of memory\n");
-    }
-    for(i = 0; i < MAX_TOUCHES; i++) {
-        if(input->ended_touches != NULL) {
-            input->ended_touches[i] = cTouchNew();
-            if(input->ended_touches[i] == NULL) {
-                fprintf(stderr, "ended touchlist out of memory\n");
-            }
-        }
-    }
-    
     info_timer = cTimerNew(3000);
     cTimerReset(info_timer);
 }
@@ -906,7 +877,6 @@ static void cleanup_data(void) {
     credits2d = cAllocatorFree(credits2d);
     cSynthCleanup(synth);
     cEngineCleanup();
-    input = cInputCleanup(input);
     info_timer = cAllocatorFree(info_timer);
     
     info_string = cAllocatorFree(info_string);
@@ -2479,6 +2449,7 @@ static void check_sdl_events(SDL_Event event) {
             case SDL_KEYUP:
                 handle_key_up(&event.key.keysym);
                 break;
+                /*
             case SDL_MOUSEMOTION:
                 convert_input(event.motion.x, event.motion.y);
                 if(input->mouse1 == 1) {
@@ -2520,6 +2491,7 @@ static void check_sdl_events(SDL_Event event) {
                     input->ended_touches[1]->y = event.motion.y;
                 }
             break;
+                 */
         }
     }
 }
