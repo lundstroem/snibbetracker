@@ -241,7 +241,7 @@ unsigned int color_bg4_highlight = cengine_color_bg4_highlight;
 unsigned int color_bg5_highlight = cengine_color_bg5_highlight;
 unsigned int color_bg6_highlight = cengine_color_bg6_highlight;
 
-
+static void reset_project(void);
 static void init_file_settings(void);
 static bool file_exists(char *path);
 static void handle_credits_keys(SDL_Keysym* keysym);
@@ -325,6 +325,42 @@ static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file
 static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate);
 
 
+static void reset_project(void) {
+    
+    current_pattern = 0;
+    current_track = 0;
+    playing = false;
+    exporting = false;
+    editing = false;
+    modifier = false;
+    shift_down = false;
+    selection_enabled = false;
+    follow = false;
+    visualiser = false;
+    credits = false;
+    help = false;
+    help_index = 0;
+    octave = 2;
+    tempo_selection_x = 0;
+    tempo_selection_y = 0;
+    instrument_editor_effects_x = 0;
+    instrument_editor_effects_y = 0;
+    pattern_cursor_x = 0;
+    pattern_cursor_y = 0;
+    visual_pattern_offset = 0;
+    visual_track_width = 30;
+    visual_track_height = 16;
+    visual_cursor_x = 0;
+    visual_cursor_y = 0;
+    selection_x = 0;
+    selection_y = 0;
+    last_selection_x = 0;
+    last_selection_y = 0;
+    last_selection_w = 0;
+    last_selection_h = 0;
+    last_copied_pattern_x = 0;
+    last_copied_pattern_y = 0;
+}
 
 static void init_file_settings(void) {
     
@@ -1320,6 +1356,21 @@ void handle_key_down(SDL_Keysym* keysym) {
     } else {
         
         switch(keysym->sym) {
+            case SDLK_q:
+                if(modifier) {
+                    // user will quit app on OSX.
+                    return;
+                }
+                break;
+            case SDLK_n:
+                if(modifier) {
+                    // new project.
+                    set_info_timer("reset project");
+                    reset_project();
+                    cSynthReset(synth);
+                    return;
+                }
+                break;
             case SDLK_HOME:
                 if(tempo_editor) {
                     tempo_selection_y = 0;
