@@ -4127,6 +4127,7 @@ static void export_wav(char *filename) {
     
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
+    cSynthResetTempoIndex(synth);
     exporting = true;
     synth->looped = false;
     
