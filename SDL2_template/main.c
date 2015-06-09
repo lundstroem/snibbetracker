@@ -4179,6 +4179,12 @@ static void export_wav(char *filename) {
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
     cSynthResetTempoIndex(synth);
+    for (int i = 0; i < synth->track_width; i++) {
+        struct CVoice *v = synth->voices[i];
+        for(int i = 0; i < v->delay_buffer_size; i++) {
+            v->delay_buffer[i] = 0;
+        }
+    }
     exporting = true;
     synth->looped = false;
     
