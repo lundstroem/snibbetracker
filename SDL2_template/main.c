@@ -78,10 +78,11 @@ static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
 static unsigned int *raw_sheet = NULL;
 static unsigned int **credits2d = NULL;
+static unsigned int **visualiser2d = NULL;
 static int width = 256*4;
 static int height = 144*4;
-static int s_width = 256*2;
-static int s_height = 144*2;
+static int s_width = 256*2; // 512
+static int s_height = 144*2; // 288
 static bool playing = false;
 static bool exporting = false;
 static bool editing = false;
@@ -290,6 +291,7 @@ static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
+static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
 static void draw_line(int x0, int y0, int x1, int y1);
@@ -896,6 +898,28 @@ static void setup_data(void) {
         }
     }
     
+    visualiser2d = cAllocatorAlloc(s_width * sizeof(unsigned int *), "main.c visualiser2d 2");
+    if(visualiser2d == NULL) {
+        fprintf(stderr, "out of memory\n");
+    } else {
+        for(i = 0; i < s_width; i++) {
+            visualiser2d[i] = cAllocatorAlloc(s_height * sizeof(unsigned int), "main.c visualiser2d 3");
+            if(visualiser2d[i] == NULL)
+            {
+                fprintf(stderr, "out of memory\n");
+            }
+        }
+    }
+    
+    for(r_x = 0; r_x < s_width; r_x++) {
+        for(r_y = 0; r_y < s_height; r_y++) {
+            if(visualiser2d != NULL && visualiser2d[r_x] != NULL) {
+                visualiser2d[r_x][r_y] = 0;
+            }
+        }
+    }
+    
+    
     info_timer = cTimerNew(3000);
     cTimerReset(info_timer);
 }
@@ -912,14 +936,22 @@ static void cleanup_data(void) {
     int i = 0;
     
     raster = cAllocatorFree(raster);
+    
     for(i = 0; i < s_width; i++) {
         raster2d[i] = cAllocatorFree(raster2d[i]);
     }
     raster2d = cAllocatorFree(raster2d);
+    
     for(i = 0; i < s_width; i++) {
         credits2d[i] = cAllocatorFree(credits2d[i]);
     }
     credits2d = cAllocatorFree(credits2d);
+    
+    for(i = 0; i < s_width; i++) {
+        visualiser2d[i] = cAllocatorFree(visualiser2d[i]);
+    }
+    visualiser2d = cAllocatorFree(visualiser2d);
+    
     cSynthCleanup(synth);
     cEngineCleanup();
     info_timer = cAllocatorFree(info_timer);
@@ -1345,6 +1377,7 @@ void handle_key_up(SDL_Keysym* keysym) {
     
 }
 
+
 void handle_key_down(SDL_Keysym* keysym) {
     
     redraw_screen = true;
@@ -1652,12 +1685,12 @@ void handle_key_down(SDL_Keysym* keysym) {
             case SDLK_ESCAPE:
                 if(instrument_editor) {
                     instrument_editor = false;
+                } else if(visualiser) {
+                    visualiser = false;
                 } else if(tempo_editor) {
                     tempo_editor = false;
                 } else if(help) {
                     help = false;
-                } else if(visualiser) {
-                    visualiser = false;
                 } else if(credits) {
                     credits = false;
                 } else if(pattern_editor) {
@@ -2617,6 +2650,8 @@ static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 i
     printf("\n\n");
 }
 
+
+
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     memset(byteStream, 0, byteStreamLength);
@@ -2635,6 +2670,99 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
         long begin = i*chunk_size;
         long end = (i*chunk_size) + chunk_size;
         cSynthRenderAudio(synth, s_byteStream, begin, end, chunk_size, playing, exporting);
+    }
+    
+
+    if(visualiser) {
+        prepare_visualiser(s_byteStream, byteStreamLength);
+    }
+}
+
+static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
+    
+    //printf("byteStreamLength:%d\n", byteStreamLength);
+    
+    int x_counter = 0;
+    for(int v_x = 0; v_x < s_width*2; v_x+=2) {
+        
+        //int scaled_x = ((byteStreamLength/16) / s_width) * v_x;
+        
+        int scaled_x = v_x;
+        
+        if(scaled_x < byteStreamLength-1 && x_counter < s_width) {
+            Sint16 sample_left = s_byteStream[scaled_x];
+            Sint16 sample_right = s_byteStream[scaled_x+1];
+            
+            sample_left *= 0.00439466536454;
+            sample_right *= 0.00439466536454;
+            //sample_left /= s_height;
+            int fourth = 72;
+            int visual_left = sample_left + fourth;
+            int visual_right = sample_right + (fourth*3);
+            int fourth_times_three = (fourth*3);
+            //int fourth_times_four = (fourth*4);
+            int middle = s_height/2;
+            visualiser2d[x_counter][middle] = 0xFFFFFFFF;
+            
+            unsigned int color = 0xFFFF0000;
+            
+            unsigned int color_left = (sample_left+INT16_MAX) * 1000;
+            unsigned int color_right = (sample_right+INT16_MAX) * 1000;
+            
+            if(visual_left < 0) {
+                visual_left = 0;
+                color = 0xFFFF0000;
+            } else if (visual_left >= fourth*2) {
+                visual_left = fourth*2;
+                color = 0xFFFF0000;
+            } else {
+                color = 0xFF0000FF;
+            }
+            color = color_left;
+            visualiser2d[x_counter][visual_left] = color;
+            for(int v_y = visual_left; v_y < fourth; v_y++) {
+                visualiser2d[x_counter][v_y] = color;
+            }
+            for(int v_y = fourth; v_y < sample_left+fourth; v_y++) {
+                visualiser2d[x_counter][v_y] = color;
+            }
+            
+            if(visual_right < fourth*2) {
+                visual_right = fourth*2;
+                color = 0xFFFF0000;
+            } else if (visual_right >= s_height) {
+                visual_right = s_height-1;
+                color = 0xFFFF0000;
+            } else {
+                color = 0xFF0000FF;
+            }
+            
+            color = color_right;
+            visualiser2d[x_counter][visual_right] = color;
+            for(int v_y = visual_right; v_y < fourth_times_three; v_y++) {
+                visualiser2d[x_counter][v_y] = color;
+            }
+            for(int v_y = fourth_times_three; v_y < sample_right+fourth_times_three; v_y++) {
+                visualiser2d[x_counter][v_y] = color;
+            }
+            
+            x_counter++;
+        }
+    }
+    
+    for(int v_x = 0; v_x < s_width; v_x++) {
+        for(int v_y = 0; v_y < s_height; v_y++) {
+            float mod = 0.9f;
+            unsigned int rast = visualiser2d[v_x][v_y];
+            unsigned char blue = rast & 0xff;
+            unsigned char green = (rast >> 8) & 0xff;
+            unsigned char red = (rast >> 16) & 0xff;
+            unsigned char alpha = (rast >> 24) & 0xff;
+            red *= mod;
+            green *= mod;
+            blue *= mod;
+            visualiser2d[v_x][v_y] = (alpha << 24) | (red << 16) | (green << 8) | blue;
+        }
     }
 }
 
@@ -3157,7 +3285,7 @@ static void render_visuals(void) {
     
     for(int x = 0; x < s_width; x++) {
         for(int y = 0; y < s_height; y++) {
-            raster2d[x][y] = rand();
+            raster2d[x][y] = visualiser2d[x][y];
         }
     }
 }
@@ -3261,7 +3389,10 @@ static void render_track(double dt) {
     } else if(credits) {
         render_credits();
         return;
-    } else if(instrument_editor && !file_editor && !tempo_editor) {
+    } else if(visualiser && !instrument_editor) {
+        render_visuals();
+        return;
+    } else if(instrument_editor && !file_editor && !tempo_editor && !visualiser) {
         render_instrument_editor(dt);
         return;
     } else if(tempo_editor && !file_editor) {
@@ -3740,6 +3871,10 @@ static void main_loop(void) {
 	if(tempo_editor) {
 		synth->needs_redraw = true; 
 	}
+    
+    if(visualiser) {
+        synth->needs_redraw = true;
+    }
     
     update_info(last_dt);
     
