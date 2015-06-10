@@ -78,7 +78,10 @@ global controls
 ----------------
 - modifier+s: go to save view
 - modifier+o: go to load view
-- modifier+e: export to wav.
+- modifier+e: go to export view.
+- modifier+i: go to instrument view.
+- modifier+t: go to tempo view.
+- escape: exit view.
 
 save view
 ----------------
@@ -97,6 +100,7 @@ effects
 ----------------
 0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
 1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
+2xx - delay (speed, feedback)
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
 5xx - distortion (amp, amp).

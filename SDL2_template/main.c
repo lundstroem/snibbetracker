@@ -257,7 +257,8 @@ static void load_project_file(char *path);
 static void save_project_file(void);
 static void set_info_timer(char *string);
 static void set_info_timer_with_int(char *string, int data);
-static void update_and_render_info(double dt);
+static void update_info(double dt);
+static void render_info(void);
 static void setup_data(void);
 static void convert_input(int x, int y);
 static void cleanup_data(void);
@@ -786,7 +787,7 @@ static void set_info_timer(char *string) {
     if(string != NULL) {
         int max_size = file_settings->file_name_max_length;
         int len = (int)strlen(string);
-        if(len < max_size) {
+        if(len < max_size-1) {
             char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer string");
             sprintf(info, "%s", string);
             if(info_string != NULL) {
@@ -819,7 +820,7 @@ static void set_info_timer_with_int(char *string, int data) {
     }
 }
 
-static void update_and_render_info(double dt) {
+static void update_info(double dt) {
     
     if(info_string != NULL) {
         if(!cTimerIsReady(info_timer)) {
@@ -827,6 +828,14 @@ static void update_and_render_info(double dt) {
             if(cTimerIsReady(info_timer)) {
                 redraw_screen = true;
             }
+        }
+    }
+}
+
+static void render_info(void) {
+    
+    if(info_string != NULL) {
+        if(!cTimerIsReady(info_timer)) {
             cEngineRenderLabelWithParams(raster2d, info_string, 0, 23, color_text, color_info_text_bg);
         }
     }
@@ -1356,6 +1365,27 @@ void handle_key_down(SDL_Keysym* keysym) {
     } else {
         
         switch(keysym->sym) {
+            case SDLK_i:
+                if(modifier) {
+                    if (instrument_editor) {
+                        instrument_editor = false;
+                    } else {
+                        tempo_editor = false;
+                        instrument_editor = true;
+                    }
+                    return;
+                }
+                break;
+            case SDLK_t:
+                if(modifier) {
+                    if (tempo_editor) {
+                        tempo_editor = false;
+                    } else {
+                        instrument_editor = false;
+                        tempo_editor = true;
+                    }
+                }
+                break;
             case SDLK_q:
                 if(modifier) {
                     // user will quit app on OSX.
@@ -1620,6 +1650,19 @@ void handle_key_down(SDL_Keysym* keysym) {
                 modifier = true;
                 break;
             case SDLK_ESCAPE:
+                if(instrument_editor) {
+                    instrument_editor = false;
+                } else if(tempo_editor) {
+                    tempo_editor = false;
+                } else if(help) {
+                    help = false;
+                } else if(visualiser) {
+                    visualiser = false;
+                } else if(credits) {
+                    credits = false;
+                } else if(pattern_editor) {
+                    pattern_editor = false;
+                }
                 break;
             case SDLK_SPACE:
                 toggle_playback();
@@ -3218,7 +3261,7 @@ static void render_track(double dt) {
     } else if(credits) {
         render_credits();
         return;
-    } else if(instrument_editor && !file_editor) {
+    } else if(instrument_editor && !file_editor && !tempo_editor) {
         render_instrument_editor(dt);
         return;
     } else if(tempo_editor && !file_editor) {
@@ -3265,7 +3308,7 @@ static void render_track(double dt) {
         }
         for (int x = 0; x < visual_track_width; x++) {
             
-            int bg_color = bg_color;
+            int bg_color = 0;
             int color = color_text;
             
             if(x >= 0 && x < 5) {
@@ -3422,7 +3465,7 @@ static void render_track(double dt) {
         current_pattern = pattern_at_cursor;
         char cval[20];
         sprintf(cval, "p:%d t:%d r:%d", current_pattern, current_track, visual_cursor_y);
-        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, color_text, -1);
+        cEngineRenderLabelWithParams(raster2d, cval, 50, 23, color_text, color_text_bg);
     }
 }
 
@@ -3684,7 +3727,7 @@ static void main_loop(void) {
     }
     
     check_sdl_events(event);
-    update_and_render_info(last_dt);
+    
     
     if(instrument_editor) {
         synth->needs_redraw = true;
@@ -3698,8 +3741,12 @@ static void main_loop(void) {
 		synth->needs_redraw = true; 
 	}
     
+    update_info(last_dt);
+    
     if(redraw_screen || synth->needs_redraw || !passive_rendering) {
+       
         render_track(last_dt);
+        render_info();
         
         for (int r_x = 0; r_x < s_width; r_x++) {
             for (int r_y = 0; r_y < s_height; r_y++) {
@@ -3714,7 +3761,9 @@ static void main_loop(void) {
         }
         redraw_screen = false;
         synth->needs_redraw = false;
+        
     }
+    
     
     
     SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (unsigned int));
@@ -4557,23 +4606,33 @@ static void render_help(void) {
         
         cEngineRenderLabelWithParams(raster2d, "global controls", inset_x+x+offset_x, y, color, bg_color);
         y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
         #if defined(platform_windows)
-            cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
-            y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+s: go to save view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+o: go to load view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
-            cEngineRenderLabelWithParams(raster2d, "- ctrl+e: export to wav.", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+e: export wav.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+i: go to instrument view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+t: go to tempo view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #elif defined(platform_osx)
-            cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
-            y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+s: go to save view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+o: go to load view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
-            cEngineRenderLabelWithParams(raster2d, "- cmd+e: export to wav.", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- cmd+e: export wav.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+i: go to instrument view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+t: go to tempo view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #endif
         y++;
@@ -4583,11 +4642,12 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "- character keys: enter filename.", inset_x+x+offset_x, y, color, bg_color);
         y++;
+        cEngineRenderLabelWithParams(raster2d, "- backspace: remove character.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
         cEngineRenderLabelWithParams(raster2d, "- enter: save/load file.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        
         cEngineRenderLabelWithParams(raster2d, "5 / 7", 1, 22, color, bg_color);
         
     }
@@ -4604,6 +4664,8 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "1xx - arpeggio speed (speed, speed) use one of the values or", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "       both multiplied.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "2xx - delay (speed, feedback).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "3xx - portamento (speed, speed) uses a single value if other", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -4629,10 +4691,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "      (depth, speed).", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw,", inset_x+x+offset_x, y, color, bg_color);
-        y++;
-        cEngineRenderLabelWithParams(raster2d, "      square, tri, noise).", inset_x+x+offset_x, y, color, bg_color);
-        y++;
+        
        
         
         cEngineRenderLabelWithParams(raster2d, "6 / 7", 1, 22, color, bg_color);
@@ -4643,6 +4702,10 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "effects 2(2)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw,", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      square, tri, noise).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "Axx - (left amplitud, right amplitud) can be used for", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -4918,7 +4981,7 @@ static void render_credits(void) {
         }
         */
         
-        change_colors = false;
+        //change_colors = false;
     }
     
     
