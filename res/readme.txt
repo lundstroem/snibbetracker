@@ -115,16 +115,28 @@ Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset 
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 
-Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
-Active - number of active pattern rows.
-Rows - number of active rows in patterns.
-Arp - arpeggio speed.
-Preview - toggle for if notes should be audiable when playing on the keyboard.
-Tempo - open tempo editor.
-Credits - show credits.
+amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
+active - number of active pattern rows.
+rows - number of active rows in patterns.
+arp - arpeggio speed.
+preview - toggle for if notes should be audiable when playing on the keyboard.
+tempo - open tempo editor.
+visual - visualiser.
+credits - show credits.
 
 changelog
 ----------------
+build 15 - 2015-06-11 14.58
+- tempo editor.
+- improved preview: amplitude ramp, sustain (with third envelope node > 0), instrument effects added to preview.
+preview is disabled when playback is active.
+- shortcuts: ctrl (or cmd on OSX) + i for instruments, + t for tempo + p for visualiser. Exit views with escape.
+- editable color scheme.
+- delay effect: 2xx (speed, feedback).
+- in-editor help file.
+- working dir now defaults to username/Documents on OSX.
+- lots of tweaks.
+
 build 14 - 2015-05-27 20.24
 - fixed resetting bugs of voices and instrument effects.
 

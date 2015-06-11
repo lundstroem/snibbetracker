@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker test (experimental)";
+static char *title = "snibbetracker test";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -1316,12 +1316,14 @@ static void toggle_playback(void) {
         }
         cSynthResetTempoIndex(synth);
         synth->tempo_skip_step = true;
+        set_info_timer("playback started");
     } else {
         // note off to all voices when stopping playing.
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
             synth->voices[v_i]->note_on = false;
         }
         playing = false;
+        set_info_timer("playback stopped");
     }
 }
 
@@ -1506,7 +1508,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_m:
-                if(pattern_editor) {
+                if(pattern_editor && !instrument_editor && !visualiser) {
                     if(pattern_cursor_y == 0) {
                         if(synth->voices[pattern_cursor_x]->muted == 1) {
                             synth->voices[pattern_cursor_x]->muted = 0;
@@ -1656,13 +1658,13 @@ void handle_key_down(SDL_Keysym* keysym) {
                     export_project = true;
                     return;
                 }
-                else if(pattern_editor) {
-                        if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-                            pattern_editor = false;
-                            current_track = pattern_cursor_y-1+visual_pattern_offset;
-                            visual_cursor_x = pattern_cursor_x*5;
-                            set_info_timer("jump to track");
-                        }
+                else if(pattern_editor && !instrument_editor && !visualiser) {
+                    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+                        pattern_editor = false;
+                        current_track = pattern_cursor_y-1+visual_pattern_offset;
+                        visual_cursor_x = pattern_cursor_x*5;
+                        set_info_timer("jump to track");
+                    }
                     return;
                 }
                 
@@ -1674,7 +1676,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     export_project = false;
                     return;
                 } else {
-                    if(pattern_editor) {
+                    if(pattern_editor && !instrument_editor && !visualiser) {
                         if(pattern_cursor_y > 0) {
                             if(synth->solo_track == pattern_cursor_y-1+visual_pattern_offset) {
                                 synth->solo_track = -1;
@@ -1880,6 +1882,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_effect_remove();
+                        instrument_editor_effects_y++;
+                        if(instrument_editor_effects_y >= visual_instrument_effects) {
+                            instrument_editor_effects_y = 0;
+                        }
                     }
                 }
                 else if(pattern_editor) {}
@@ -1958,6 +1964,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                             }
                         } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
                             tempo_editor = true;
+                        } else if(pattern_cursor_y == 20 && pattern_cursor_x == 5) {
+                            visualiser = true;
                         } else if(pattern_cursor_y == 21 && pattern_cursor_x == 5) {
                             credits = true;
                         } else if(pattern_cursor_y == 21 && pattern_cursor_x == 1) {
@@ -2608,6 +2616,11 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
             node->effect_param2 = cSynthGetCharFromParam(value);
             node->effect_param2_value = value;
         }
+        
+        instrument_editor_effects_y++;
+        if(instrument_editor_effects_y >= visual_instrument_effects) {
+            instrument_editor_effects_y = 0;
+        }
     }
 }
 
@@ -3199,9 +3212,10 @@ static void render_pattern_mapping(void) {
                 sprintf(cval, "arp %d", synth->arpeggio_speed);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 4) {
-                //char cval[20];
-                //sprintf(cval, "Groove %d", synth->swing);
                 cEngineRenderLabelWithParams(raster2d, "tempo", x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 20 && x == 5) {
+                cEngineRenderLabelWithParams(raster2d, "visual", x*10+inset_x, y+inset_y, color, bg_color);
+                
             } else if(y == 21 && x == 0) {
                 if(synth->preview_enabled) {
                     cEngineRenderLabelWithParams(raster2d, "preview 1", x*10+inset_x, y+inset_y, color, bg_color);
@@ -4639,7 +4653,7 @@ static void render_help(void) {
     int page = help_index;
     
     if(page == 0) {
-        cEngineRenderLabelWithParams(raster2d, "trackview", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "track view", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -4688,7 +4702,7 @@ static void render_help(void) {
     }
     
     if(page == 1) {
-        cEngineRenderLabelWithParams(raster2d, "patternview", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "pattern view", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -4816,6 +4830,8 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+t: go to tempo view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+p: go to visualiser.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
             cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #elif defined(platform_osx)
@@ -4828,6 +4844,8 @@ static void render_help(void) {
             cEngineRenderLabelWithParams(raster2d, "- cmd+i: go to instrument view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+t: go to tempo view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+p: go to visualiser.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -4889,8 +4907,6 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "      (depth, speed).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         
-       
-        
         cEngineRenderLabelWithParams(raster2d, "6 / 7", 1, 22, color, bg_color);
         
     }
@@ -4933,124 +4949,6 @@ static void render_help(void) {
         
         cEngineRenderLabelWithParams(raster2d, "7 / 7", 1, 22, color, bg_color);
     }
-    /*
-     effects
-     ----------------
-     0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
-     1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
-     3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
-     4xx - vibrato (speed, depth).
-     5xx - distortion (amp, amp).
-     6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
-     7xx - detune (amount, amount) 88 is middle.
-     8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
-     9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
-     Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
-     Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-     Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-     Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
-     Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-     Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-    */
-    
-    /*
-     
-     tempo view
-     ----------------
-     - a: activate/inactivate row. each column must have at least one active row.
-     - plus/minus: change BPM on top row.
-     - 1-9: change BPM on top row, or beats.
-     - modifier+enter: switch tempo column. while playing, column will be armed and switched to when the current pattern has finished.
-     
-     
-     instrument view
-     ----------------
-     - arrow keys: move node.
-     - modifier+arrow keys: move node slow.
-     - tab: cycle nodes.
-     - spacebar: go to pattern view.
-     - shift: toggle editing of envelope or effects.
-     - home/end: cycle instruments.
-     
-     trackview
-     ----------------
-     - spacebar: toggle editing on/off.
-     - enter: play/stop.
-     - arrow keys: move cursor.
-     - tab: go to pattern view.
-     - modifier+left/right: change octave up/down.
-     - modifier+up/down: move notes below cursor.
-     - shift+arrow keys: make selection.
-     - modifier+c/v: copy paste note (or selection).
-     - character keys: play notes or edit effects.
-     - modifier+f: toggle play cursor follow.
-     - home/end: go to top / bottom.
-     track format explanation:
-     a = note, b = instrument number, ccc = effects. 6 supported channels.
-     a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
-     
-     patternview
-     ----------------
-     - arrow keys: move around grid.
-     - plus/minus: cycle waveform, pattern numbers, bpm, swing, active etc.
-     - spacebar: go to instrument view (when gridcursor is at Ins 0-F)
-     - tab: go to track view.
-     - e: jump to trackview with current position.
-     - m: mute track (or channel if cursor is at the top)
-     - a: activate/inactivate track.
-     - s: solo track (or channel if cursor is at the top)
-     - modifier+up/down: cycle tracks (0-63).
-     - modifier+c/v: copy paste track data.
-     - home/end: go to top / bottom.
-     
-    
-     
-     
-     global controls
-     ----------------
-     - modifier+s: go to save view
-     - modifier+o: go to load view
-     - modifier+e: export to wav.
-     
-     save view
-     ----------------
-     - arrow keys: navigate file system.
-     - character keys: enter filename.
-     - enter: save file at the current location.
-     - escape: exit save view.
-     
-     load view
-     ----------------
-     - arrow keys: navigate file system.
-     - enter: load the file.
-     - escape: exit load view.
-     
-     effects
-     ----------------
-     0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
-     1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
-     3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
-     4xx - vibrato (speed, depth).
-     5xx - distortion (amp, amp).
-     6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
-     7xx - detune (amount, amount) 88 is middle.
-     8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
-     9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
-     Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
-     Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-     Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-     Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
-     Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-     Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-     
-     Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
-     Active - number of active pattern rows.
-     Rows - number of active rows in patterns.
-     Arp - arpeggio speed.
-     Preview - toggle for if notes should be audiable when playing on the keyboard.
-     Tempo - open tempo editor.
-     Credits - show credits.
-     */
 }
 
 static void render_credits(void) {
