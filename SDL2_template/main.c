@@ -130,13 +130,14 @@ static bool pressed_right = false;
 static bool pressed_up = false;
 static bool pressed_down = false;
 static bool tempo_editor = false;
+static bool any_key_pressed = false;
 static int tempo_selection_x = 0;
 static int tempo_selection_y = 0;
 static struct CSynthContext *synth = NULL;
 static struct CTimer *info_timer = NULL;
 static char *info_string = NULL;
 static struct FileSettings *file_settings = NULL;
-static int envelop_node_camera_offset = 0;
+static int envelope_node_camera_offset = 0;
 
 
 // credits
@@ -211,7 +212,9 @@ unsigned int color_info_text_bg = cengine_color_black;
 unsigned int color_file_name_text = cengine_color_red;
 unsigned int color_inactive_instrument_node = cengine_color_red;
 unsigned int color_active_instrument_node = cengine_color_green;
-unsigned int color_envelop = cengine_color_green;
+unsigned int color_envelope = cengine_color_green;
+unsigned int color_visualiser = cengine_color_green;
+unsigned int color_visualiser_clipping = cengine_color_red;
 unsigned int color_inactive_text = cengine_color_grey;
 unsigned int color_text = cengine_color_white;
 unsigned int color_text_bg = cengine_color_black;
@@ -260,7 +263,7 @@ static void set_info_timer(char *string);
 static void set_info_timer_with_int(char *string, int data);
 static void update_info(double dt);
 static void render_info(void);
-static void setup_data(void);
+static void init_data(void);
 static void convert_input(int x, int y);
 static void cleanup_data(void);
 static void copy_instrument(int instrument);
@@ -278,6 +281,7 @@ static void toggle_playback(void);
 static void toggle_editing(void);
 static void move_notes_up(void);
 static void move_notes_down(void);
+static void change_octave(bool up);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
 static void handle_note_keys(SDL_Keysym* keysym);
@@ -300,7 +304,7 @@ static void adsr_invert_y_render(double x, double y, int color);
 static void render_pattern_mapping(void);
 static char *get_wave_type_as_char(int type);
 static void draw_wave_types(void);
-static void render_visuals(void);
+static void render_visualiser(void);
 static void render_help(void);
 static void render_credits(void);
 static void render_tempo_editor(double dt);
@@ -843,7 +847,7 @@ static void render_info(void) {
     }
 }
 
-static void setup_data(void) {
+static void init_data(void) {
     
     int i = 0;
     int r_x = 0;
@@ -1060,7 +1064,7 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     
     int x_count = visual_cursor_x%5;
     
-    if(instrument_editor || pattern_editor || !editing) {
+    if(instrument_editor || pattern_editor || visualiser || !editing) {
         // only allow preview of notes in editor
         cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12), playing);
     } else {
@@ -1346,7 +1350,31 @@ static void move_notes_down(void) {
     cSynthMoveNotes(synth, false, true, cursor_x, visual_cursor_y, pattern_at_cursor);
 }
 
+static void change_octave(bool up) {
+    
+    if(up) {
+        octave++;
+        if(octave > 7) {
+            octave = 7;
+        }
+        set_info_timer_with_int("octave", octave);
+    } else {
+        octave--;
+        if(octave < 0) {
+            octave = 0;
+        }
+        set_info_timer_with_int("octave", octave);
+    }
+}
+
+
+SDL_Keycode last_key = 0;
+
 void handle_key_up(SDL_Keysym* keysym) {
+    
+    if(last_key == keysym->sym) {
+        any_key_pressed = false;
+    }
     
     redraw_screen = true;
     
@@ -1378,8 +1406,17 @@ void handle_key_up(SDL_Keysym* keysym) {
 }
 
 
+
 void handle_key_down(SDL_Keysym* keysym) {
     
+    if(last_key != keysym->sym) {
+        // TODO reset lock
+        synth->preview_locked = false;
+        synth->preview_started = false;
+    }
+    last_key = keysym->sym;
+    
+    any_key_pressed = true;
     redraw_screen = true;
     
     if(help) {
@@ -1404,6 +1441,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         instrument_editor = false;
                     } else {
                         tempo_editor = false;
+                        visualiser = false;
                         instrument_editor = true;
                     }
                     return;
@@ -1415,6 +1453,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         tempo_editor = false;
                     } else {
                         instrument_editor = false;
+                        visualiser = false;
                         tempo_editor = true;
                     }
                 }
@@ -1479,7 +1518,9 @@ void handle_key_down(SDL_Keysym* keysym) {
                 break;
             case SDLK_PLUS:
                 if(instrument_editor) {
-                    
+                    change_octave(true);
+                } else if(visualiser) {
+                    change_octave(true);
                 } else if(pattern_editor) {
                     change_param(true);
                 }
@@ -1487,7 +1528,9 @@ void handle_key_down(SDL_Keysym* keysym) {
             case SDLK_MINUS:
                 
                 if(instrument_editor) {
-                    
+                    change_octave(false);
+                } else if(visualiser) {
+                    change_octave(false);
                 } else if(pattern_editor) {
                     change_param(false);
                 }
@@ -1594,6 +1637,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         visualiser = false;
                     } else {
                         visualiser = true;
+                        tempo_editor = false;
+                        instrument_editor = false;
                     }
                     return;
                 }
@@ -1605,9 +1650,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_e:
-                if(instrument_editor) {
-                }
-                else if(modifier) {
+                if(modifier) {
                     file_editor = true;
                     file_settings->file_editor_save = true;
                     export_project = true;
@@ -1717,11 +1760,13 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                 } else {
                     if(modifier) {
+                        /*
                         octave--;
                         if(octave < 0) {
                             octave = 0;
                         }
-                        set_info_timer_with_int("octave", octave);
+                        set_info_timer_with_int("octave", octave);*/
+                        change_octave(false);
                     } else if(pattern_editor) {
                         pattern_cursor_x -= 1;
                         check_pattern_cursor_bounds();
@@ -1746,12 +1791,13 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 } else {
-                    if(modifier) {
+                    if(modifier) {/*
                         octave++;
                         if(octave > 7) {
                             octave = 7;
                         }
-                        set_info_timer_with_int("octave", octave);
+                        set_info_timer_with_int("octave", octave);*/
+                        change_octave(true);
                     } else if(pattern_editor) {
                         pattern_cursor_x += 1;
                         check_pattern_cursor_bounds();
@@ -1880,6 +1926,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     } else {
                         tempo_editor = false;
                     }
+                } else if(visualiser) {
+                    visualiser = false;
                 } else if(instrument_editor) {
                     instrument_editor = false;
                 } else {
@@ -1948,13 +1996,13 @@ void handle_key_down(SDL_Keysym* keysym) {
     } else if(instrument_editor && instrument_editor_effects) {
         handle_instrument_effect_keys(keysym);
         return;
-    } else if(pattern_editor) {
+    } else if(pattern_editor && !instrument_editor && !visualiser) {
         handle_pattern_keys(keysym);
         return;
-    } else if(x_count == 1 && editing) {
+    } else if(x_count == 1 && editing && !instrument_editor && !visualiser) {
         handle_instrument_keys(keysym);
         return;
-    } else if((x_count > 1 && editing) && (x_count < 5 && editing)) {
+    } else if((x_count > 1 && editing) && (x_count < 5 && editing) && !instrument_editor && !visualiser) {
         handle_effect_keys(keysym);
         return;
     } else {
@@ -2680,76 +2728,74 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
 
 static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
     
-    //printf("byteStreamLength:%d\n", byteStreamLength);
+    
+    for(int v_x = 0; v_x < s_width; v_x++) {
+        for(int v_y = 0; v_y < s_height; v_y++) {
+            visualiser2d[v_x][v_y] = color_bg;
+        }
+    }
     
     int x_counter = 0;
     for(int v_x = 0; v_x < s_width*2; v_x+=2) {
-        
-        //int scaled_x = ((byteStreamLength/16) / s_width) * v_x;
         
         int scaled_x = v_x;
         
         if(scaled_x < byteStreamLength-1 && x_counter < s_width) {
             Sint16 sample_left = s_byteStream[scaled_x];
             Sint16 sample_right = s_byteStream[scaled_x+1];
-            
             sample_left *= 0.00439466536454;
             sample_right *= 0.00439466536454;
-            //sample_left /= s_height;
             int fourth = 72;
             int visual_left = sample_left + fourth;
             int visual_right = sample_right + (fourth*3);
-            int fourth_times_three = (fourth*3);
-            //int fourth_times_four = (fourth*4);
+            //int fourth_times_three = (fourth*3);
             int middle = s_height/2;
             visualiser2d[x_counter][middle] = 0xFFFFFFFF;
             
-            unsigned int color = 0xFFFF0000;
-            
-            unsigned int color_left = (sample_left+INT16_MAX) * 1000;
-            unsigned int color_right = (sample_right+INT16_MAX) * 1000;
+            unsigned int color = color_visualiser;
             
             if(visual_left < 0) {
                 visual_left = 0;
-                color = 0xFFFF0000;
+                color = color_visualiser_clipping;
             } else if (visual_left >= fourth*2) {
                 visual_left = fourth*2;
-                color = 0xFFFF0000;
-            } else {
-                color = 0xFF0000FF;
+                color = color_visualiser_clipping;
             }
-            color = color_left;
             visualiser2d[x_counter][visual_left] = color;
+            //color = color_left;
+            /*
+            
             for(int v_y = visual_left; v_y < fourth; v_y++) {
                 visualiser2d[x_counter][v_y] = color;
             }
             for(int v_y = fourth; v_y < sample_left+fourth; v_y++) {
                 visualiser2d[x_counter][v_y] = color;
-            }
+            }*/
             
+            color = color_visualiser;
             if(visual_right < fourth*2) {
                 visual_right = fourth*2;
-                color = 0xFFFF0000;
+                color = color_visualiser_clipping;
             } else if (visual_right >= s_height) {
                 visual_right = s_height-1;
-                color = 0xFFFF0000;
-            } else {
-                color = 0xFF0000FF;
+                color = color_visualiser_clipping;
             }
-            
-            color = color_right;
             visualiser2d[x_counter][visual_right] = color;
+            //color = color_right;
+            /*
+            
             for(int v_y = visual_right; v_y < fourth_times_three; v_y++) {
                 visualiser2d[x_counter][v_y] = color;
             }
             for(int v_y = fourth_times_three; v_y < sample_right+fourth_times_three; v_y++) {
                 visualiser2d[x_counter][v_y] = color;
-            }
+            }*/
             
             x_counter++;
         }
     }
     
+    /*
     for(int v_x = 0; v_x < s_width; v_x++) {
         for(int v_y = 0; v_y < s_height; v_y++) {
             float mod = 0.9f;
@@ -2763,7 +2809,7 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
             blue *= mod;
             visualiser2d[v_x][v_y] = (alpha << 24) | (red << 16) | (green << 8) | blue;
         }
-    }
+    }*/
 }
 
 static void change_waveform(int plus) {
@@ -2916,7 +2962,7 @@ static void draw_line(int x0, int y0, int x1, int y1) {
         if(instrument_editor_effects) {
             adsr_invert_y_render(i_pos_x, i_pos_y, color_inactive_text);
         } else {
-            adsr_invert_y_render(i_pos_x, i_pos_y, color_envelop);
+            adsr_invert_y_render(i_pos_x, i_pos_y, color_envelope);
         }
         i++;
     }
@@ -2993,9 +3039,9 @@ static void render_instrument_editor(double dt) {
         struct CadsrNode *node = ins->adsr[i];
         struct CadsrNode *node2 = ins->adsr[i+1];
         double g_amp = (node->amp*amp_factor) + inset_y;
-        double g_pos = (node->pos*pos_factor) + inset_x - envelop_node_camera_offset;
+        double g_pos = (node->pos*pos_factor) + inset_x - envelope_node_camera_offset;
         double g_amp2 = (node2->amp*amp_factor) + inset_y;
-        double g_pos2 = (node2->pos*pos_factor) + inset_x - envelop_node_camera_offset;
+        double g_pos2 = (node2->pos*pos_factor) + inset_x - envelope_node_camera_offset;
         draw_line((int)g_pos, (int)g_amp, (int)g_pos2, (int)g_amp2);
     }
     
@@ -3005,9 +3051,9 @@ static void render_instrument_editor(double dt) {
         double g_amp = (node->amp*amp_factor) + inset_y;
         double g_pos = (node->pos*pos_factor) + inset_x;
         if(i == selected_instrument_node_index) {
-            envelop_node_camera_offset = (int)(g_pos) - (s_width/2);
-            if(envelop_node_camera_offset < 0) {
-                envelop_node_camera_offset = 0;
+            envelope_node_camera_offset = (int)(g_pos) - (s_width/2);
+            if(envelope_node_camera_offset < 0) {
+                envelope_node_camera_offset = 0;
             }
         }
         for(int x = -2; x < 2; x++) {
@@ -3018,7 +3064,7 @@ static void render_instrument_editor(double dt) {
                 } else if(i == selected_instrument_node_index) {
                     color = color_active_instrument_node;
                 }
-                adsr_invert_y_render(g_pos+x-envelop_node_camera_offset, g_amp+y, color);
+                adsr_invert_y_render(g_pos+x-envelope_node_camera_offset, g_amp+y, color);
             }
         }
     }
@@ -3281,7 +3327,7 @@ static void draw_wave_types(void) {
     }
 }
 
-static void render_visuals(void) {
+static void render_visualiser(void) {
     
     for(int x = 0; x < s_width; x++) {
         for(int y = 0; y < s_height; y++) {
@@ -3389,8 +3435,8 @@ static void render_track(double dt) {
     } else if(credits) {
         render_credits();
         return;
-    } else if(visualiser && !instrument_editor) {
-        render_visuals();
+    } else if(visualiser && !instrument_editor && !file_editor) {
+        render_visualiser();
         return;
     } else if(instrument_editor && !file_editor && !tempo_editor && !visualiser) {
         render_instrument_editor(dt);
@@ -3403,9 +3449,6 @@ static void render_track(double dt) {
         return;
     } else if(file_editor) {
         render_files();
-        return;
-    } else if(visualiser) {
-        render_visuals();
         return;
     }
     
@@ -3876,6 +3919,17 @@ static void main_loop(void) {
         synth->needs_redraw = true;
     }
     
+    if(any_key_pressed && !synth->preview_locked) {
+        synth->sustain_active = true;
+        synth->preview_locked = true;
+        //printf("pressed\n");
+    } else if(!any_key_pressed && synth->preview_locked) {
+        synth->preview_locked = false;
+        synth->preview_started = false;
+        cSynthTurnOffSustain(synth);
+        //printf("unpressed\n");
+    }
+    
     update_info(last_dt);
     
     if(redraw_screen || synth->needs_redraw || !passive_rendering) {
@@ -4038,7 +4092,9 @@ static bool parse_config(char *json) {
     char *param_color_file_name_text = "color_file_name_text";
     char *param_color_inactive_instrument_node = "color_inactive_instrument_node";
     char *param_color_active_instrument_node = "color_active_instrument_node";
-    char *param_color_envelop = "color_envelop";
+    char *param_color_visualiser = "color_visualiser";
+    char *param_color_visualiser_clipping = "color_visualiser_clipping";
+    char *param_color_envelope = "color_envelope";
     char *param_color_inactive_text = "color_inactive_text";
     char *param_color_text = "color_text";
     char *param_color_text_bg = "color_text_bg";
@@ -4173,8 +4229,14 @@ static bool parse_config(char *json) {
         object = cJSON_GetObjectItem(root, param_color_active_instrument_node);
         if(object != NULL) { color_active_instrument_node = get_color_from_json_config(object); }
         
-        object = cJSON_GetObjectItem(root, param_color_envelop);
-        if(object != NULL) { color_envelop = get_color_from_json_config(object); }
+        object = cJSON_GetObjectItem(root, param_color_envelope);
+        if(object != NULL) { color_envelope = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_visualiser);
+        if(object != NULL) { color_visualiser = get_color_from_json_config(object); }
+        
+        object = cJSON_GetObjectItem(root, param_color_visualiser_clipping);
+        if(object != NULL) { color_visualiser_clipping = get_color_from_json_config(object); }
         
         object = cJSON_GetObjectItem(root, param_color_inactive_text);
         if(object != NULL) { color_inactive_text = get_color_from_json_config(object); }
@@ -4298,8 +4360,8 @@ int main(int argc, char* argv[]) {
     #endif
     
     
-    setup_data();
-    st_log("setup data successful.");
+    init_data();
+    st_log("init data successful.");
     
     setup_cengine();
     st_log("setup cengine successful.");
@@ -4701,7 +4763,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "- spacebar: go to pattern view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- shift: toggle editing of envelop or effects.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- shift: toggle editing of envelope or effects.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- home/end: cycle instruments.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -4907,7 +4969,7 @@ static void render_help(void) {
      - modifier+arrow keys: move node slow.
      - tab: cycle nodes.
      - spacebar: go to pattern view.
-     - shift: toggle editing of envelop or effects.
+     - shift: toggle editing of envelope or effects.
      - home/end: cycle instruments.
      
      trackview
