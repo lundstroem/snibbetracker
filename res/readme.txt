@@ -108,6 +108,8 @@ effects
 7xx - detune (amount, amount) 88 is middle.
 8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
 9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
+    param 0-5 5-9 = activate wavetable lane for channel 0-5.
+
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
