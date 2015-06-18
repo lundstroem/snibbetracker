@@ -272,6 +272,7 @@ static void cleanup_data(void);
 static void copy_instrument(int instrument);
 static void paste_instrument(int instrument);
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store);
+static void change_octave_for_selection(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool up);
 static void paste_notes(int track, int cursor_x, int cursor_y);
 static void copy_pattern(int cursor_x, int cursor_y);
 static void paste_pattern(int cursor_x, int cursor_y);
@@ -1026,6 +1027,11 @@ static void paste_instrument(int instrument) {
     }
 }
 
+static void change_octave_for_selection(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool up) {
+    
+    cSynthChangeOctaveForSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, up);
+}
+
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store) {
     
     cSynthCopyNotesFromSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, cut, store);
@@ -1468,7 +1474,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     return;
                 }
                 break;
-            case SDLK_w:
+            case SDLK_r:
                 if(modifier) {
                     if (wavetable_editor) {
                         wavetable_editor = false;
@@ -1506,7 +1512,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     selected_instrument_id = ins_id;
                     //printf("selected ins:%d", ins_id);
-                } else if(pattern_editor) {
+                } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     pattern_cursor_y = 0;
                 } else {
                     visual_cursor_y = 0;
@@ -1522,14 +1528,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     selected_instrument_id = ins_id;
                     //printf("selected ins:%d", ins_id);
-                } else if(pattern_editor) {
+                } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     pattern_cursor_y = synth->patterns_and_voices_height-1;
                 }  else {
                     visual_cursor_y = synth->track_height-1;
                 }
                 break;
             case SDLK_m:
-                if(pattern_editor && !instrument_editor && !visualiser) {
+                if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(pattern_cursor_y == 0) {
                         if(synth->voices[pattern_cursor_x]->muted == 1) {
                             synth->voices[pattern_cursor_x]->muted = 0;
@@ -1546,6 +1552,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                     change_octave(true);
                 } else if(pattern_editor) {
                     change_param(true);
+                } else if(tempo_editor) {
+              
+                } else if(wavetable_editor) {
+
+                } else {
+                    if (editing) {
+                        change_octave_for_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true);
+                    }
                 }
                 break;
             case SDLK_MINUS:
@@ -1556,13 +1570,21 @@ void handle_key_down(SDL_Keysym* keysym) {
                     change_octave(false);
                 } else if(pattern_editor) {
                     change_param(false);
+                } else if(tempo_editor) {
+                    
+                } else if(wavetable_editor) {
+                    
+                } else {
+                    if (editing) {
+                        change_octave_for_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false);
+                    }
                 }
                 break;
             case SDLK_c:
                 if(modifier) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
-                    else if(pattern_editor) {
+                    else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                         if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
                             int instrument = -1;
                             if(pattern_cursor_y < 19) {
@@ -1599,7 +1621,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     else if(file_editor) {}
                     else if(pattern_editor) {
                         // TODO make copy/paste for pattern editor.
-                    } else {
+                    } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
                         if(editing) {
                             copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, true);
                             set_info_timer("cut");
@@ -1612,7 +1634,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(modifier) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
-                    else if(pattern_editor) {
+                    else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                         if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
                             int instrument = -1;
                             if(pattern_cursor_y < 19) {
@@ -1644,7 +1666,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_a:
-                if(pattern_editor) {
+                if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                         if(synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] == 0) {
                             synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 1;
@@ -1679,7 +1701,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     export_project = true;
                     return;
                 }
-                else if(pattern_editor && !instrument_editor && !visualiser) {
+                else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                         pattern_editor = false;
                         current_track = pattern_cursor_y-1+visual_pattern_offset;
@@ -1697,7 +1719,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     export_project = false;
                     return;
                 } else {
-                    if(pattern_editor && !instrument_editor && !visualiser) {
+                    if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                         if(pattern_cursor_y > 0) {
                             if(synth->solo_track == pattern_cursor_y-1+visual_pattern_offset) {
                                 synth->solo_track = -1;
@@ -1715,7 +1737,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
                 break;
             case SDLK_f:
-                if(modifier) {
+                if(modifier && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(follow) {
                         follow = false;
                         set_info_timer("follow: false");
@@ -1733,8 +1755,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(selected_instrument_node_index >= ins->adsr_nodes) {
                         selected_instrument_node_index = 1;
                     }
-                    
-                } else {
+                } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
                     if(pattern_editor) {
                         pattern_editor = false;
                     } else {
@@ -1932,7 +1953,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                 }
                 else if(pattern_editor) {}
-                else if(editing) {
+                else if(editing && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     int x_count = visual_cursor_x%5;
                     
                     if(selection_enabled) {
@@ -1980,7 +2001,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else if(instrument_editor) {
                     instrument_editor = false;
                 } else {
-                    if(pattern_editor) {
+                    if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                         
                         if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
                             
@@ -2228,24 +2249,14 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
             }
             break;
         case SDLK_a:
-            if(cursor_y > 0) {
+            if(cursor_y > 0 && cursor_y != 2) {
                 if(synth->wavetable_map[cursor_x][cursor_y]->active) {
-                    // check so that it's not the last one active. We need at least one.
-                    bool other_active_exists = false;
-                    for (int i = 1; i < synth->wavetable_height; i++) {
-                        if(synth->wavetable_map[cursor_x][i]->active && i != cursor_y) {
-                            other_active_exists = true;
-                        }
-                    }
-                    if(other_active_exists) {
-                        synth->wavetable_map[cursor_x][cursor_y]->active = false;
-                    }
+                    synth->wavetable_map[cursor_x][cursor_y]->active = false;
                     move_cursor_down = true;
                 } else {
                     synth->wavetable_map[cursor_x][cursor_y]->active = true;
                     move_cursor_down = true;
                 }
-                //cSynthUpdateHighlightInterval(synth);
             }
             break;
         case SDLK_0:
@@ -2285,9 +2296,17 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
     if(cursor_y > 1) {
         if(zero) {
             synth->wavetable_map[cursor_x][cursor_y]->value = 0;
+            if(!h_switch) {
+                synth->wavetable_map[cursor_x][cursor_y]->value = 1;
+            }
             move_cursor_down = true;
         } else if(value > -1) {
             synth->wavetable_map[cursor_x][cursor_y]->value = value;
+            if(!h_switch && value == 0) {
+                synth->wavetable_map[cursor_x][cursor_y]->value = 1;
+            } else if(!h_switch && value > 4) {
+                synth->wavetable_map[cursor_x][cursor_y]->value = 4;
+            }
             move_cursor_down = true;
         }
         
@@ -3679,6 +3698,12 @@ static void render_wavetable_editor(double dt) {
                 
             } else {
                 if (y > 1) {
+                    struct CWavetableNode *p_t = synth->wavetable_map[x-1][y];
+                    if(p_t->active) {
+                        color = color_text;
+                    } else {
+                        color = color_inactive_text;
+                    }
                     char node_value = t->value;
                     char c = cSynthGetCharFromParam((char)node_value);
                     sprintf(cval, "%c", c);
