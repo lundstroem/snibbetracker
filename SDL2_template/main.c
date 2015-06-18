@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker test";
+static char *title = "snibbetracker experimental";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -272,7 +272,7 @@ static void cleanup_data(void);
 static void copy_instrument(int instrument);
 static void paste_instrument(int instrument);
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store);
-static void change_octave_for_selection(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool up);
+static void transpose_selection(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool up, int amount);
 static void paste_notes(int track, int cursor_x, int cursor_y);
 static void copy_pattern(int cursor_x, int cursor_y);
 static void paste_pattern(int cursor_x, int cursor_y);
@@ -1027,9 +1027,9 @@ static void paste_instrument(int instrument) {
     }
 }
 
-static void change_octave_for_selection(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool up) {
+static void transpose_selection(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool up, int amount) {
     
-    cSynthChangeOctaveForSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, up);
+    cSynthTransposeSelection(synth, track, cursor_x, cursor_y, selection_x, selection_y, up, amount);
 }
 
 static void copy_notes(int track, int cursor_x, int cursor_y, int selection_x, int selection_y, bool cut, bool store) {
@@ -1557,8 +1557,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else if(wavetable_editor) {
 
                 } else {
-                    if (editing) {
-                        change_octave_for_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true);
+                    if (editing && modifier) {
+                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 12);
+                        set_info_timer("transpose octave up");
+                    } else if(editing) {
+                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 1);
+                        set_info_timer("transpose halvnote up");
                     }
                 }
                 break;
@@ -1575,8 +1579,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else if(wavetable_editor) {
                     
                 } else {
-                    if (editing) {
-                        change_octave_for_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false);
+                    if (editing && modifier) {
+                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 12);
+                        set_info_timer("transpose octave down");
+                    } else if(editing) {
+                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 1);
+                        set_info_timer("transpose halvnote down");
                     }
                 }
                 break;
@@ -2258,6 +2266,10 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
                     move_cursor_down = true;
                 }
             }
+            
+            if(cursor_y == 2) {
+                 move_cursor_down = true;
+            }
             break;
         case SDLK_0:
             value = 0;
@@ -2301,11 +2313,16 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
             }
             move_cursor_down = true;
         } else if(value > -1) {
-            synth->wavetable_map[cursor_x][cursor_y]->value = value;
+            if(h_switch) {
+                if(value > 4) {
+                    value = 4;
+                }
+                synth->wavetable_map[cursor_x][cursor_y]->value = value;
+            }
             if(!h_switch && value == 0) {
                 synth->wavetable_map[cursor_x][cursor_y]->value = 1;
-            } else if(!h_switch && value > 4) {
-                synth->wavetable_map[cursor_x][cursor_y]->value = 4;
+            } else if(!h_switch) {
+                synth->wavetable_map[cursor_x][cursor_y]->value = value;
             }
             move_cursor_down = true;
         }
