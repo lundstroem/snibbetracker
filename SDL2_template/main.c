@@ -115,12 +115,14 @@ static bool pattern_editor = false;
 static int pattern_cursor_x = 0;
 static int pattern_cursor_y = 0;
 static bool instrument_editor = false;
+static bool custom_table = false;
 static bool instrument_editor_effects = false;
 static int instrument_editor_effects_x = 0;
 static int instrument_editor_effects_y = 0;
 static int visual_instrument_effects = 5;
 static int selected_instrument_id = 0;
 static int selected_instrument_node_index = 1;
+static int selected_custom_table_node_index = 0;
 static int copied_instrument = -1;
 static bool file_editor = false;
 static bool file_editor_confirm_action = false;
@@ -304,6 +306,8 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
 static void draw_line(int x0, int y0, int x1, int y1);
+static void render_custom_table(double dt);
+static double get_amp_for_custom_table(struct CInstrument *i, int base_node, double cursor);
 static void render_instrument_editor(double dt);
 static void adsr_invert_y_render(double x, double y, int color);
 static void render_pattern_mapping(void);
@@ -1456,7 +1460,22 @@ void handle_key_down(SDL_Keysym* keysym) {
                         tempo_editor = false;
                         visualiser = false;
                         wavetable_editor = false;
+                        custom_table = false;
                         instrument_editor = true;
+                    }
+                    return;
+                }
+                break;
+            case SDLK_j:
+                if(modifier) {
+                    if (custom_table) {
+                        custom_table = false;
+                    } else {
+                        tempo_editor = false;
+                        visualiser = false;
+                        wavetable_editor = false;
+                        instrument_editor = false;
+                        custom_table = true;
                     }
                     return;
                 }
@@ -1469,6 +1488,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         instrument_editor = false;
                         visualiser = false;
                         wavetable_editor = false;
+                        custom_table = false;
                         tempo_editor = true;
                     }
                     return;
@@ -1482,6 +1502,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         instrument_editor = false;
                         visualiser = false;
                         tempo_editor = false;
+                        custom_table = false;
                         wavetable_editor = true;
                     }
                     return;
@@ -1763,6 +1784,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(selected_instrument_node_index >= ins->adsr_nodes) {
                         selected_instrument_node_index = 1;
                     }
+                } else if(custom_table) {
+                    struct CInstrument *ins = synth->custom_instrument;
+                    selected_custom_table_node_index++;
+                    if(selected_custom_table_node_index >= ins->adsr_nodes) {
+                        selected_custom_table_node_index = 0;
+                    }
                 } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
                     if(pattern_editor) {
                         pattern_editor = false;
@@ -1786,6 +1813,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     tempo_editor = false;
                 } else if(wavetable_editor) {
                     wavetable_editor = false;
+                } else if(custom_table) {
+                    custom_table = false;
                 } else if(help) {
                     help = false;
                 } else if(credits) {
@@ -1805,6 +1834,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(tempo_selection_x < 0) {
                         tempo_selection_x = synth->tempo_width-1;
                     }
+                } else if(custom_table) {
+                    
                 } else if(wavetable_editor) {
                     wavetable_selection_x--;
                     if(wavetable_selection_x < 0) {
@@ -1842,6 +1873,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(tempo_selection_x >= synth->tempo_width) {
                         tempo_selection_x = 0;
                     }
+                } else if(custom_table) {
+                    
                 } else if(wavetable_editor) {
                     wavetable_selection_x++;
                     if(wavetable_selection_x >= synth->wavetable_width) {
@@ -1877,6 +1910,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(tempo_selection_y < 0) {
                         tempo_selection_y = synth->tempo_height-1;
                     }
+                } else if(custom_table) {
+                    
                 } else if(wavetable_editor) {
                     wavetable_selection_y--;
                     if(wavetable_selection_y < 0) {
@@ -1917,6 +1952,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(tempo_selection_y >= synth->tempo_height) {
                         tempo_selection_y = 0;
                     }
+                } else if(custom_table) {
+                    
                 } else if(wavetable_editor) {
                     wavetable_selection_y++;
                     if(wavetable_selection_y >= synth->wavetable_height) {
@@ -3048,8 +3085,8 @@ static void change_waveform(int plus) {
     }
     
     if(current_waveform < 0) {
-        current_waveform = 4;
-    } else if(current_waveform > 4) {
+        current_waveform = 5;
+    } else if(current_waveform > 5) {
         current_waveform = 0;
     }
     
@@ -3067,6 +3104,9 @@ static void change_waveform(int plus) {
     }
     if(current_waveform == 4) {
         synth->voices[pattern_cursor_x]->waveform = synth->noise_table;
+    }
+    if(current_waveform == 5) {
+        synth->voices[pattern_cursor_x]->waveform = synth->custom_table;
     }
     synth->patterns_and_voices[pattern_cursor_x][pattern_cursor_y] = current_waveform;
 }
@@ -3193,6 +3233,148 @@ static void draw_line(int x0, int y0, int x1, int y1) {
         i++;
     }
 }
+
+static void render_custom_table(double dt) {
+    
+    struct CInstrument *ins = synth->custom_instrument;
+    int max_nodes = ins->adsr_nodes;
+    int inset_x = 10;
+    int inset_y = 0;
+    int inset_y_node = 50;
+    double speed = 0.0008*dt;
+    if(modifier) {
+        speed *= 0.1;
+    }
+    
+    if(selected_custom_table_node_index > 0 && selected_custom_table_node_index < max_nodes-1) {
+    
+        if (pressed_left) {
+            double pos1 = ins->adsr[selected_custom_table_node_index-1]->pos;
+            double pos2 = ins->adsr[selected_custom_table_node_index]->pos;
+            if(pos2 > pos1) {
+                ins->adsr[selected_custom_table_node_index]->pos -= speed;
+            }
+            if(pos2 < pos1) {
+                ins->adsr[selected_custom_table_node_index]->pos = pos1;
+            }
+        } else if(pressed_right) {
+            if(selected_instrument_node_index < max_nodes-1) {
+                double pos1 = ins->adsr[selected_custom_table_node_index]->pos;
+                double pos2 = ins->adsr[selected_custom_table_node_index+1]->pos;
+                if(pos1 < pos2) {
+                    ins->adsr[selected_custom_table_node_index]->pos += speed;
+                }
+                if(ins->adsr[selected_custom_table_node_index]->pos > pos2) {
+                    ins->adsr[selected_custom_table_node_index]->pos = pos2;
+                }
+            } else if(selected_custom_table_node_index == max_nodes-1) {
+                // last node
+                ins->adsr[selected_custom_table_node_index]->pos += speed;
+            }
+        }
+    }
+    if(pressed_down) {
+        ins->adsr[selected_custom_table_node_index]->amp -= speed;
+        if(ins->adsr[selected_custom_table_node_index]->amp < -1) {
+            ins->adsr[selected_custom_table_node_index]->amp = -1;
+        }
+    } else if(pressed_up) {
+        ins->adsr[selected_custom_table_node_index]->amp += speed;
+        if(ins->adsr[selected_custom_table_node_index]->amp > 1) {
+            ins->adsr[selected_custom_table_node_index]->amp = 1;
+        }
+    }
+
+    
+    double amp_factor = 100;
+    double pos_factor = 400;
+    int i;
+    
+    for(i = 200; i < 1000; i++) {
+        double g_pos = (i*(pos_factor*0.001)) + inset_x;
+        int top_line_y = 150;
+        int bottom_line_y = -50;
+        int middle_line = 50;
+        adsr_invert_y_render(g_pos, top_line_y, color_text);
+        adsr_invert_y_render(g_pos, middle_line, color_inactive_text);
+        adsr_invert_y_render(g_pos, bottom_line_y, color_text);
+    }
+    
+    for(i = 20; i < 220; i++) {
+        raster2d[90][i] = color_text;
+        raster2d[410][i] = color_text;
+    }
+    
+    for(i = 0; i < max_nodes-1; i++) {
+        struct CadsrNode *node = ins->adsr[i];
+        struct CadsrNode *node2 = ins->adsr[i+1];
+        double g_amp = (node->amp*amp_factor) + inset_y_node;
+        double g_pos = (node->pos*pos_factor) + inset_x - envelope_node_camera_offset;
+        double g_amp2 = (node2->amp*amp_factor) + inset_y_node;
+        double g_pos2 = (node2->pos*pos_factor) + inset_x - envelope_node_camera_offset;
+        draw_line((int)g_pos, (int)g_amp, (int)g_pos2, (int)g_amp2);
+    }
+    
+    // render dots for nodes
+    for(i = 0; i < max_nodes; i++) {
+        struct CadsrNode *node = ins->adsr[i];
+        double g_amp = (node->amp*amp_factor) + inset_y_node;
+        double g_pos = (node->pos*pos_factor) + inset_x;
+        
+        envelope_node_camera_offset = 0;
+        
+        for(int x = -2; x < 2; x++) {
+            for(int y = -2; y < 2; y++) {
+                int color = color_inactive_instrument_node;
+                if(i == selected_custom_table_node_index) {
+                    color = color_active_instrument_node;
+                }
+                adsr_invert_y_render(g_pos+x-envelope_node_camera_offset, g_amp+y, color);
+            }
+        }
+    }
+    
+    
+    for (i = 0; i < synth->wave_length; i++) {
+        
+        double pos = i / (double)synth->wave_length;
+        //printf("pos:%f\n", pos);
+        double amp = 0;
+        if(pos < ins->adsr[1]->pos) {
+            amp = get_amp_for_custom_table(ins, 0, pos);
+        } else if(pos < ins->adsr[2]->pos) {
+            amp = get_amp_for_custom_table(ins, 1, pos);
+        } else if(pos < ins->adsr[3]->pos) {
+            amp = get_amp_for_custom_table(ins, 2, pos);
+        } else if(pos < ins->adsr[4]->pos) {
+            amp = get_amp_for_custom_table(ins, 3, pos);
+        } else {
+            // just use the last pos of adsr[4]
+            amp = ins->adsr[4]->amp;
+        }
+        
+        
+        int sample = (int)(amp * INT16_MAX);
+        if(sample > INT16_MAX) {
+            sample = INT16_MAX;
+        } else if(sample < INT16_MIN) {
+            sample = INT16_MIN;
+        }
+        synth->custom_table[i] = (int16_t)sample;
+        //synth->custom_table[i] = (int16_t)rand();
+        //printf("cst:%d\n", synth->custom_table[i]);
+        
+    }
+}
+
+static double get_amp_for_custom_table(struct CInstrument *i, int base_node, double cursor) {
+    
+    double relative_cursor_pos = (cursor - i->adsr[base_node]->pos) / (i->adsr[base_node+1]->pos - i->adsr[base_node]->pos);
+    double amp_diff = (i->adsr[base_node+1]->amp) - (i->adsr[base_node]->amp);
+    double amp = i->adsr[base_node]->amp+(relative_cursor_pos*amp_diff);
+    return amp;
+}
+
 
 static void render_instrument_editor(double dt) {
 
@@ -3533,6 +3715,9 @@ static char *get_wave_type_as_char(int type) {
     if(type == 4) {
         return "nois";
     }
+    if(type == 5) {
+        return "cust";
+    }
     return "error";
 }
 
@@ -3754,6 +3939,9 @@ static void render_track(double dt) {
         return;
     } else if(instrument_editor && !file_editor && !tempo_editor && !visualiser) {
         render_instrument_editor(dt);
+        return;
+    } else if(custom_table && !file_editor && !tempo_editor && !visualiser) {
+        render_custom_table(dt);
         return;
     } else if(tempo_editor && !file_editor) {
         render_tempo_editor(dt);
@@ -4221,6 +4409,10 @@ static void main_loop(void) {
     
     
     if(instrument_editor) {
+        synth->needs_redraw = true;
+    }
+    
+    if(custom_table) {
         synth->needs_redraw = true;
     }
     
