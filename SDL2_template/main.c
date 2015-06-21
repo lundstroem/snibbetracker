@@ -1584,7 +1584,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         set_info_timer("transpose octave up");
                     } else if(editing) {
                         transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 1);
-                        set_info_timer("transpose halvnote up");
+                        set_info_timer("transpose halfnote up");
                     }
                 }
                 break;
@@ -1606,7 +1606,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         set_info_timer("transpose octave down");
                     } else if(editing) {
                         transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 1);
-                        set_info_timer("transpose halvnote down");
+                        set_info_timer("transpose halfnote down");
                     }
                 }
                 break;
@@ -1838,9 +1838,13 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else if(custom_table) {
                     
                 } else if(wavetable_editor) {
-                    wavetable_selection_x--;
+                    int inc = 1;
+                    if(wavetable_selection_y < 2) {
+                        inc = 2;
+                    }
+                    wavetable_selection_x -= inc;
                     if(wavetable_selection_x < 0) {
-                        wavetable_selection_x = synth->wavetable_width-1;
+                        wavetable_selection_x = synth->wavetable_width-inc;
                     }
                 } else if(instrument_editor) {
                     if(instrument_editor_effects) {
@@ -1877,7 +1881,11 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else if(custom_table) {
                     
                 } else if(wavetable_editor) {
-                    wavetable_selection_x++;
+                    int inc = 1;
+                    if(wavetable_selection_y < 2) {
+                        inc = 2;
+                    }
+                    wavetable_selection_x += inc;
                     if(wavetable_selection_x >= synth->wavetable_width) {
                         wavetable_selection_x = 0;
                     }
@@ -1917,6 +1925,15 @@ void handle_key_down(SDL_Keysym* keysym) {
                     wavetable_selection_y--;
                     if(wavetable_selection_y < 0) {
                         wavetable_selection_y = synth->wavetable_height-1;
+                    }
+                    if(wavetable_selection_y == 1){
+                        if(wavetable_selection_x == 1 ||
+                           wavetable_selection_x == 3 ||
+                           wavetable_selection_x == 5 ||
+                           wavetable_selection_x == 7 ||
+                           wavetable_selection_x == 9 ||
+                           wavetable_selection_x == 11)
+                            wavetable_selection_x--;
                     }
                 } else if(instrument_editor) {
                     if(instrument_editor_effects) {
@@ -2040,10 +2057,12 @@ void handle_key_down(SDL_Keysym* keysym) {
                             synth->current_tempo_column = tempo_selection_x;
                         }
                     } else {
-                        tempo_editor = false;
+                        //tempo_editor = false;
                     }
                 } else if(visualiser) {
                     visualiser = false;
+                } else if(wavetable_editor) {
+                    
                 } else if(instrument_editor) {
                     instrument_editor = false;
                 } else {
@@ -2072,6 +2091,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                                     instrument_editor = true;
                                 }
                             }
+                        } else if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
+                            wavetable_editor = true;
+                        } else if(pattern_cursor_y == 21 && pattern_cursor_x == 2) {
+                            custom_table = true;
                         } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
                             tempo_editor = true;
                         } else if(pattern_cursor_y == 20 && pattern_cursor_x == 5) {
@@ -2164,26 +2187,28 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
 				move_cursor_down = true;
 			}
             break;
-        case SDLK_a:
-			if(cursor_y > 0) {
-				if(synth->tempo_map[cursor_x][cursor_y]->active) {
-					// check so that it's not the last one active. We need at least one.
-					bool other_active_exists = false;
-					for (int i = 1; i < synth->tempo_height; i++) {
-						if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
-							other_active_exists = true;
-						}
-					}
-					if(other_active_exists) {
-						synth->tempo_map[cursor_x][cursor_y]->active = false;
-					}
-					move_cursor_down = true;
-				} else {
-					synth->tempo_map[cursor_x][cursor_y]->active = true;
-					move_cursor_down = true;
-				}
-				cSynthUpdateHighlightInterval(synth);
-			}
+        case SDLK_RETURN:
+            if (!modifier) {
+                if(cursor_y > 0) {
+                    if(synth->tempo_map[cursor_x][cursor_y]->active) {
+                        // check so that it's not the last one active. We need at least one.
+                        bool other_active_exists = false;
+                        for (int i = 1; i < synth->tempo_height; i++) {
+                            if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
+                                other_active_exists = true;
+                            }
+                        }
+                        if(other_active_exists) {
+                            synth->tempo_map[cursor_x][cursor_y]->active = false;
+                        }
+                        move_cursor_down = true;
+                    } else {
+                        synth->tempo_map[cursor_x][cursor_y]->active = true;
+                        move_cursor_down = true;
+                    }
+                    cSynthUpdateHighlightInterval(synth);
+                }
+            }
             break;
         case SDLK_0:
             value = 0;
@@ -2214,6 +2239,24 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
             break;
         case SDLK_9:
             value = 9;
+            break;
+        case SDLK_a:
+            value = 10;
+            break;
+        case SDLK_b:
+            value = 11;
+            break;
+        case SDLK_c:
+            value = 12;
+            break;
+        case SDLK_d:
+            value = 13;
+            break;
+        case SDLK_e:
+            value = 14;
+            break;
+        case SDLK_f:
+            value = 15;
             break;
         default:
             break;
@@ -2294,7 +2337,7 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
                 move_cursor_down = true;
             }
             break;
-        case SDLK_a:
+        case SDLK_RETURN:
             if(cursor_y > 0 && cursor_y != 2) {
                 if(synth->wavetable_map[cursor_x][cursor_y]->active) {
                     synth->wavetable_map[cursor_x][cursor_y]->active = false;
@@ -2338,6 +2381,23 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
             break;
         case SDLK_9:
             value = 9;
+        case SDLK_a:
+            value = 10;
+            break;
+        case SDLK_b:
+            value = 11;
+            break;
+        case SDLK_c:
+            value = 12;
+            break;
+        case SDLK_d:
+            value = 13;
+            break;
+        case SDLK_e:
+            value = 14;
+            break;
+        case SDLK_f:
+            value = 15;
             break;
         default:
             break;
@@ -2352,9 +2412,7 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
             move_cursor_down = true;
         } else if(value > -1) {
             if(h_switch) {
-                if(value > 4) {
-                    value = 4;
-                }
+                value = value % 6;
                 synth->wavetable_map[cursor_x][cursor_y]->value = value;
             }
             if(!h_switch && value == 0) {
@@ -3554,8 +3612,11 @@ static void render_pattern_mapping(void) {
                 char c = cSynthGetCharFromParam((char)ins_nr);
                 sprintf(cval, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 20 && x == 0) {
+                cEngineRenderLabelWithParams(raster2d, "wavetable", x*10+inset_x, y+inset_y, color, bg_color);
+            } else if(y == 21 && x == 2) {
+                cEngineRenderLabelWithParams(raster2d, "cust edit", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 1) {
-                //nothing
                 char cval[10];
                 sprintf(cval, "amp %d%%", synth->master_amp_percent);
                 if(synth->audio_clips) {
@@ -3806,14 +3867,6 @@ static void render_tempo_editor(double dt) {
 
 static void render_wavetable_editor(double dt) {
     
-    /*
-     v->wavetable_active = false;
-     v->wavetable_lane = 0;
-     v->wavetable_cursor = 0;
-     TODO when resetting the wavetable_cursor, you need to find the first active node, not just 0.
-     and reset the waveform to its original type.
-     */
-    
     int inset_x = 5;
     int inset_y = 1;
     
@@ -3851,7 +3904,7 @@ static void render_wavetable_editor(double dt) {
             if(h_switch) {
                 
                 if (y == 0) {
-                    sprintf(cval, "%d", t->speed);
+                    sprintf(cval, "speed %d", t->speed);
                     cEngineRenderLabelWithParams(raster2d, cval, x*5+inset_x, y+inset_y, color, bg_color);
                 } else if (y == 1) {
                     
@@ -3876,7 +3929,7 @@ static void render_wavetable_editor(double dt) {
                     sprintf(cval, "%c", c);
                     cEngineRenderLabelWithParams(raster2d, cval, x*5+inset_x, y+inset_y, color, bg_color);
                 } else {
-                    cEngineRenderLabelWithParams(raster2d, "-", x*5+inset_x, y+inset_y, color_inactive_text, bg_color);
+                    //cEngineRenderLabelWithParams(raster2d, "-", x*5+inset_x+4, y+inset_y, color_inactive_text, bg_color);
                 }
             }
         }

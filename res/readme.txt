@@ -27,7 +27,7 @@ snibbetracker.app/Contents/Resources/config.txt
 Edit the json value for "working_dir_path" to an existing folder in you Documents directory like:
 "working_dir_path":"/Users/d/Documents/snibbetracker/"
 
-trackview
+track view
 ----------------
 - enter: toggle editing on/off.
 - space: play/stop.
@@ -44,7 +44,7 @@ track format explanation:
 a = note, b = instrument number, ccc = effects. 6 supported channels.
 a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
 
-patternview
+pattern view
 ----------------
 - arrow keys: move around grid.
 - plus/minus: cycle waveform, pattern numbers, bpm, swing, active etc.
@@ -57,6 +57,7 @@ patternview
 - modifier+up/down: cycle tracks (0-63).
 - modifier+c/v: copy paste track data.
 - home/end: go to top / bottom.
+- escape: exit.
 
 instrument view
 ----------------
@@ -66,12 +67,25 @@ instrument view
 - spacebar: go to pattern view.
 - shift: toggle editing of envelope or effects.
 - home/end: cycle instruments.
+- escape: exit.
+
+custom wave
+----------------
+- arrow keys: move node.
+- tab: cycle nodes.
+- escape: exit.
+
+wavetable view
+----------------
+- enter: activate/inactivate row. first row is always active. toggle loop active/inactive.
+- plus/minus: change speed on top row.
+- 1-F: change overall speed on top row, or speed per row.
 
 tempo view
 ----------------
-- a: activate/inactivate row. each column must have at least one active row.
+- enter: activate/inactivate row. each column must have at least one active row.
 - plus/minus: change BPM on top row.
-- 1-9: change BPM on top row, or beats.
+- 1-F: change BPM on top row, or beats.
 - modifier+enter: switch tempo column. while playing, column will be armed and switched to when the current pattern has finished.
 
 global controls
@@ -107,9 +121,8 @@ effects
 6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
 7xx - detune (amount, amount) 88 is middle.
 8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
-9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw, square, tri, noise).
-    param 0-5 5-9 = activate wavetable lane for channel 0-5.
-
+9xx - change waveform. (channel 0-5, wavetype 0-5: sine, saw, square, tri, noise, custom.
+    param1 6-B = activate wavetable lane for channel 0-5. (so first lane is 960).
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
