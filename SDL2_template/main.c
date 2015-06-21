@@ -307,7 +307,8 @@ static void change_waveform(int plus);
 static void change_param(bool plus);
 static void draw_line(int x0, int y0, int x1, int y1);
 static void render_custom_table(double dt);
-static double get_amp_for_custom_table(struct CInstrument *i, int base_node, double cursor);
+//static void write_custom_table_from_nodes(void);
+//static double get_amp_for_custom_table(struct CInstrument *i, int base_node, double cursor);
 static void render_instrument_editor(double dt);
 static void adsr_invert_y_render(double x, double y, int color);
 static void render_pattern_mapping(void);
@@ -3239,7 +3240,6 @@ static void render_custom_table(double dt) {
     struct CInstrument *ins = synth->custom_instrument;
     int max_nodes = ins->adsr_nodes;
     int inset_x = 10;
-    int inset_y = 0;
     int inset_y_node = 50;
     double speed = 0.0008*dt;
     if(modifier) {
@@ -3334,46 +3334,11 @@ static void render_custom_table(double dt) {
         }
     }
     
-    
-    for (i = 0; i < synth->wave_length; i++) {
-        
-        double pos = i / (double)synth->wave_length;
-        //printf("pos:%f\n", pos);
-        double amp = 0;
-        if(pos < ins->adsr[1]->pos) {
-            amp = get_amp_for_custom_table(ins, 0, pos);
-        } else if(pos < ins->adsr[2]->pos) {
-            amp = get_amp_for_custom_table(ins, 1, pos);
-        } else if(pos < ins->adsr[3]->pos) {
-            amp = get_amp_for_custom_table(ins, 2, pos);
-        } else if(pos < ins->adsr[4]->pos) {
-            amp = get_amp_for_custom_table(ins, 3, pos);
-        } else {
-            // just use the last pos of adsr[4]
-            amp = ins->adsr[4]->amp;
-        }
-        
-        
-        int sample = (int)(amp * INT16_MAX);
-        if(sample > INT16_MAX) {
-            sample = INT16_MAX;
-        } else if(sample < INT16_MIN) {
-            sample = INT16_MIN;
-        }
-        synth->custom_table[i] = (int16_t)sample;
-        //synth->custom_table[i] = (int16_t)rand();
-        //printf("cst:%d\n", synth->custom_table[i]);
-        
-    }
+    cSynthWriteCustomTableFromNodes(synth);
 }
 
-static double get_amp_for_custom_table(struct CInstrument *i, int base_node, double cursor) {
-    
-    double relative_cursor_pos = (cursor - i->adsr[base_node]->pos) / (i->adsr[base_node+1]->pos - i->adsr[base_node]->pos);
-    double amp_diff = (i->adsr[base_node+1]->amp) - (i->adsr[base_node]->amp);
-    double amp = i->adsr[base_node]->amp+(relative_cursor_pos*amp_diff);
-    return amp;
-}
+
+
 
 
 static void render_instrument_editor(double dt) {
