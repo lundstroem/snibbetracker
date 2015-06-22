@@ -144,6 +144,9 @@ cust wave - create custom waveform for the "cust" wave.
 
 changelog
 ----------------
+build 17 - 2015-06-22 11.56
+- removed reads of uninitialized memory to potentially fix some random crashes.
+
 build 16 - 2015-06-22 09.28
 - added wavetable editor
 - added custom wave editor.
