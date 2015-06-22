@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker experimental";
+static char *title = "snibbetracker";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -887,7 +887,7 @@ static void init_data(void) {
     for(r_x = 0; r_x < s_width; r_x++) {
         for(r_y = 0; r_y < s_height; r_y++) {
             if(raster2d != NULL && raster2d[r_x] != NULL) {
-                raster2d[r_x][r_y] = 0;
+                raster2d[r_x][r_y] = color_bg;
             }
         }
     }
@@ -5187,6 +5187,8 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+plus/minus: transpose octave in selection.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
         #elif defined(platform_osx)
             cEngineRenderLabelWithParams(raster2d, "- cmd+left/right: change octave up/down.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -5196,7 +5198,11 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+plus/minus: transpose octave in selection.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
         #endif
+        cEngineRenderLabelWithParams(raster2d, "- plus/minus: transpose halfnote", inset_x+x+offset_x, y, color, bg_color);
+        y++;
         cEngineRenderLabelWithParams(raster2d, "- shift+arrow keys: make selection.(if edit is on)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- character keys: play notes or edit effects.", inset_x+x+offset_x, y, color, bg_color);
@@ -5258,7 +5264,9 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "tempo - open tempo editor.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "credits - show credits.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "wavetable - open wavetable editor.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "cust wave - open custom wave editor.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         /*
          Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
@@ -5303,7 +5311,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- a: activate/inactivate row. each column", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- enter: activate/inactivate row. each column", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "  must have at least one active row.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5345,6 +5353,10 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+p: go to visualiser.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+r: go to wavetable view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+j: go to custom wave view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
             cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #elif defined(platform_osx)
@@ -5359,6 +5371,10 @@ static void render_help(void) {
             cEngineRenderLabelWithParams(raster2d, "- cmd+t: go to tempo view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+p: go to visualiser.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+r: go to wavetable view.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+j: go to custom wave view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -5429,9 +5445,11 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "9xx - change waveform. (channel 0-5, wavetype 0-4: sine, saw,", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "9xx - change waveform. (channel 0-5, wavetype 0-5: sine, saw,", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "      square, tri, noise).", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "      square, tri, noise, custom).", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      activate wavetable lane. (channel 6-B, lane 0-5).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "Axx - (left amplitud, right amplitud) can be used for", inset_x+x+offset_x, y, color, bg_color);
         y++;

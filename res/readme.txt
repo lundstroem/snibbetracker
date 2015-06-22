@@ -40,6 +40,8 @@ track view
 - character keys: play notes or edit effects.
 - modifier+f: toggle play cursor follow.
 - home/end: go to top / bottom.
+- plus/minus: transpose halvnote in selection.
+- modifier+plus/minus: transpose octave in selection.
 track format explanation:
 a = note, b = instrument number, ccc = effects. 6 supported channels.
 a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
@@ -57,7 +59,6 @@ pattern view
 - modifier+up/down: cycle tracks (0-63).
 - modifier+c/v: copy paste track data.
 - home/end: go to top / bottom.
-- escape: exit.
 
 instrument view
 ----------------
@@ -67,13 +68,11 @@ instrument view
 - spacebar: go to pattern view.
 - shift: toggle editing of envelope or effects.
 - home/end: cycle instruments.
-- escape: exit.
 
 custom wave
 ----------------
 - arrow keys: move node.
 - tab: cycle nodes.
-- escape: exit.
 
 wavetable view
 ----------------
@@ -95,7 +94,9 @@ global controls
 - modifier+e: go to export view.
 - modifier+i: go to instrument view.
 - modifier+t: go to tempo view.
-- escape: exit view.
+- modifier+r: go to wavetable view.
+- modifier+j: go to custom wave view.
+- escape: exit current view.
 
 save view
 ----------------
@@ -121,8 +122,8 @@ effects
 6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
 7xx - detune (amount, amount) 88 is middle.
 8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
-9xx - change waveform. (channel 0-5, wavetype 0-5: sine, saw, square, tri, noise, custom.
-    param1 6-B = activate wavetable lane for channel 0-5. (so first lane is 960).
+9xx - change waveform. (channel 0-5, wavetype 0-5: sine, saw, square, tri, noise, custom).
+    (activate wavetable lane. (channel 6-B, lane 0-5).
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
@@ -130,7 +131,7 @@ Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset 
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 
-amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
+amp - master amplitude, used both for previewing and exporting.
 active - number of active pattern rows.
 rows - number of active rows in patterns.
 arp - arpeggio speed.
@@ -138,9 +139,17 @@ preview - toggle for if notes should be audiable when playing on the keyboard.
 tempo - open tempo editor.
 visual - visualiser.
 credits - show credits.
+wavetable - connect a channel to lane 0-6 to combine waves together at different speeds. (see effect 9).
+cust wave - create custom waveform for the "cust" wave.
 
 changelog
 ----------------
+build 16 - 2015-06-22 09.28
+- added wavetable editor
+- added custom wave editor.
+- changed activate key 'a' to enter key instead to be able to input 0-F in tempo and wavetable view.
+- transpose halfnotes with +/- in track view, also works with selections. (hold modifier for octaves).
+
 build 15 - 2015-06-11 14.58
 - tempo editor.
 - improved preview: amplitude ramp, sustain (with third envelope node > 0), instrument effects added to preview.
