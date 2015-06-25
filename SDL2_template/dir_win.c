@@ -78,7 +78,7 @@ int getDirectoryListWin(char *dir_string, struct FileSettings *f) {
     sprintf(sPath, "%s*.json", dir_string);
 
     if((hFind = FindFirstFile(sPath, &fdFile)) == INVALID_HANDLE_VALUE) {
-        printf("Path not found: [%s]\n", sPath);
+        //printf("Path not found: [%s]\n", sPath);
         return 0;
     }
 	
