@@ -2093,6 +2093,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                             }
                         } else if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
                             wavetable_editor = true;
+                            return;
                         } else if(pattern_cursor_y == 21 && pattern_cursor_x == 2) {
                             custom_table = true;
                         } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
@@ -5044,7 +5045,9 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
         
         /* write RIFF header */
         fwrite("RIFF", 1, 4, wav_file);
-        write_little_endian((unsigned int)(36 + bytes_per_sample * num_samples * num_channels), 4, wav_file);
+        //write_little_endian((unsigned int)(36 + bytes_per_sample * num_samples * num_channels), 4, wav_file);
+        write_little_endian((unsigned int)(36 + num_samples), 4, wav_file);
+        
         fwrite("WAVE", 1, 4, wav_file);
         
         /* write fmt  subchunk */
@@ -5059,7 +5062,9 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
         
         /* write data subchunk */
         fwrite("data", 1, 4, wav_file);
-        write_little_endian((unsigned int)(bytes_per_sample * num_samples * num_channels), 4, wav_file);
+        //write_little_endian((unsigned int)(bytes_per_sample * num_samples * num_channels), 4, wav_file);
+        write_little_endian((unsigned int)(num_samples), 4, wav_file);
+        
         for (i = 0; i < num_samples; i++) {
             if(i < num_samples/2) {
                 write_little_endian((unsigned int)(data[i]), bytes_per_sample, wav_file);
