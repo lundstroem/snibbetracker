@@ -1079,19 +1079,23 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     //printf("track node value:%d\n", value);
     
     int x_count = visual_cursor_x%5;
+    int instrument = synth->current_instrument;
     
     if(instrument_editor || pattern_editor || visualiser || !editing) {
         // only allow preview of notes in editor
-        cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12), playing);
+        if(instrument_editor) {
+            instrument = selected_instrument_id;
+        }
+        cSynthAddTrackNode(synth, instrument, current_track, x, y, false, true, value+(octave*12), playing);
     } else {
         
         if(!editing) {
-            cSynthAddTrackNode(synth, current_track, x, y, false, true, value+(octave*12), playing);
+            cSynthAddTrackNode(synth, instrument, current_track, x, y, false, true, value+(octave*12), playing);
         } else {
             
             bool move_down = false;
             if(x_count == 0) {
-                cSynthAddTrackNode(synth, current_track, x, y, editing, true, value+(octave*12), playing);
+                cSynthAddTrackNode(synth, instrument, current_track, x, y, editing, true, value+(octave*12), playing);
                 if(editing) {
                     move_down = true;
                 }
@@ -1337,7 +1341,10 @@ static void toggle_playback(void) {
         // note off to all voices when stopping playing.
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
             synth->voices[v_i]->note_on = false;
+            //cSynthResetPortamento(synth->voices[v_i]);
+            //cSynthResetAllEffects(synth->voices[v_i]);
         }
+        cSynthResetOnLoopBack(synth);
         playing = false;
         set_info_timer("playback stopped");
     }
@@ -2831,6 +2838,11 @@ static void instrument_effect_remove() {
     if(instrument_editor_effects_x == 0) {
         node->effect = '-';
         node->effect_value = -1;
+        // remove params as well
+        node->effect_param1 = '-';
+        node->effect_param1_value = -1;
+        node->effect_param2 = '-';
+        node->effect_param2_value = -1;
     }
     
     if(instrument_editor_effects_x == 1) {
@@ -3206,22 +3218,12 @@ static void change_param(bool plus) {
         } else {
             synth->preview_enabled = true;
         }
-    /*
-     This is now auto set from tempo.
-    } else if(y == 21 && x == 1) {
-        if(plus) {
-            synth->track_highlight_interval++;
-        } else {
-            synth->track_highlight_interval--;
-        }
-        if(synth->track_highlight_interval < 2) {
-            synth->track_highlight_interval = 2;
-        }
-    */
     } else if(y == 19 && x == 1) {
        
-        
-    } else if(y == 20 && x == 2) {
+    } else if(y == 19 && x == 2) {
+    
+    }
+    else if(y == 20 && x == 2) {
         // active rows for all patterns
         int track_height = synth->track_height;
         if(plus) {
@@ -3395,10 +3397,6 @@ static void render_custom_table(double dt) {
     
     cSynthWriteCustomTableFromNodes(synth);
 }
-
-
-
-
 
 static void render_instrument_editor(double dt) {
 
@@ -4393,7 +4391,7 @@ static int get_delta(void) {
         if(delta <= 0) {
             delta = 1;
         }
-        double fps = 1000/delta;
+        //double fps = 1000/delta;
         if(fps_print_interval >= print_interval_limit) {
             //printf("fps:%f delta_time:%d\n", fps, delta);
         }
