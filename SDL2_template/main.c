@@ -2946,6 +2946,67 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
     }
 }
 
+static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
+    switch(keysym->sym) {
+        case SDLK_0: input->key_0 = down; break;
+        case SDLK_1: input->key_1 = down; break;
+        case SDLK_2: input->key_2 = down; break;
+        case SDLK_3: input->key_3 = down; break;
+        case SDLK_4: input->key_4 = down; break;
+        case SDLK_5: input->key_5 = down; break;
+        case SDLK_6: input->key_6 = down; break;
+        case SDLK_7: input->key_7 = down; break;
+        case SDLK_8: input->key_8 = down; break;
+        case SDLK_9: input->key_9 = down; break;
+            
+        case SDLK_a: input->key_a = down; break;
+        case SDLK_b: input->key_b = down; break;
+        case SDLK_c: input->key_c = down; break;
+        case SDLK_d: input->key_d = down; break;
+        case SDLK_e: input->key_e = down; break;
+        case SDLK_f: input->key_f = down; break;
+        case SDLK_g: input->key_g = down; break;
+        case SDLK_h: input->key_h = down; break;
+        case SDLK_i: input->key_i = down; break;
+        case SDLK_j: input->key_j = down; break;
+        case SDLK_k: input->key_k = down; break;
+        case SDLK_l: input->key_l = down; break;
+        case SDLK_m: input->key_m = down; break;
+        case SDLK_n: input->key_n = down; break;
+        case SDLK_o: input->key_o = down; break;
+        case SDLK_p: input->key_p = down; break;
+        case SDLK_q: input->key_q = down; break;
+        case SDLK_r: input->key_r = down; break;
+        case SDLK_s: input->key_s = down; break;
+        case SDLK_t: input->key_t = down; break;
+        case SDLK_u: input->key_u = down; break;
+        case SDLK_v: input->key_v = down; break;
+        case SDLK_w: input->key_w = down; break;
+        case SDLK_x: input->key_x = down; break;
+        case SDLK_y: input->key_y = down; break;
+        case SDLK_z: input->key_z = down; break;
+
+        case SDLK_PLUS: input->key_plus = down; break;
+        case SDLK_MINUS: input->key_minus = down; break;
+        case SDLK_TAB: input->key_tab = down; break;
+        case SDLK_LGUI: input->key_lgui = down; break;
+        case SDLK_LCTRL: input->key_lctrl = down; break;
+        case SDLK_ESCAPE: input->key_escape = down; break;
+        case SDLK_RETURN: input->key_return = down; break;
+        case SDLK_LEFT: input->key_left = down; break;
+        case SDLK_RIGHT: input->key_right = down; break;
+        case SDLK_UP: input->key_up = down; break;
+        case SDLK_DOWN: input->key_down = down; break;
+        case SDLK_LSHIFT: input->key_lshift = down; break;
+        case SDLK_HOME: input->key_home = down; break;
+        case SDLK_END: input->key_end = down; break;
+        case SDLK_BACKSPACE: input->key_backspace = down; break;
+        case SDLK_DELETE: input->key_delete = down; break;
+        case SDLK_COMMA: input->key_comma = down; break;
+        case SDLK_PERIOD: input->key_period = down; break;
+    }
+}
+
 static void check_sdl_events(SDL_Event event) {
     
     while (SDL_PollEvent(&event)) {
@@ -4360,6 +4421,7 @@ static void setup_cengine(void) {
     c->show_fps = false;
     c->ground_render_enabled = false;
     cEngineInit(c);
+    input = c->input;
 }
 
 static void cleanup_synth(void) {
