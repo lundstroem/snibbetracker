@@ -290,6 +290,7 @@ static void move_notes_down(void);
 static void change_octave(bool up);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
+static void sdl_key_mapping(SDL_Keysym* keysym, bool down);
 static void handle_note_keys(SDL_Keysym* keysym);
 static void handle_pattern_keys(SDL_Keysym* keysym);
 static void handle_instrument_keys(SDL_Keysym* keysym);
@@ -433,153 +434,203 @@ static bool file_exists(char *path) {
 static void handle_key_down_file(SDL_Keysym* keysym) {
    
     char c = 0;
-    switch( keysym->sym ) {
-        case SDLK_a: c = 'a'; add_filename_char(c); break;
-        case SDLK_b: c = 'b'; add_filename_char(c); break;
-        case SDLK_c: c = 'c'; add_filename_char(c); break;
-        case SDLK_d: c = 'd'; add_filename_char(c); break;
-        case SDLK_e: c = 'e'; add_filename_char(c); break;
-        case SDLK_f: c = 'f'; add_filename_char(c); break;
-        case SDLK_g: c = 'g'; add_filename_char(c); break;
-        case SDLK_h: c = 'h'; add_filename_char(c); break;
-        case SDLK_i: c = 'i'; add_filename_char(c); break;
-        case SDLK_j: c = 'j'; add_filename_char(c); break;
-        case SDLK_k: c = 'k'; add_filename_char(c); break;
-        case SDLK_l: c = 'l'; add_filename_char(c); break;
-        case SDLK_m: c = 'm'; add_filename_char(c); break;
-        case SDLK_n: c = 'n'; add_filename_char(c); break;
-        case SDLK_o: c = 'o'; add_filename_char(c); break;
-        case SDLK_p: c = 'p'; add_filename_char(c); break;
-        case SDLK_q: c = 'q'; add_filename_char(c); break;
-        case SDLK_r: c = 'r'; add_filename_char(c); break;
-        case SDLK_s: c = 's'; add_filename_char(c); break;
-        case SDLK_t: c = 't'; add_filename_char(c); break;
-        case SDLK_u: c = 'u'; add_filename_char(c); break;
-        case SDLK_v: c = 'v'; add_filename_char(c); break;
-        case SDLK_w: c = 'w'; add_filename_char(c); break;
-        case SDLK_x: c = 'x'; add_filename_char(c); break;
-        case SDLK_y: c = 'y'; add_filename_char(c); break;
-        case SDLK_z: c = 'z'; add_filename_char(c); break;
-        case SDLK_0: c = '0'; add_filename_char(c); break;
-        case SDLK_1: c = '1'; add_filename_char(c); break;
-        case SDLK_2: c = '2'; add_filename_char(c); break;
-        case SDLK_3: c = '3'; add_filename_char(c); break;
-        case SDLK_4: c = '4'; add_filename_char(c); break;
-        case SDLK_5: c = '5'; add_filename_char(c); break;
-        case SDLK_6: c = '6'; add_filename_char(c); break;
-        case SDLK_7: c = '7'; add_filename_char(c); break;
-        case SDLK_8: c = '8'; add_filename_char(c); break;
-        case SDLK_9: c = '9'; add_filename_char(c); break;
-        case SDLK_PLUS:
-            break;
-        case SDLK_MINUS:
-            break;
-        case SDLK_TAB:
-            break;
-        case SDLK_LGUI:
-            break;
-        case SDLK_LCTRL:
-            break;
-        case SDLK_ESCAPE:
-            exit_file_editor();
-            break;
-        case SDLK_RETURN:
-            if(export_project) {
-                // TODO export wav.
-                if(file_settings->file_name != NULL) {
-                    char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-                    if(conf_default_dir != NULL) {
-                        sprintf(file_path, "%s%s.wav", conf_default_dir, file_settings->file_name);
+    
+    if(input->key_0) {
+        c = '0';
+        add_filename_char(c);
+    } else if(input->key_1) {
+        c = '1';
+        add_filename_char(c);
+    } else if(input->key_2) {
+        c = '2';
+        add_filename_char(c);
+    } else if(input->key_3) {
+        c = '3';
+        add_filename_char(c);
+    } else if(input->key_4) {
+        c = '4';
+        add_filename_char(c);
+    } else if(input->key_5) {
+        c = '5';
+        add_filename_char(c);
+    } else if(input->key_6) {
+        c = '6';
+        add_filename_char(c);
+    } else if(input->key_7) {
+        c = '7';
+        add_filename_char(c);
+    } else if(input->key_8) {
+        c = '8';
+        add_filename_char(c);
+    } else if(input->key_9) {
+        c = '9';
+        add_filename_char(c);
+    } else if(input->key_a) {
+        c = 'a';
+        add_filename_char(c);
+    } else if(input->key_b) {
+        c = 'b';
+        add_filename_char(c);
+    } else if(input->key_c) {
+        c = 'c';
+        add_filename_char(c);
+    } else if(input->key_d) {
+        c = 'd';
+        add_filename_char(c);
+    } else if(input->key_e) {
+        c = 'e';
+        add_filename_char(c);
+    } else if(input->key_f) {
+        c = 'f';
+        add_filename_char(c);
+    } else if(input->key_g) {
+        c = 'g';
+        add_filename_char(c);
+    } else if(input->key_h) {
+        c = 'h';
+        add_filename_char(c);
+    } else if(input->key_i) {
+        c = 'i';
+        add_filename_char(c);
+    } else if(input->key_j) {
+        c = 'j';
+        add_filename_char(c);
+    } else if(input->key_k) {
+        c = 'k';
+        add_filename_char(c);
+    } else if(input->key_l) {
+        c = 'l';
+        add_filename_char(c);
+    } else if(input->key_m) {
+        c = 'm';
+        add_filename_char(c);
+    } else if(input->key_n) {
+        c = 'n';
+        add_filename_char(c);
+    } else if(input->key_o) {
+        c = 'o';
+        add_filename_char(c);
+    } else if(input->key_p) {
+        c = 'p';
+        add_filename_char(c);
+    } else if(input->key_q) {
+        c = 'q';
+        add_filename_char(c);
+    } else if(input->key_r) {
+        c = 'r';
+        add_filename_char(c);
+    } else if(input->key_s) {
+        c = 's';
+        add_filename_char(c);
+    } else if(input->key_t) {
+        c = 't';
+        add_filename_char(c);
+    } else if(input->key_u) {
+        c = 'u';
+        add_filename_char(c);
+    } else if(input->key_v) {
+        c = 'v';
+        add_filename_char(c);
+    } else if(input->key_w) {
+        c = 'w';
+        add_filename_char(c);
+    } else if(input->key_x) {
+        c = 'x';
+        add_filename_char(c);
+    } else if(input->key_y) {
+        c = 'y';
+        add_filename_char(c);
+    } else if(input->key_z) {
+        c = 'z';
+        add_filename_char(c);
+    } else if(input->key_escape) {
+        exit_file_editor();
+    } else if(input->key_return) {
+        if(export_project) {
+            // TODO export wav.
+            if(file_settings->file_name != NULL) {
+                char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                if(conf_default_dir != NULL) {
+                    sprintf(file_path, "%s%s.wav", conf_default_dir, file_settings->file_name);
+                } else {
+                    sprintf(file_path, "%s.wav", file_settings->file_name);
+                }
+                
+                if(file_editor_confirm_action) {
+                    export_wav(file_path);
+                    export_project = false;
+                    exit_file_editor();
+                    file_editor_confirm_action = false;
+                } else {
+                    if(file_exists(file_path)) {
+                        file_editor_existing_file = true;
+                        file_editor_confirm_action = true;
                     } else {
-                        sprintf(file_path, "%s.wav", file_settings->file_name);
-                    }
-                    
-                    if(file_editor_confirm_action) {
+                        //file_editor_existing_file = false;
+                        // just proceed.
                         export_wav(file_path);
                         export_project = false;
                         exit_file_editor();
                         file_editor_confirm_action = false;
-                    } else {
+                    }
+                    if(debuglog) { printf("confirm action\n"); }
+                }
+                cAllocatorFree(file_path);
+            }
+        } else {
+            if(file_settings->file_name != NULL && file_settings->file_editor_save && file_editor_confirm_action) {
+                save_project_file();
+                file_editor_confirm_action = false;
+            } else if(file_settings->file_name != NULL) {
+                file_editor_existing_file = false;
+                char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
+                if(conf_default_dir != NULL) {
+                    sprintf(file_path, "%s%s.json", conf_default_dir, file_settings->file_name);
+                } else {
+                    sprintf(file_path, "%s.json", file_settings->file_name);
+                }
+                if(file_editor_confirm_action) {
+                    load_project_file(file_path);
+                    visual_track_height = synth->track_height;
+                    file_editor_confirm_action = false;
+                } else {
+                    // save project
+                    file_editor_confirm_action = true;
+                    if(file_settings->file_editor_save) {
                         if(file_exists(file_path)) {
                             file_editor_existing_file = true;
-                            file_editor_confirm_action = true;
+                            if(debuglog) { printf("confirm action\n"); }
                         } else {
-                            //file_editor_existing_file = false;
-                            // just proceed.
-                            export_wav(file_path);
-                            export_project = false;
-                            exit_file_editor();
+                            // just proceed
+                            save_project_file();
                             file_editor_confirm_action = false;
                         }
+                    } else {
+                        // load file.
+                        file_editor_confirm_action = true;
                         if(debuglog) { printf("confirm action\n"); }
                     }
-                    cAllocatorFree(file_path);
                 }
-            } else {
-                if(file_settings->file_name != NULL && file_settings->file_editor_save && file_editor_confirm_action) {
-                    save_project_file();
-                    file_editor_confirm_action = false;
-                } else if(file_settings->file_name != NULL) {
-                    file_editor_existing_file = false;
-                    char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
-                    if(conf_default_dir != NULL) {
-                        sprintf(file_path, "%s%s.json", conf_default_dir, file_settings->file_name);
-                    } else {
-                        sprintf(file_path, "%s.json", file_settings->file_name);
-                    }
-                    if(file_editor_confirm_action) {
-                        load_project_file(file_path);
-                        visual_track_height = synth->track_height;
-                        file_editor_confirm_action = false;
-                    } else {
-                        // save project
-                        file_editor_confirm_action = true;
-                        if(file_settings->file_editor_save) {
-                            if(file_exists(file_path)) {
-                                file_editor_existing_file = true;
-                                if(debuglog) { printf("confirm action\n"); }
-                            } else {
-                                // just proceed
-                                save_project_file();
-                                file_editor_confirm_action = false;
-                            }
-                        } else {
-                            // load file.
-                            file_editor_confirm_action = true;
-                            if(debuglog) { printf("confirm action\n"); }
-                        }
-                    }
-                    cAllocatorFree(file_path);
-                }
+                cAllocatorFree(file_path);
             }
-            break;
-        case SDLK_LEFT:
-            break;
-        case SDLK_RIGHT:
-            break;
-        case SDLK_UP:
-            file_settings->file_cursor_y--;
-            if(file_settings->file_cursor_y < 0) {
-                file_settings->file_cursor_y = 0;
+        }
+    } else if(input->key_up) {
+        file_settings->file_cursor_y--;
+        if(file_settings->file_cursor_y < 0) {
+            file_settings->file_cursor_y = 0;
+        }
+        set_list_file_name();
+    } else if(input->key_down) {
+        if(file_settings->file_cursor_y < file_settings->file_dir_max_length-1) {
+            if(file_settings->file_dirs[file_settings->file_cursor_y+1] != NULL) {
+                file_settings->file_cursor_y++;
             }
-            set_list_file_name();
-            break;
-        case SDLK_DOWN:
-            if(file_settings->file_cursor_y < file_settings->file_dir_max_length-1) {
-                if(file_settings->file_dirs[file_settings->file_cursor_y+1] != NULL) {
-                    file_settings->file_cursor_y++;
-					
-                }
-            }
-            set_list_file_name();
-            break;
-        case SDLK_BACKSPACE:
-                remove_filename_char();
-            break;
-        case SDLK_SPACE:
-            break;
-        default:
-            break;
+        }
+        set_list_file_name();
+    } else if(input->key_backspace) {
+        remove_filename_char();
+    } else if(input->key_escape) {
+        exit_file_editor();
     }
 }
 
@@ -1397,6 +1448,8 @@ SDL_Keycode last_key = 0;
 
 void handle_key_up(SDL_Keysym* keysym) {
     
+    sdl_key_mapping(keysym, false);
+    
     if(last_key == keysym->sym) {
         any_key_pressed = false;
     }
@@ -1434,6 +1487,10 @@ void handle_key_up(SDL_Keysym* keysym) {
 
 void handle_key_down(SDL_Keysym* keysym) {
     
+    printf("key down\n");
+    
+    sdl_key_mapping(keysym, true);
+    
     if(last_key != keysym->sym) {
         // TODO reset lock
         synth->preview_locked = false;
@@ -1459,8 +1516,8 @@ void handle_key_down(SDL_Keysym* keysym) {
         return;
     } else {
         
-        switch(keysym->sym) {
-            case SDLK_i:
+        //switch(keysym->sym) {
+            if(input->key_i) {
                 if(modifier) {
                     if (instrument_editor) {
                         instrument_editor = false;
@@ -1473,8 +1530,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                break;
-            case SDLK_j:
+            }
+            if(input->key_j) {
                 if(modifier) {
                     if (custom_table) {
                         custom_table = false;
@@ -1487,8 +1544,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                break;
-            case SDLK_t:
+            }
+            if(input->key_t) {
                 if(modifier) {
                     if (tempo_editor) {
                         tempo_editor = false;
@@ -1501,8 +1558,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                break;
-            case SDLK_r:
+            }
+            if(input->key_r) {
                 if(modifier) {
                     if (wavetable_editor) {
                         wavetable_editor = false;
@@ -1515,14 +1572,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                break;
-            case SDLK_q:
+            }
+            if(input->key_q) {
                 if(modifier) {
                     // user will quit app on OSX.
                     return;
                 }
-                break;
-            case SDLK_n:
+            }
+            if(input->key_n) {
                 if(modifier) {
                     // new project.
                     set_info_timer("reset project");
@@ -1530,8 +1587,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     cSynthReset(synth);
                     return;
                 }
-                break;
-            case SDLK_HOME:
+            }
+            if(input->key_home) {
                 if(tempo_editor) {
                     tempo_selection_y = 0;
                 } else if(instrument_editor) {
@@ -1546,8 +1603,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else {
                     visual_cursor_y = 0;
                 }
-                break;
-            case SDLK_END:
+            }
+            if(input->key_end) {
                 if(tempo_editor) {
                     tempo_selection_y = synth->tempo_height-1;
                 } else if(instrument_editor) {
@@ -1562,8 +1619,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }  else {
                     visual_cursor_y = synth->track_height-1;
                 }
-                break;
-            case SDLK_m:
+            }
+            if(input->key_m) {
                 if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(pattern_cursor_y == 0) {
                         if(synth->voices[pattern_cursor_x]->muted == 1) {
@@ -1573,8 +1630,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 }
-                break;
-            case SDLK_PLUS:
+            }
+            if(input->key_plus) {
                 if(instrument_editor) {
                     change_octave(true);
                 } else if(visualiser) {
@@ -1594,8 +1651,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         set_info_timer("transpose halfnote up");
                     }
                 }
-                break;
-            case SDLK_MINUS:
+            }
+            if(input->key_minus) {
                 
                 if(instrument_editor) {
                     change_octave(false);
@@ -1616,8 +1673,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         set_info_timer("transpose halfnote down");
                     }
                 }
-                break;
-            case SDLK_c:
+            }
+            if(input->key_c) {
                 if(modifier) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
@@ -1651,8 +1708,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         return;
                     }
                 }
-                break;
-            case SDLK_x:
+            }
+            if(input->key_x) {
                 if(modifier) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
@@ -1666,8 +1723,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         return;
                     }
                 }
-                break;
-            case SDLK_v:
+            }
+            if(input->key_v) {
                 if(modifier) {
                     if(instrument_editor) {}
                     else if(file_editor) {}
@@ -1701,8 +1758,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         return;
                     }
                 }
-                break;
-            case SDLK_a:
+            }
+            if(input->key_a) {
                 if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
                         if(synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] == 0) {
@@ -1712,8 +1769,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 }
-                break;
-            case SDLK_p:
+            }
+            if(input->key_p) {
                 if(modifier) {
                     if(visualiser) {
                         visualiser = false;
@@ -1724,14 +1781,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                break;
-            case SDLK_o:
+            }
+            if(input->key_o) {
                 if(modifier) {
                     file_editor = true;
                     return;
                 }
-                break;
-            case SDLK_e:
+            }
+            if(input->key_e) {
                 if(modifier) {
                     file_editor = true;
                     file_settings->file_editor_save = true;
@@ -1747,9 +1804,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                
-                break;
-            case SDLK_s:
+            }
+            if(input->key_s) {
                 if(modifier) {
                     file_editor = true;
                     file_settings->file_editor_save = true;
@@ -1772,8 +1828,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 }
-                break;
-            case SDLK_f:
+            }
+            if(input->key_f) {
                 if(modifier && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                     if(follow) {
                         follow = false;
@@ -1784,8 +1840,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                     return;
                 }
-                break;
-            case SDLK_TAB:
+            }
+            if(input->key_tab) {
                 if(instrument_editor) {
                     struct CInstrument *ins = synth->instruments[selected_instrument_id];
                     selected_instrument_node_index++;
@@ -1805,14 +1861,14 @@ void handle_key_down(SDL_Keysym* keysym) {
                         pattern_editor = true;
                     }
                 }
-                break;
-            case SDLK_LGUI:
+            }
+            if(input->key_lgui) {
                 modifier = true;
-                break;
-            case SDLK_LCTRL:
+            }
+            if(input->key_lctrl) {
                 modifier = true;
-                break;
-            case SDLK_ESCAPE:
+            }
+            if(input->key_escape) {
                 if(instrument_editor) {
                     instrument_editor = false;
                 } else if(visualiser) {
@@ -1830,11 +1886,11 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else if(pattern_editor) {
                     pattern_editor = false;
                 }
-                break;
-            case SDLK_SPACE:
+            }
+            if(input->key_space) {
                 toggle_playback();
-                break;
-            case SDLK_LEFT:
+            }
+            if(input->key_left) {
                 pressed_left = true;
                 
                 if(tempo_editor) {
@@ -1876,8 +1932,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         set_visual_cursor(-1, 0, true);
                     }
                 }
-                break;
-            case SDLK_RIGHT:
+            }
+            if(input->key_right) {
                 pressed_right = true;
                 
                 if(tempo_editor) {
@@ -1918,8 +1974,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         set_visual_cursor(1, 0, true);
                     }
                 }
-                break;
-            case SDLK_UP:
+            }
+            if(input->key_up) {
                 pressed_up = true;
                 if(tempo_editor) {
                     tempo_selection_y--;
@@ -1969,8 +2025,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 }
-                break;
-            case SDLK_DOWN:
+            }
+            if(input->key_down) {
                 pressed_down = true;
                 if(tempo_editor) {
                     tempo_selection_y++;
@@ -2010,9 +2066,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 }
-                break;
-            case SDLK_BACKSPACE:
-            case SDLK_DELETE:
+            }
+            if(input->key_backspace || input->key_delete) {
                 if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_effect_remove();
@@ -2053,8 +2108,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         }
                     }
                 }
-                break;
-            case SDLK_RETURN:
+            }
+            if(input->key_return) {
                 
                 if(tempo_editor) {
                     if(modifier) {
@@ -2116,8 +2171,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         toggle_editing();
                     }
                 }
-                break;
-            case SDLK_LSHIFT:
+            }
+            if(input->key_lshift) {
                 if(instrument_editor) {
                     if(instrument_editor_effects) {
                         instrument_editor_effects = false;
@@ -2127,10 +2182,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else {
                     shift_down = true;
                 }
-                break;
-            default:
-                break;
-        }
+            }
+       // }
     }
     
     if(shift_down && editing) {
@@ -2162,6 +2215,70 @@ void handle_key_down(SDL_Keysym* keysym) {
     }
 }
 
+static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
+    
+    cInputResetKeys(input);
+    
+    switch(keysym->sym) {
+        case SDLK_0: input->key_0 = down; break;
+        case SDLK_1: input->key_1 = down; break;
+        case SDLK_2: input->key_2 = down; break;
+        case SDLK_3: input->key_3 = down; break;
+        case SDLK_4: input->key_4 = down; break;
+        case SDLK_5: input->key_5 = down; break;
+        case SDLK_6: input->key_6 = down; break;
+        case SDLK_7: input->key_7 = down; break;
+        case SDLK_8: input->key_8 = down; break;
+        case SDLK_9: input->key_9 = down; break;
+            
+        case SDLK_a: input->key_a = down; break;
+        case SDLK_b: input->key_b = down; break;
+        case SDLK_c: input->key_c = down; break;
+        case SDLK_d: input->key_d = down; break;
+        case SDLK_e: input->key_e = down; break;
+        case SDLK_f: input->key_f = down; break;
+        case SDLK_g: input->key_g = down; break;
+        case SDLK_h: input->key_h = down; break;
+        case SDLK_i: input->key_i = down; break;
+        case SDLK_j: input->key_j = down; break;
+        case SDLK_k: input->key_k = down; break;
+        case SDLK_l: input->key_l = down; break;
+        case SDLK_m: input->key_m = down; break;
+        case SDLK_n: input->key_n = down; break;
+        case SDLK_o: input->key_o = down; break;
+        case SDLK_p: input->key_p = down; break;
+        case SDLK_q: input->key_q = down; break;
+        case SDLK_r: input->key_r = down; break;
+        case SDLK_s: input->key_s = down; break;
+        case SDLK_t: input->key_t = down; break;
+        case SDLK_u: input->key_u = down; break;
+        case SDLK_v: input->key_v = down; break;
+        case SDLK_w: input->key_w = down; break;
+        case SDLK_x: input->key_x = down; break;
+        case SDLK_y: input->key_y = down; break;
+        case SDLK_z: input->key_z = down; break;
+          
+        case SDLK_SPACE: input->key_space = down; break;
+        case SDLK_PLUS: input->key_plus = down; break;
+        case SDLK_MINUS: input->key_minus = down; break;
+        case SDLK_TAB: input->key_tab = down; break;
+        case SDLK_LGUI: input->key_lgui = down; break;
+        case SDLK_LCTRL: input->key_lctrl = down; break;
+        case SDLK_ESCAPE: input->key_escape = down; break;
+        case SDLK_RETURN: input->key_return = down; break;
+        case SDLK_LEFT: input->key_left = down; break;
+        case SDLK_RIGHT: input->key_right = down; break;
+        case SDLK_UP: input->key_up = down; break;
+        case SDLK_DOWN: input->key_down = down; break;
+        case SDLK_LSHIFT: input->key_lshift = down; break;
+        case SDLK_HOME: input->key_home = down; break;
+        case SDLK_END: input->key_end = down; break;
+        case SDLK_BACKSPACE: input->key_backspace = down; break;
+        case SDLK_DELETE: input->key_delete = down; break;
+        case SDLK_COMMA: input->key_comma = down; break;
+        case SDLK_PERIOD: input->key_period = down; break;
+    }
+}
 
 static void handle_tempo_keys(SDL_Keysym* keysym) {
     
@@ -2170,104 +2287,80 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
     int cursor_x = tempo_selection_x;
     int cursor_y = tempo_selection_y;
     char value = -1;
-    
-    switch(keysym->sym) {
-        case SDLK_PLUS:
-            if(cursor_y == 0) {
-                synth->tempo_map[cursor_x][cursor_y]->bpm++;
-                if(synth->tempo_map[cursor_x][cursor_y]->bpm > 999) {
-                    synth->tempo_map[cursor_x][cursor_y]->bpm = 999;
-                }
+
+    if(input->key_plus) {
+        if(cursor_y == 0) {
+            synth->tempo_map[cursor_x][cursor_y]->bpm++;
+            if(synth->tempo_map[cursor_x][cursor_y]->bpm > 999) {
+                synth->tempo_map[cursor_x][cursor_y]->bpm = 999;
             }
-            break;
-        case SDLK_MINUS:
-            if(cursor_y == 0) {
-                synth->tempo_map[cursor_x][cursor_y]->bpm--;
-                if(synth->tempo_map[cursor_x][cursor_y]->bpm < 0) {
-                    synth->tempo_map[cursor_x][cursor_y]->bpm = 0;
-                }
+        }
+    } else if(input->key_minus) {
+        if(cursor_y == 0) {
+            synth->tempo_map[cursor_x][cursor_y]->bpm--;
+            if(synth->tempo_map[cursor_x][cursor_y]->bpm < 0) {
+                synth->tempo_map[cursor_x][cursor_y]->bpm = 0;
             }
-            break;
-        case SDLK_BACKSPACE:
-        case SDLK_DELETE:
-            zero = true;
-			if(cursor_y > 0) {
-				move_cursor_down = true;
-			}
-            break;
-        case SDLK_RETURN:
-            if (!modifier) {
-                if(cursor_y > 0) {
-                    if(synth->tempo_map[cursor_x][cursor_y]->active) {
-                        // check so that it's not the last one active. We need at least one.
-                        bool other_active_exists = false;
-                        for (int i = 1; i < synth->tempo_height; i++) {
-                            if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
-                                other_active_exists = true;
-                            }
+        }
+    } else if(input->key_backspace || input->key_delete) {
+        zero = true;
+        if(cursor_y > 0) {
+            move_cursor_down = true;
+        }
+    } else if(input->key_return) {
+        if (!modifier) {
+            if(cursor_y > 0) {
+                if(synth->tempo_map[cursor_x][cursor_y]->active) {
+                    // check so that it's not the last one active. We need at least one.
+                    bool other_active_exists = false;
+                    for (int i = 1; i < synth->tempo_height; i++) {
+                        if(synth->tempo_map[cursor_x][i]->active && i != cursor_y) {
+                            other_active_exists = true;
                         }
-                        if(other_active_exists) {
-                            synth->tempo_map[cursor_x][cursor_y]->active = false;
-                        }
-                        move_cursor_down = true;
-                    } else {
-                        synth->tempo_map[cursor_x][cursor_y]->active = true;
-                        move_cursor_down = true;
                     }
-                    cSynthUpdateHighlightInterval(synth);
+                    if(other_active_exists) {
+                        synth->tempo_map[cursor_x][cursor_y]->active = false;
+                    }
+                    move_cursor_down = true;
+                } else {
+                    synth->tempo_map[cursor_x][cursor_y]->active = true;
+                    move_cursor_down = true;
                 }
+                cSynthUpdateHighlightInterval(synth);
             }
-            break;
-        case SDLK_0:
-            value = 0;
-            break;
-        case SDLK_1:
-            value = 1;
-            break;
-        case SDLK_2:
-            value = 2;
-            break;
-        case SDLK_3:
-            value = 3;
-            break;
-        case SDLK_4:
-            value = 4;
-            break;
-        case SDLK_5:
-            value = 5;
-            break;
-        case SDLK_6:
-            value = 6;
-            break;
-        case SDLK_7:
-            value = 7;
-            break;
-        case SDLK_8:
-            value = 8;
-            break;
-        case SDLK_9:
-            value = 9;
-            break;
-        case SDLK_a:
-            value = 10;
-            break;
-        case SDLK_b:
-            value = 11;
-            break;
-        case SDLK_c:
-            value = 12;
-            break;
-        case SDLK_d:
-            value = 13;
-            break;
-        case SDLK_e:
-            value = 14;
-            break;
-        case SDLK_f:
-            value = 15;
-            break;
-        default:
-            break;
+        }
+    } else if(input->key_0) {
+        value = 0;
+    } else if(input->key_1) {
+        value = 1;
+    } else if(input->key_2) {
+        value = 2;
+    } else if(input->key_3) {
+        value = 3;
+    } else if(input->key_4) {
+        value = 4;
+    } else if(input->key_5) {
+        value = 5;
+    } else if(input->key_6) {
+        value = 6;
+    } else if(input->key_7) {
+        value = 7;
+    } else if(input->key_8) {
+        value = 8;
+    } else if(input->key_9) {
+        value = 9;
+    } else if(input->key_a) {
+        value = 10;
+    } else if(input->key_b) {
+        value = 11;
+    } else if(input->key_c) {
+        value = 12;
+    } else if(input->key_d) {
+        value = 13;
+    } else if(input->key_e) {
+        value = 14;
+    } else if(input->key_f) {
+        value = 15;
     }
     
     if(cursor_y > 0) {
@@ -2321,94 +2414,74 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
         h_switch = true;
     }
     
-    switch(keysym->sym) {
-        case SDLK_PLUS:
+    //switch(keysym->sym) {
+    //    case SDLK_PLUS:
+    
+    if(input->key_plus) {
             if(cursor_y == 0 && h_switch) {
                 synth->wavetable_map[cursor_x][cursor_y]->speed++;
                 if(synth->wavetable_map[cursor_x][cursor_y]->speed > 999) {
                     synth->wavetable_map[cursor_x][cursor_y]->speed = 999;
                 }
             }
-            break;
-        case SDLK_MINUS:
-            if(cursor_y == 0 && h_switch) {
-                synth->wavetable_map[cursor_x][cursor_y]->speed--;
-                if(synth->wavetable_map[cursor_x][cursor_y]->speed < 0) {
-                    synth->wavetable_map[cursor_x][cursor_y]->speed = 0;
-                }
+    } else if(input->key_minus) {
+        if(cursor_y == 0 && h_switch) {
+            synth->wavetable_map[cursor_x][cursor_y]->speed--;
+            if(synth->wavetable_map[cursor_x][cursor_y]->speed < 0) {
+                synth->wavetable_map[cursor_x][cursor_y]->speed = 0;
             }
-            break;
-        case SDLK_BACKSPACE:
-        case SDLK_DELETE:
-            zero = true;
-            if(cursor_y > 0) {
+        }
+    } else if(input->key_backspace || input->key_delete) {
+        zero = true;
+        if(cursor_y > 0) {
+            move_cursor_down = true;
+        }
+    } else if(input->key_return) {
+        if(cursor_y > 0 && cursor_y != 2) {
+            if(synth->wavetable_map[cursor_x][cursor_y]->active) {
+                synth->wavetable_map[cursor_x][cursor_y]->active = false;
+                move_cursor_down = true;
+            } else {
+                synth->wavetable_map[cursor_x][cursor_y]->active = true;
                 move_cursor_down = true;
             }
-            break;
-        case SDLK_RETURN:
-            if(cursor_y > 0 && cursor_y != 2) {
-                if(synth->wavetable_map[cursor_x][cursor_y]->active) {
-                    synth->wavetable_map[cursor_x][cursor_y]->active = false;
-                    move_cursor_down = true;
-                } else {
-                    synth->wavetable_map[cursor_x][cursor_y]->active = true;
-                    move_cursor_down = true;
-                }
-            }
-            
-            if(cursor_y == 2) {
-                 move_cursor_down = true;
-            }
-            break;
-        case SDLK_0:
-            value = 0;
-            break;
-        case SDLK_1:
-            value = 1;
-            break;
-        case SDLK_2:
-            value = 2;
-            break;
-        case SDLK_3:
-            value = 3;
-            break;
-        case SDLK_4:
-            value = 4;
-            break;
-        case SDLK_5:
-            value = 5;
-            break;
-        case SDLK_6:
-            value = 6;
-            break;
-        case SDLK_7:
-            value = 7;
-            break;
-        case SDLK_8:
-            value = 8;
-            break;
-        case SDLK_9:
-            value = 9;
-        case SDLK_a:
-            value = 10;
-            break;
-        case SDLK_b:
-            value = 11;
-            break;
-        case SDLK_c:
-            value = 12;
-            break;
-        case SDLK_d:
-            value = 13;
-            break;
-        case SDLK_e:
-            value = 14;
-            break;
-        case SDLK_f:
-            value = 15;
-            break;
-        default:
-            break;
+        }
+        
+        if(cursor_y == 2) {
+            move_cursor_down = true;
+        }
+    } else if(input->key_0) {
+        value = 0;
+    } else if(input->key_1) {
+        value = 1;
+    } else if(input->key_2) {
+        value = 2;
+    } else if(input->key_3) {
+        value = 3;
+    } else if(input->key_4) {
+        value = 4;
+    } else if(input->key_5) {
+        value = 5;
+    } else if(input->key_6) {
+        value = 6;
+    } else if(input->key_7) {
+        value = 7;
+    } else if(input->key_8) {
+        value = 8;
+    } else if(input->key_9) {
+        value = 9;
+    } else if(input->key_a) {
+        value = 10;
+    } else if(input->key_b) {
+        value = 11;
+    } else if(input->key_c) {
+        value = 12;
+    } else if(input->key_d) {
+        value = 13;
+    } else if(input->key_e) {
+        value = 14;
+    } else if(input->key_f) {
+        value = 15;
     }
     
     if(cursor_y > 1) {
@@ -2466,109 +2539,70 @@ static void handle_note_keys(SDL_Keysym* keysym) {
     //int cursor_y = synth->track_cursor_y;
     int cursor_y = visual_cursor_y;
     
-    
-    switch( keysym->sym ) {
-        case SDLK_z:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
-            break;
-        case SDLK_s:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
-            break;
-        case SDLK_x:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
-            break;
-        case SDLK_d:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
-            break;
-        case SDLK_c:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 16);
-            break;
-        case SDLK_v:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 17);
-            break;
-        case SDLK_g:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 18);
-            break;
-        case SDLK_b:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 19);
-            break;
-        case SDLK_h:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 20);
-            break;
-        case SDLK_n:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 21);
-            break;
-        case SDLK_j:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 22);
-            break;
-        case SDLK_m:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 23);
-            break;
-        case SDLK_COMMA:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 24);
-            break;
-        case SDLK_l:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 25);
-            break;
-        case SDLK_PERIOD:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 26);
-            break;
-            
-            //upper keyboard
-        case SDLK_q:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 24);
-            break;
-        case SDLK_2:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 25);
-            break;
-        case SDLK_w:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 26);
-            break;
-        case SDLK_3:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 27);
-            break;
-        case SDLK_e:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 28);
-            break;
-        case SDLK_r:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 29);
-            break;
-        case SDLK_5:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 30);
-            break;
-        case SDLK_t:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 31);
-            break;
-        case SDLK_6:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 32);
-            break;
-        case SDLK_y:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 33);
-            break;
-        case SDLK_7:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 34);
-            break;
-        case SDLK_u:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 35);
-            break;
-        case SDLK_i:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 36);
-            break;
-        case SDLK_9:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 37);
-            break;
-        case SDLK_o:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 38);
-            break;
-        case SDLK_0:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 39);
-            break;
-        case SDLK_p:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 40);
-            break;
-            
-        default:
-            break;
+    if(input->key_z) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
+    } else if(input->key_s) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
+    } else if(input->key_x) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
+    } else if(input->key_d) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
+    } else if(input->key_c) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 16);
+    } else if(input->key_v) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 17);
+    } else if(input->key_g) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 18);
+    } else if(input->key_b) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 19);
+    } else if(input->key_h) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 20);
+    } else if(input->key_n) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 21);
+    } else if(input->key_j) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 22);
+    } else if(input->key_m) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 23);
+    } else if(input->key_comma) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 24);
+    } else if(input->key_l) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 25);
+    } else if(input->key_period) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 26);
+    } else if(input->key_q) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 24);
+    } else if(input->key_2) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 25);
+    } else if(input->key_w) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 26);
+    } else if(input->key_3) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 27);
+    } else if(input->key_e) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 28);
+    } else if(input->key_r) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 29);
+    } else if(input->key_5) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 30);
+    } else if(input->key_t) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 31);
+    } else if(input->key_6) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 32);
+    } else if(input->key_y) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 33);
+    } else if(input->key_7) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 34);
+    } else if(input->key_u) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 35);
+    } else if(input->key_i) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 36);
+    } else if(input->key_9) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 37);
+    } else if(input->key_o) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 38);
+    } else if(input->key_0) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 39);
+    } else if(input->key_p) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 40);
     }
 }
 
@@ -2943,67 +2977,6 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
         if(instrument_editor_effects_y >= visual_instrument_effects) {
             instrument_editor_effects_y = 0;
         }
-    }
-}
-
-static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
-    switch(keysym->sym) {
-        case SDLK_0: input->key_0 = down; break;
-        case SDLK_1: input->key_1 = down; break;
-        case SDLK_2: input->key_2 = down; break;
-        case SDLK_3: input->key_3 = down; break;
-        case SDLK_4: input->key_4 = down; break;
-        case SDLK_5: input->key_5 = down; break;
-        case SDLK_6: input->key_6 = down; break;
-        case SDLK_7: input->key_7 = down; break;
-        case SDLK_8: input->key_8 = down; break;
-        case SDLK_9: input->key_9 = down; break;
-            
-        case SDLK_a: input->key_a = down; break;
-        case SDLK_b: input->key_b = down; break;
-        case SDLK_c: input->key_c = down; break;
-        case SDLK_d: input->key_d = down; break;
-        case SDLK_e: input->key_e = down; break;
-        case SDLK_f: input->key_f = down; break;
-        case SDLK_g: input->key_g = down; break;
-        case SDLK_h: input->key_h = down; break;
-        case SDLK_i: input->key_i = down; break;
-        case SDLK_j: input->key_j = down; break;
-        case SDLK_k: input->key_k = down; break;
-        case SDLK_l: input->key_l = down; break;
-        case SDLK_m: input->key_m = down; break;
-        case SDLK_n: input->key_n = down; break;
-        case SDLK_o: input->key_o = down; break;
-        case SDLK_p: input->key_p = down; break;
-        case SDLK_q: input->key_q = down; break;
-        case SDLK_r: input->key_r = down; break;
-        case SDLK_s: input->key_s = down; break;
-        case SDLK_t: input->key_t = down; break;
-        case SDLK_u: input->key_u = down; break;
-        case SDLK_v: input->key_v = down; break;
-        case SDLK_w: input->key_w = down; break;
-        case SDLK_x: input->key_x = down; break;
-        case SDLK_y: input->key_y = down; break;
-        case SDLK_z: input->key_z = down; break;
-
-        case SDLK_PLUS: input->key_plus = down; break;
-        case SDLK_MINUS: input->key_minus = down; break;
-        case SDLK_TAB: input->key_tab = down; break;
-        case SDLK_LGUI: input->key_lgui = down; break;
-        case SDLK_LCTRL: input->key_lctrl = down; break;
-        case SDLK_ESCAPE: input->key_escape = down; break;
-        case SDLK_RETURN: input->key_return = down; break;
-        case SDLK_LEFT: input->key_left = down; break;
-        case SDLK_RIGHT: input->key_right = down; break;
-        case SDLK_UP: input->key_up = down; break;
-        case SDLK_DOWN: input->key_down = down; break;
-        case SDLK_LSHIFT: input->key_lshift = down; break;
-        case SDLK_HOME: input->key_home = down; break;
-        case SDLK_END: input->key_end = down; break;
-        case SDLK_BACKSPACE: input->key_backspace = down; break;
-        case SDLK_DELETE: input->key_delete = down; break;
-        case SDLK_COMMA: input->key_comma = down; break;
-        case SDLK_PERIOD: input->key_period = down; break;
     }
 }
 
@@ -5145,63 +5118,45 @@ static void handle_credits_keys(SDL_Keysym* keysym) {
     credits_up = false;
     credits_down = false;
     
-    switch( keysym->sym ) {
-        case SDLK_RETURN:
-        case SDLK_ESCAPE:
-            credits = false;
-            break;
-        case SDLK_LEFT:
-            credits_left = true;
-            break;
-        case SDLK_RIGHT:
-            credits_right = true;
-            break;
-        case SDLK_UP:
-            credits_up = true;
-            break;
-        case SDLK_DOWN:
-            credits_down = true;
-            break;
-        case SDLK_BACKSPACE:
-            break;
-        case SDLK_SPACE:
-            toggle_playback();
-            break;
-        default:
-            break;
+    if(input->key_return || input->key_escape) {
+        credits = false;
+    }
+    if(input->key_left) {
+        credits_left = true;
+    }
+    if(input->key_right) {
+        credits_right = true;
+    }
+    if(input->key_up) {
+        credits_up = true;
+    }
+    if(input->key_down) {
+        credits_down = true;
+    }
+    if(input->key_space) {
+        toggle_playback();
     }
 }
 
 static void handle_help_keys(SDL_Keysym* keysym) {
     
-    switch( keysym->sym ) {
-        case SDLK_RETURN:
-        case SDLK_ESCAPE:
-            help = false;
-            break;
-        case SDLK_LEFT:
-            break;
-        case SDLK_RIGHT:
-            break;
-        case SDLK_UP:
-            help_index--;
-            if(help_index < 0) {
-                help_index = help_index_max-1;
-            }
-            break;
-        case SDLK_DOWN:
-            help_index++;
-            if(help_index >= help_index_max) {
-                help_index = 0;
-            }
-            break;
-        case SDLK_BACKSPACE:
-            break;
-        case SDLK_SPACE:
-            toggle_playback();
-            break;
-        default:
-            break;
+    if(input->key_return || input->key_escape) {
+        help = false;
+    }
+    if(input->key_up) {
+        help_index--;
+        if(help_index < 0) {
+            help_index = help_index_max-1;
+        }
+    }
+    if(input->key_down) {
+        help_index++;
+        if(help_index >= help_index_max) {
+            help_index = 0;
+        }
+    }
+    if(input->key_space) {
+       toggle_playback();
     }
 }
 
