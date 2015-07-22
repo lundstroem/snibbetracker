@@ -1483,11 +1483,7 @@ void handle_key_up(SDL_Keysym* keysym) {
     
 }
 
-
-
 void handle_key_down(SDL_Keysym* keysym) {
-    
-    printf("key down\n");
     
     sdl_key_mapping(keysym, true);
     
@@ -1515,675 +1511,672 @@ void handle_key_down(SDL_Keysym* keysym) {
         handle_key_down_file(keysym);
         return;
     } else {
-        
-        //switch(keysym->sym) {
-            if(input->key_i) {
-                if(modifier) {
-                    if (instrument_editor) {
-                        instrument_editor = false;
-                    } else {
-                        tempo_editor = false;
-                        visualiser = false;
-                        wavetable_editor = false;
-                        custom_table = false;
-                        instrument_editor = true;
-                    }
-                    return;
-                }
-            }
-            if(input->key_j) {
-                if(modifier) {
-                    if (custom_table) {
-                        custom_table = false;
-                    } else {
-                        tempo_editor = false;
-                        visualiser = false;
-                        wavetable_editor = false;
-                        instrument_editor = false;
-                        custom_table = true;
-                    }
-                    return;
-                }
-            }
-            if(input->key_t) {
-                if(modifier) {
-                    if (tempo_editor) {
-                        tempo_editor = false;
-                    } else {
-                        instrument_editor = false;
-                        visualiser = false;
-                        wavetable_editor = false;
-                        custom_table = false;
-                        tempo_editor = true;
-                    }
-                    return;
-                }
-            }
-            if(input->key_r) {
-                if(modifier) {
-                    if (wavetable_editor) {
-                        wavetable_editor = false;
-                    } else {
-                        instrument_editor = false;
-                        visualiser = false;
-                        tempo_editor = false;
-                        custom_table = false;
-                        wavetable_editor = true;
-                    }
-                    return;
-                }
-            }
-            if(input->key_q) {
-                if(modifier) {
-                    // user will quit app on OSX.
-                    return;
-                }
-            }
-            if(input->key_n) {
-                if(modifier) {
-                    // new project.
-                    set_info_timer("reset project");
-                    reset_project();
-                    cSynthReset(synth);
-                    return;
-                }
-            }
-            if(input->key_home) {
-                if(tempo_editor) {
-                    tempo_selection_y = 0;
-                } else if(instrument_editor) {
-                    int ins_id = selected_instrument_id-1;
-                    if(ins_id < 0) {
-                        ins_id = synth->max_instruments-1;
-                    }
-                    selected_instrument_id = ins_id;
-                    //printf("selected ins:%d", ins_id);
-                } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    pattern_cursor_y = 0;
-                } else {
-                    visual_cursor_y = 0;
-                }
-            }
-            if(input->key_end) {
-                if(tempo_editor) {
-                    tempo_selection_y = synth->tempo_height-1;
-                } else if(instrument_editor) {
-                    int ins_id = selected_instrument_id+1;
-                    if(ins_id >= synth->max_instruments) {
-                        ins_id = 0;
-                    }
-                    selected_instrument_id = ins_id;
-                    //printf("selected ins:%d", ins_id);
-                } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    pattern_cursor_y = synth->patterns_and_voices_height-1;
-                }  else {
-                    visual_cursor_y = synth->track_height-1;
-                }
-            }
-            if(input->key_m) {
-                if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    if(pattern_cursor_y == 0) {
-                        if(synth->voices[pattern_cursor_x]->muted == 1) {
-                            synth->voices[pattern_cursor_x]->muted = 0;
-                        } else {
-                            synth->voices[pattern_cursor_x]->muted = 1;
-                        }
-                    }
-                }
-            }
-            if(input->key_plus) {
-                if(instrument_editor) {
-                    change_octave(true);
-                } else if(visualiser) {
-                    change_octave(true);
-                } else if(pattern_editor) {
-                    change_param(true);
-                } else if(tempo_editor) {
-              
-                } else if(wavetable_editor) {
-
-                } else {
-                    if (editing && modifier) {
-                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 12);
-                        set_info_timer("transpose octave up");
-                    } else if(editing) {
-                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 1);
-                        set_info_timer("transpose halfnote up");
-                    }
-                }
-            }
-            if(input->key_minus) {
-                
-                if(instrument_editor) {
-                    change_octave(false);
-                } else if(visualiser) {
-                    change_octave(false);
-                } else if(pattern_editor) {
-                    change_param(false);
-                } else if(tempo_editor) {
-                    
-                } else if(wavetable_editor) {
-                    
-                } else {
-                    if (editing && modifier) {
-                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 12);
-                        set_info_timer("transpose octave down");
-                    } else if(editing) {
-                        transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 1);
-                        set_info_timer("transpose halfnote down");
-                    }
-                }
-            }
-            if(input->key_c) {
-                if(modifier) {
-                    if(instrument_editor) {}
-                    else if(file_editor) {}
-                    else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
-                            int instrument = -1;
-                            if(pattern_cursor_y < 19) {
-                                int ins_nr = pattern_cursor_x;
-                                if(pattern_cursor_y == 18) {
-                                    ins_nr += 6;
-                                }
-                                instrument = ins_nr;
-                            } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
-                                int ins_nr = pattern_cursor_x;
-                                ins_nr += 12;
-                                instrument = ins_nr;
-                            }
-                            if(instrument > -1) {
-                                set_info_timer("copy instrument");
-                                copy_instrument(instrument);
-                            }
-                        } else {
-                            copy_pattern(pattern_cursor_x, pattern_cursor_y);
-                            set_info_timer("copy pattern");
-                        }
-                    } else {
-                        if(editing) {
-                            copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, true);
-                            set_info_timer("copy");
-                        }
-                        return;
-                    }
-                }
-            }
-            if(input->key_x) {
-                if(modifier) {
-                    if(instrument_editor) {}
-                    else if(file_editor) {}
-                    else if(pattern_editor) {
-                        // TODO make copy/paste for pattern editor.
-                    } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
-                        if(editing) {
-                            copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, true);
-                            set_info_timer("cut");
-                        }
-                        return;
-                    }
-                }
-            }
-            if(input->key_v) {
-                if(modifier) {
-                    if(instrument_editor) {}
-                    else if(file_editor) {}
-                    else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
-                            int instrument = -1;
-                            if(pattern_cursor_y < 19) {
-                                int ins_nr = pattern_cursor_x;
-                                if(pattern_cursor_y == 18) {
-                                    ins_nr += 6;
-                                }
-                                instrument = ins_nr;
-                            } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
-                                int ins_nr = pattern_cursor_x;
-                                ins_nr += 12;
-                                instrument = ins_nr;
-                            }
-                            if(instrument > -1) {
-                                set_info_timer("paste instrument");
-                                paste_instrument(instrument);
-                            }
-                        } else {
-                            paste_pattern(pattern_cursor_x, pattern_cursor_y);
-                            set_info_timer("paste pattern");
-                        }
-                    } else {
-                        if(editing) {
-                            paste_notes(current_track, visual_cursor_x, visual_cursor_y);
-                            set_info_timer("paste");
-                        }
-                        return;
-                    }
-                }
-            }
-            if(input->key_a) {
-                if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-                        if(synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] == 0) {
-                            synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 1;
-                        } else {
-                            synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 0;
-                        }
-                    }
-                }
-            }
-            if(input->key_p) {
-                if(modifier) {
-                    if(visualiser) {
-                        visualiser = false;
-                    } else {
-                        visualiser = true;
-                        tempo_editor = false;
-                        instrument_editor = false;
-                    }
-                    return;
-                }
-            }
-            if(input->key_o) {
-                if(modifier) {
-                    file_editor = true;
-                    return;
-                }
-            }
-            if(input->key_e) {
-                if(modifier) {
-                    file_editor = true;
-                    file_settings->file_editor_save = true;
-                    export_project = true;
-                    return;
-                }
-                else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
-                        pattern_editor = false;
-                        current_track = pattern_cursor_y-1+visual_pattern_offset;
-                        visual_cursor_x = pattern_cursor_x*5;
-                        set_info_timer("jump to track");
-                    }
-                    return;
-                }
-            }
-            if(input->key_s) {
-                if(modifier) {
-                    file_editor = true;
-                    file_settings->file_editor_save = true;
-                    export_project = false;
-                    return;
-                } else {
-                    if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                        if(pattern_cursor_y > 0) {
-                            if(synth->solo_track == pattern_cursor_y-1+visual_pattern_offset) {
-                                synth->solo_track = -1;
-                            } else {
-                                synth->solo_track = pattern_cursor_y-1+visual_pattern_offset;
-                            }
-                        } else if(pattern_cursor_y == 0) {
-                            if(synth->solo_voice == pattern_cursor_x) {
-                                synth->solo_voice = -1;
-                            } else {
-                                synth->solo_voice = pattern_cursor_x;
-                            }
-                        }
-                    }
-                }
-            }
-            if(input->key_f) {
-                if(modifier && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    if(follow) {
-                        follow = false;
-                        set_info_timer("follow: false");
-                    } else {
-                        follow = true;
-                        set_info_timer("follow: true");
-                    }
-                    return;
-                }
-            }
-            if(input->key_tab) {
-                if(instrument_editor) {
-                    struct CInstrument *ins = synth->instruments[selected_instrument_id];
-                    selected_instrument_node_index++;
-                    if(selected_instrument_node_index >= ins->adsr_nodes) {
-                        selected_instrument_node_index = 1;
-                    }
-                } else if(custom_table) {
-                    struct CInstrument *ins = synth->custom_instrument;
-                    selected_custom_table_node_index++;
-                    if(selected_custom_table_node_index >= ins->adsr_nodes) {
-                        selected_custom_table_node_index = 0;
-                    }
-                } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
-                    if(pattern_editor) {
-                        pattern_editor = false;
-                    } else {
-                        pattern_editor = true;
-                    }
-                }
-            }
-            if(input->key_lgui) {
-                modifier = true;
-            }
-            if(input->key_lctrl) {
-                modifier = true;
-            }
-            if(input->key_escape) {
-                if(instrument_editor) {
+        if(input->key_i) {
+            if(modifier) {
+                if (instrument_editor) {
                     instrument_editor = false;
-                } else if(visualiser) {
-                    visualiser = false;
-                } else if(tempo_editor) {
+                } else {
                     tempo_editor = false;
-                } else if(wavetable_editor) {
-                    wavetable_editor = false;
-                } else if(custom_table) {
-                    custom_table = false;
-                } else if(help) {
-                    help = false;
-                } else if(credits) {
-                    credits = false;
-                } else if(pattern_editor) {
-                    pattern_editor = false;
-                }
-            }
-            if(input->key_space) {
-                toggle_playback();
-            }
-            if(input->key_left) {
-                pressed_left = true;
-                
-                if(tempo_editor) {
-                    tempo_selection_x--;
-                    if(tempo_selection_x < 0) {
-                        tempo_selection_x = synth->tempo_width-1;
-                    }
-                } else if(custom_table) {
-                    
-                } else if(wavetable_editor) {
-                    int inc = 1;
-                    if(wavetable_selection_y < 2) {
-                        inc = 2;
-                    }
-                    wavetable_selection_x -= inc;
-                    if(wavetable_selection_x < 0) {
-                        wavetable_selection_x = synth->wavetable_width-inc;
-                    }
-                } else if(instrument_editor) {
-                    if(instrument_editor_effects) {
-                        instrument_editor_effects_x--;
-                        if(instrument_editor_effects_x < 0) {
-                            instrument_editor_effects_x = 2;
-                        }
-                    }
-                } else {
-                    if(modifier) {
-                        /*
-                        octave--;
-                        if(octave < 0) {
-                            octave = 0;
-                        }
-                        set_info_timer_with_int("octave", octave);*/
-                        change_octave(false);
-                    } else if(pattern_editor) {
-                        pattern_cursor_x -= 1;
-                        check_pattern_cursor_bounds();
-                    } else {
-                        set_visual_cursor(-1, 0, true);
-                    }
-                }
-            }
-            if(input->key_right) {
-                pressed_right = true;
-                
-                if(tempo_editor) {
-                    tempo_selection_x++;
-                    if(tempo_selection_x >= synth->tempo_width) {
-                        tempo_selection_x = 0;
-                    }
-                } else if(custom_table) {
-                    
-                } else if(wavetable_editor) {
-                    int inc = 1;
-                    if(wavetable_selection_y < 2) {
-                        inc = 2;
-                    }
-                    wavetable_selection_x += inc;
-                    if(wavetable_selection_x >= synth->wavetable_width) {
-                        wavetable_selection_x = 0;
-                    }
-                } else if(instrument_editor) {
-                    if(instrument_editor_effects) {
-                        instrument_editor_effects_x++;
-                        if(instrument_editor_effects_x > 2) {
-                            instrument_editor_effects_x = 0;
-                        }
-                    }
-                } else {
-                    if(modifier) {/*
-                        octave++;
-                        if(octave > 7) {
-                            octave = 7;
-                        }
-                        set_info_timer_with_int("octave", octave);*/
-                        change_octave(true);
-                    } else if(pattern_editor) {
-                        pattern_cursor_x += 1;
-                        check_pattern_cursor_bounds();
-                    } else {
-                        set_visual_cursor(1, 0, true);
-                    }
-                }
-            }
-            if(input->key_up) {
-                pressed_up = true;
-                if(tempo_editor) {
-                    tempo_selection_y--;
-                    if(tempo_selection_y < 0) {
-                        tempo_selection_y = synth->tempo_height-1;
-                    }
-                } else if(custom_table) {
-                    
-                } else if(wavetable_editor) {
-                    wavetable_selection_y--;
-                    if(wavetable_selection_y < 0) {
-                        wavetable_selection_y = synth->wavetable_height-1;
-                    }
-                    if(wavetable_selection_y == 1){
-                        if(wavetable_selection_x == 1 ||
-                           wavetable_selection_x == 3 ||
-                           wavetable_selection_x == 5 ||
-                           wavetable_selection_x == 7 ||
-                           wavetable_selection_x == 9 ||
-                           wavetable_selection_x == 11)
-                            wavetable_selection_x--;
-                    }
-                } else if(instrument_editor) {
-                    if(instrument_editor_effects) {
-                        instrument_editor_effects_y--;
-                        if(instrument_editor_effects_y < 0) {
-                            instrument_editor_effects_y = visual_instrument_effects-1;
-                        }
-                    }
-                } else if(modifier && pattern_editor) {
-                    visual_pattern_offset -= 16;
-                    if(visual_pattern_offset < 0){
-                        visual_pattern_offset = 48;
-                    }
-                } else {
-                    if(pattern_editor) {
-                        pattern_cursor_y -= 1;
-                        check_pattern_cursor_bounds();
-                    } else {
-                        if(playing && follow) {}
-                        else if(modifier && editing) {
-                            move_notes_up();
-                            set_visual_cursor(0, -1, true);
-                        }
-                        else {
-                            set_visual_cursor(0, -1, true);
-                        }
-                    }
-                }
-            }
-            if(input->key_down) {
-                pressed_down = true;
-                if(tempo_editor) {
-                    tempo_selection_y++;
-                    if(tempo_selection_y >= synth->tempo_height) {
-                        tempo_selection_y = 0;
-                    }
-                } else if(custom_table) {
-                    
-                } else if(wavetable_editor) {
-                    wavetable_selection_y++;
-                    if(wavetable_selection_y >= synth->wavetable_height) {
-                        wavetable_selection_y = 0;
-                    }
-                } else if(instrument_editor) {
-                    if(instrument_editor_effects) {
-                        instrument_editor_effects_y++;
-                        if(instrument_editor_effects_y >= visual_instrument_effects) {
-                            instrument_editor_effects_y = 0;
-                        }
-                    }
-                } else if(modifier && pattern_editor) {
-                    visual_pattern_offset += 16;
-                    if(visual_pattern_offset > 48){
-                        visual_pattern_offset = 0;
-                    }
-                } else {
-                    if(pattern_editor) {
-                        pattern_cursor_y += 1;
-                        check_pattern_cursor_bounds();
-                    } else {
-                        if(playing && follow) {}
-                        else if(modifier && editing) {
-                            move_notes_down();
-                            set_visual_cursor(0, 1, true);
-                        } else {
-                            set_visual_cursor(0, 1, true);
-                        }
-                    }
-                }
-            }
-            if(input->key_backspace || input->key_delete) {
-                if(instrument_editor) {
-                    if(instrument_editor_effects) {
-                        instrument_effect_remove();
-                        instrument_editor_effects_y++;
-                        if(instrument_editor_effects_y >= visual_instrument_effects) {
-                            instrument_editor_effects_y = 0;
-                        }
-                    }
-                }
-                else if(pattern_editor) {}
-                else if(editing && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                    int x_count = visual_cursor_x%5;
-                    
-                    if(selection_enabled) {
-                        copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, false);
-                    } else {
-                        if(x_count == 0 || x_count == 1) {
-                            cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
-                        } else if(x_count == 2) {
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
-                        } else if(x_count == 3) {
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
-                        } else if(x_count == 4) {
-                            cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
-                        }
-                        
-                        if(follow) {
-                            if(playing) {}
-                            else {
-                                set_visual_cursor(0, 1, true);
-                            }
-                        } else {
-                            set_visual_cursor(0, 1, true);
-                        }
-                    }
-                }
-            }
-            if(input->key_return) {
-                
-                if(tempo_editor) {
-                    if(modifier) {
-                        if (playing) {
-                            synth->pending_tempo_column = tempo_selection_x;
-                        } else {
-                            synth->current_tempo_column = tempo_selection_x;
-                        }
-                    } else {
-                        //tempo_editor = false;
-                    }
-                } else if(visualiser) {
                     visualiser = false;
-                } else if(wavetable_editor) {
-                    
-                } else if(instrument_editor) {
-                    instrument_editor = false;
+                    wavetable_editor = false;
+                    custom_table = false;
+                    instrument_editor = true;
+                }
+                return;
+            }
+        }
+        if(input->key_j) {
+            if(modifier) {
+                if (custom_table) {
+                    custom_table = false;
                 } else {
-                    if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
-                        
-                        if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
-                            
-                            if(pattern_cursor_y < 19) {
-                                int ins_nr = pattern_cursor_x;
-                                if(pattern_cursor_y == 18) {
-                                    ins_nr += 6;
-                                }
-                                selected_instrument_id = ins_nr;
-                                if(instrument_editor) {
-                                    instrument_editor = false;
-                                } else {
-                                    instrument_editor = true;
-                                }
-                            } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
-                                int ins_nr = pattern_cursor_x;
-                                ins_nr += 12;
-                                selected_instrument_id = ins_nr;
-                                if(instrument_editor) {
-                                    instrument_editor = false;
-                                } else {
-                                    instrument_editor = true;
-                                }
+                    tempo_editor = false;
+                    visualiser = false;
+                    wavetable_editor = false;
+                    instrument_editor = false;
+                    custom_table = true;
+                }
+                return;
+            }
+        }
+        if(input->key_t) {
+            if(modifier) {
+                if (tempo_editor) {
+                    tempo_editor = false;
+                } else {
+                    instrument_editor = false;
+                    visualiser = false;
+                    wavetable_editor = false;
+                    custom_table = false;
+                    tempo_editor = true;
+                }
+                return;
+            }
+        }
+        if(input->key_r) {
+            if(modifier) {
+                if (wavetable_editor) {
+                    wavetable_editor = false;
+                } else {
+                    instrument_editor = false;
+                    visualiser = false;
+                    tempo_editor = false;
+                    custom_table = false;
+                    wavetable_editor = true;
+                }
+                return;
+            }
+        }
+        if(input->key_q) {
+            if(modifier) {
+                // user will quit app on OSX.
+                return;
+            }
+        }
+        if(input->key_n) {
+            if(modifier) {
+                // new project.
+                set_info_timer("reset project");
+                reset_project();
+                cSynthReset(synth);
+                return;
+            }
+        }
+        if(input->key_home) {
+            if(tempo_editor) {
+                tempo_selection_y = 0;
+            } else if(instrument_editor) {
+                int ins_id = selected_instrument_id-1;
+                if(ins_id < 0) {
+                    ins_id = synth->max_instruments-1;
+                }
+                selected_instrument_id = ins_id;
+                //printf("selected ins:%d", ins_id);
+            } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                pattern_cursor_y = 0;
+            } else {
+                visual_cursor_y = 0;
+            }
+        }
+        if(input->key_end) {
+            if(tempo_editor) {
+                tempo_selection_y = synth->tempo_height-1;
+            } else if(instrument_editor) {
+                int ins_id = selected_instrument_id+1;
+                if(ins_id >= synth->max_instruments) {
+                    ins_id = 0;
+                }
+                selected_instrument_id = ins_id;
+                //printf("selected ins:%d", ins_id);
+            } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                pattern_cursor_y = synth->patterns_and_voices_height-1;
+            }  else {
+                visual_cursor_y = synth->track_height-1;
+            }
+        }
+        if(input->key_m) {
+            if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                if(pattern_cursor_y == 0) {
+                    if(synth->voices[pattern_cursor_x]->muted == 1) {
+                        synth->voices[pattern_cursor_x]->muted = 0;
+                    } else {
+                        synth->voices[pattern_cursor_x]->muted = 1;
+                    }
+                }
+            }
+        }
+        if(input->key_plus) {
+            if(instrument_editor) {
+                change_octave(true);
+            } else if(visualiser) {
+                change_octave(true);
+            } else if(pattern_editor) {
+                change_param(true);
+            } else if(tempo_editor) {
+          
+            } else if(wavetable_editor) {
+
+            } else {
+                if (editing && modifier) {
+                    transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 12);
+                    set_info_timer("transpose octave up");
+                } else if(editing) {
+                    transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, 1);
+                    set_info_timer("transpose halfnote up");
+                }
+            }
+        }
+        if(input->key_minus) {
+            
+            if(instrument_editor) {
+                change_octave(false);
+            } else if(visualiser) {
+                change_octave(false);
+            } else if(pattern_editor) {
+                change_param(false);
+            } else if(tempo_editor) {
+                
+            } else if(wavetable_editor) {
+                
+            } else {
+                if (editing && modifier) {
+                    transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 12);
+                    set_info_timer("transpose octave down");
+                } else if(editing) {
+                    transpose_selection(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, 1);
+                    set_info_timer("transpose halfnote down");
+                }
+            }
+        }
+        if(input->key_c) {
+            if(modifier) {
+                if(instrument_editor) {}
+                else if(file_editor) {}
+                else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                    if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
+                        int instrument = -1;
+                        if(pattern_cursor_y < 19) {
+                            int ins_nr = pattern_cursor_x;
+                            if(pattern_cursor_y == 18) {
+                                ins_nr += 6;
                             }
-                        } else if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
-                            wavetable_editor = true;
-                            return;
-                        } else if(pattern_cursor_y == 21 && pattern_cursor_x == 2) {
-                            custom_table = true;
-                        } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
-                            tempo_editor = true;
-                        } else if(pattern_cursor_y == 20 && pattern_cursor_x == 5) {
-                            visualiser = true;
-                        } else if(pattern_cursor_y == 21 && pattern_cursor_x == 5) {
-                            credits = true;
-                        } else if(pattern_cursor_y == 21 && pattern_cursor_x == 1) {
-                            help = true;
+                            instrument = ins_nr;
+                        } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
+                            int ins_nr = pattern_cursor_x;
+                            ins_nr += 12;
+                            instrument = ins_nr;
+                        }
+                        if(instrument > -1) {
+                            set_info_timer("copy instrument");
+                            copy_instrument(instrument);
                         }
                     } else {
-                        toggle_editing();
-                    }
-                }
-            }
-            if(input->key_lshift) {
-                if(instrument_editor) {
-                    if(instrument_editor_effects) {
-                        instrument_editor_effects = false;
-                    } else {
-                        instrument_editor_effects = true;
+                        copy_pattern(pattern_cursor_x, pattern_cursor_y);
+                        set_info_timer("copy pattern");
                     }
                 } else {
-                    shift_down = true;
+                    if(editing) {
+                        copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, true);
+                        set_info_timer("copy");
+                    }
+                    return;
                 }
             }
-       // }
+        }
+        if(input->key_x) {
+            if(modifier) {
+                if(instrument_editor) {}
+                else if(file_editor) {}
+                else if(pattern_editor) {
+                    // TODO make copy/paste for pattern editor.
+                } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
+                    if(editing) {
+                        copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, true);
+                        set_info_timer("cut");
+                    }
+                    return;
+                }
+            }
+        }
+        if(input->key_v) {
+            if(modifier) {
+                if(instrument_editor) {}
+                else if(file_editor) {}
+                else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                    if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
+                        int instrument = -1;
+                        if(pattern_cursor_y < 19) {
+                            int ins_nr = pattern_cursor_x;
+                            if(pattern_cursor_y == 18) {
+                                ins_nr += 6;
+                            }
+                            instrument = ins_nr;
+                        } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
+                            int ins_nr = pattern_cursor_x;
+                            ins_nr += 12;
+                            instrument = ins_nr;
+                        }
+                        if(instrument > -1) {
+                            set_info_timer("paste instrument");
+                            paste_instrument(instrument);
+                        }
+                    } else {
+                        paste_pattern(pattern_cursor_x, pattern_cursor_y);
+                        set_info_timer("paste pattern");
+                    }
+                } else {
+                    if(editing) {
+                        paste_notes(current_track, visual_cursor_x, visual_cursor_y);
+                        set_info_timer("paste");
+                    }
+                    return;
+                }
+            }
+        }
+        if(input->key_x) {
+            if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+                    if(synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] == 0) {
+                        synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 1;
+                    } else {
+                        synth->active_tracks[pattern_cursor_y-1+visual_pattern_offset] = 0;
+                    }
+                }
+            }
+        }
+        if(input->key_p) {
+            if(modifier) {
+                if(visualiser) {
+                    visualiser = false;
+                } else {
+                    visualiser = true;
+                    tempo_editor = false;
+                    instrument_editor = false;
+                }
+                return;
+            }
+        }
+        if(input->key_o) {
+            if(modifier) {
+                file_editor = true;
+                return;
+            }
+        }
+        if(input->key_e) {
+            if(modifier) {
+                file_editor = true;
+                file_settings->file_editor_save = true;
+                export_project = true;
+                return;
+            }
+            else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
+                    pattern_editor = false;
+                    current_track = pattern_cursor_y-1+visual_pattern_offset;
+                    visual_cursor_x = pattern_cursor_x*5;
+                    set_info_timer("jump to track");
+                }
+                return;
+            }
+        }
+        if(input->key_s) {
+            if(modifier) {
+                file_editor = true;
+                file_settings->file_editor_save = true;
+                export_project = false;
+                return;
+            } else {
+                if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                    if(pattern_cursor_y > 0) {
+                        if(synth->solo_track == pattern_cursor_y-1+visual_pattern_offset) {
+                            synth->solo_track = -1;
+                        } else {
+                            synth->solo_track = pattern_cursor_y-1+visual_pattern_offset;
+                        }
+                    } else if(pattern_cursor_y == 0) {
+                        if(synth->solo_voice == pattern_cursor_x) {
+                            synth->solo_voice = -1;
+                        } else {
+                            synth->solo_voice = pattern_cursor_x;
+                        }
+                    }
+                }
+            }
+        }
+        if(input->key_f) {
+            if(modifier && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                if(follow) {
+                    follow = false;
+                    set_info_timer("follow: false");
+                } else {
+                    follow = true;
+                    set_info_timer("follow: true");
+                }
+                return;
+            }
+        }
+        if(input->key_tab) {
+            if(instrument_editor) {
+                struct CInstrument *ins = synth->instruments[selected_instrument_id];
+                selected_instrument_node_index++;
+                if(selected_instrument_node_index >= ins->adsr_nodes) {
+                    selected_instrument_node_index = 1;
+                }
+            } else if(custom_table) {
+                struct CInstrument *ins = synth->custom_instrument;
+                selected_custom_table_node_index++;
+                if(selected_custom_table_node_index >= ins->adsr_nodes) {
+                    selected_custom_table_node_index = 0;
+                }
+            } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
+                if(pattern_editor) {
+                    pattern_editor = false;
+                } else {
+                    pattern_editor = true;
+                }
+            }
+        }
+        if(input->key_lgui) {
+            modifier = true;
+        }
+        if(input->key_lctrl) {
+            modifier = true;
+        }
+        if(input->key_escape) {
+            if(instrument_editor) {
+                instrument_editor = false;
+            } else if(visualiser) {
+                visualiser = false;
+            } else if(tempo_editor) {
+                tempo_editor = false;
+            } else if(wavetable_editor) {
+                wavetable_editor = false;
+            } else if(custom_table) {
+                custom_table = false;
+            } else if(help) {
+                help = false;
+            } else if(credits) {
+                credits = false;
+            } else if(pattern_editor) {
+                pattern_editor = false;
+            }
+        }
+        if(input->key_space) {
+            toggle_playback();
+        }
+        if(input->key_left) {
+            pressed_left = true;
+            
+            if(tempo_editor) {
+                tempo_selection_x--;
+                if(tempo_selection_x < 0) {
+                    tempo_selection_x = synth->tempo_width-1;
+                }
+            } else if(custom_table) {
+                
+            } else if(wavetable_editor) {
+                int inc = 1;
+                if(wavetable_selection_y < 2) {
+                    inc = 2;
+                }
+                wavetable_selection_x -= inc;
+                if(wavetable_selection_x < 0) {
+                    wavetable_selection_x = synth->wavetable_width-inc;
+                }
+            } else if(instrument_editor) {
+                if(instrument_editor_effects) {
+                    instrument_editor_effects_x--;
+                    if(instrument_editor_effects_x < 0) {
+                        instrument_editor_effects_x = 2;
+                    }
+                }
+            } else {
+                if(modifier) {
+                    /*
+                    octave--;
+                    if(octave < 0) {
+                        octave = 0;
+                    }
+                    set_info_timer_with_int("octave", octave);*/
+                    change_octave(false);
+                } else if(pattern_editor) {
+                    pattern_cursor_x -= 1;
+                    check_pattern_cursor_bounds();
+                } else {
+                    set_visual_cursor(-1, 0, true);
+                }
+            }
+        }
+        if(input->key_right) {
+            pressed_right = true;
+            
+            if(tempo_editor) {
+                tempo_selection_x++;
+                if(tempo_selection_x >= synth->tempo_width) {
+                    tempo_selection_x = 0;
+                }
+            } else if(custom_table) {
+                
+            } else if(wavetable_editor) {
+                int inc = 1;
+                if(wavetable_selection_y < 2) {
+                    inc = 2;
+                }
+                wavetable_selection_x += inc;
+                if(wavetable_selection_x >= synth->wavetable_width) {
+                    wavetable_selection_x = 0;
+                }
+            } else if(instrument_editor) {
+                if(instrument_editor_effects) {
+                    instrument_editor_effects_x++;
+                    if(instrument_editor_effects_x > 2) {
+                        instrument_editor_effects_x = 0;
+                    }
+                }
+            } else {
+                if(modifier) {/*
+                    octave++;
+                    if(octave > 7) {
+                        octave = 7;
+                    }
+                    set_info_timer_with_int("octave", octave);*/
+                    change_octave(true);
+                } else if(pattern_editor) {
+                    pattern_cursor_x += 1;
+                    check_pattern_cursor_bounds();
+                } else {
+                    set_visual_cursor(1, 0, true);
+                }
+            }
+        }
+        if(input->key_up) {
+            pressed_up = true;
+            if(tempo_editor) {
+                tempo_selection_y--;
+                if(tempo_selection_y < 0) {
+                    tempo_selection_y = synth->tempo_height-1;
+                }
+            } else if(custom_table) {
+                
+            } else if(wavetable_editor) {
+                wavetable_selection_y--;
+                if(wavetable_selection_y < 0) {
+                    wavetable_selection_y = synth->wavetable_height-1;
+                }
+                if(wavetable_selection_y == 1){
+                    if(wavetable_selection_x == 1 ||
+                       wavetable_selection_x == 3 ||
+                       wavetable_selection_x == 5 ||
+                       wavetable_selection_x == 7 ||
+                       wavetable_selection_x == 9 ||
+                       wavetable_selection_x == 11)
+                        wavetable_selection_x--;
+                }
+            } else if(instrument_editor) {
+                if(instrument_editor_effects) {
+                    instrument_editor_effects_y--;
+                    if(instrument_editor_effects_y < 0) {
+                        instrument_editor_effects_y = visual_instrument_effects-1;
+                    }
+                }
+            } else if(modifier && pattern_editor) {
+                visual_pattern_offset -= 16;
+                if(visual_pattern_offset < 0){
+                    visual_pattern_offset = 48;
+                }
+            } else {
+                if(pattern_editor) {
+                    pattern_cursor_y -= 1;
+                    check_pattern_cursor_bounds();
+                } else {
+                    if(playing && follow) {}
+                    else if(modifier && editing) {
+                        move_notes_up();
+                        set_visual_cursor(0, -1, true);
+                    }
+                    else {
+                        set_visual_cursor(0, -1, true);
+                    }
+                }
+            }
+        }
+        if(input->key_down) {
+            pressed_down = true;
+            if(tempo_editor) {
+                tempo_selection_y++;
+                if(tempo_selection_y >= synth->tempo_height) {
+                    tempo_selection_y = 0;
+                }
+            } else if(custom_table) {
+                
+            } else if(wavetable_editor) {
+                wavetable_selection_y++;
+                if(wavetable_selection_y >= synth->wavetable_height) {
+                    wavetable_selection_y = 0;
+                }
+            } else if(instrument_editor) {
+                if(instrument_editor_effects) {
+                    instrument_editor_effects_y++;
+                    if(instrument_editor_effects_y >= visual_instrument_effects) {
+                        instrument_editor_effects_y = 0;
+                    }
+                }
+            } else if(modifier && pattern_editor) {
+                visual_pattern_offset += 16;
+                if(visual_pattern_offset > 48){
+                    visual_pattern_offset = 0;
+                }
+            } else {
+                if(pattern_editor) {
+                    pattern_cursor_y += 1;
+                    check_pattern_cursor_bounds();
+                } else {
+                    if(playing && follow) {}
+                    else if(modifier && editing) {
+                        move_notes_down();
+                        set_visual_cursor(0, 1, true);
+                    } else {
+                        set_visual_cursor(0, 1, true);
+                    }
+                }
+            }
+        }
+        if(input->key_backspace || input->key_delete) {
+            if(instrument_editor) {
+                if(instrument_editor_effects) {
+                    instrument_effect_remove();
+                    instrument_editor_effects_y++;
+                    if(instrument_editor_effects_y >= visual_instrument_effects) {
+                        instrument_editor_effects_y = 0;
+                    }
+                }
+            }
+            else if(pattern_editor) {}
+            else if(editing && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                int x_count = visual_cursor_x%5;
+                
+                if(selection_enabled) {
+                    copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, false);
+                } else {
+                    if(x_count == 0 || x_count == 1) {
+                        cSynthRemoveTrackNode(synth, current_track, synth->track_cursor_x, synth->track_cursor_y);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, true, false, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                    } else if(x_count == 2) {
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                    } else if(x_count == 3) {
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                    } else if(x_count == 4) {
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
+                    }
+                    
+                    if(follow) {
+                        if(playing) {}
+                        else {
+                            set_visual_cursor(0, 1, true);
+                        }
+                    } else {
+                        set_visual_cursor(0, 1, true);
+                    }
+                }
+            }
+        }
+        if(input->key_return) {
+            
+            if(tempo_editor) {
+                if(modifier) {
+                    if (playing) {
+                        synth->pending_tempo_column = tempo_selection_x;
+                    } else {
+                        synth->current_tempo_column = tempo_selection_x;
+                    }
+                } else {
+                    //tempo_editor = false;
+                }
+            } else if(visualiser) {
+                visualiser = false;
+            } else if(wavetable_editor) {
+                
+            } else if(instrument_editor) {
+                instrument_editor = false;
+            } else {
+                if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
+                    
+                    if(pattern_cursor_y == 17 || pattern_cursor_y == 18 || pattern_cursor_y == 19) {
+                        
+                        if(pattern_cursor_y < 19) {
+                            int ins_nr = pattern_cursor_x;
+                            if(pattern_cursor_y == 18) {
+                                ins_nr += 6;
+                            }
+                            selected_instrument_id = ins_nr;
+                            if(instrument_editor) {
+                                instrument_editor = false;
+                            } else {
+                                instrument_editor = true;
+                            }
+                        } else if(pattern_cursor_y == 19 && pattern_cursor_x < 4) {
+                            int ins_nr = pattern_cursor_x;
+                            ins_nr += 12;
+                            selected_instrument_id = ins_nr;
+                            if(instrument_editor) {
+                                instrument_editor = false;
+                            } else {
+                                instrument_editor = true;
+                            }
+                        }
+                    } else if(pattern_cursor_y == 20 && pattern_cursor_x == 0) {
+                        wavetable_editor = true;
+                        return;
+                    } else if(pattern_cursor_y == 21 && pattern_cursor_x == 2) {
+                        custom_table = true;
+                    } else if(pattern_cursor_y == 20 && pattern_cursor_x == 4) {
+                        tempo_editor = true;
+                    } else if(pattern_cursor_y == 20 && pattern_cursor_x == 5) {
+                        visualiser = true;
+                    } else if(pattern_cursor_y == 21 && pattern_cursor_x == 5) {
+                        credits = true;
+                    } else if(pattern_cursor_y == 21 && pattern_cursor_x == 1) {
+                        help = true;
+                    }
+                } else {
+                    toggle_editing();
+                }
+            }
+        }
+        if(input->key_lshift) {
+            if(instrument_editor) {
+                if(instrument_editor_effects) {
+                    instrument_editor_effects = false;
+                } else {
+                    instrument_editor_effects = true;
+                }
+            } else {
+                shift_down = true;
+            }
+        }
     }
     
     if(shift_down && editing) {
@@ -2307,7 +2300,7 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
         if(cursor_y > 0) {
             move_cursor_down = true;
         }
-    } else if(input->key_return) {
+    } else if(input->key_x) {
         if (!modifier) {
             if(cursor_y > 0) {
                 if(synth->tempo_map[cursor_x][cursor_y]->active) {
@@ -2436,7 +2429,7 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
         if(cursor_y > 0) {
             move_cursor_down = true;
         }
-    } else if(input->key_return) {
+    } else if(input->key_x) {
         if(cursor_y > 0 && cursor_y != 2) {
             if(synth->wavetable_map[cursor_x][cursor_y]->active) {
                 synth->wavetable_map[cursor_x][cursor_y]->active = false;
@@ -2610,46 +2603,33 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
     
     bool zero = false;
     int number = 0;
-    switch(keysym->sym) {
-        case SDLK_BACKSPACE:
-        case SDLK_DELETE:
-            zero = true;
-            break;
-        case SDLK_0:
-            number = 0;
-            break;
-        case SDLK_1:
-            number = 1;
-            break;
-        case SDLK_2:
-            number = 2;
-            break;
-        case SDLK_3:
-            number = 3;
-            break;
-        case SDLK_4:
-            number = 4;
-            break;
-        case SDLK_5:
-            number = 5;
-            break;
-        case SDLK_6:
-            number = 6;
-            break;
-        case SDLK_7:
-            number = 7;
-            break;
-        case SDLK_8:
-            number = 8;
-            break;
-        case SDLK_9:
-            number = 9;
-            break;
-        default:
-            return;
-            break;
+    
+    if(input->key_backspace || input->key_delete) {
+        zero = true;
+    } else if(input->key_0) {
+        number = 0;
+    } else if(input->key_1) {
+        number = 1;
+    } else if(input->key_2) {
+        number = 2;
+    } else if(input->key_3) {
+        number = 3;
+    } else if(input->key_4) {
+        number = 4;
+    } else if(input->key_5) {
+        number = 5;
+    } else if(input->key_6) {
+        number = 6;
+    } else if(input->key_7) {
+        number = 7;
+    } else if(input->key_8) {
+        number = 8;
+    } else if(input->key_9) {
+        number = 9;
+    } else {
+        return;
     }
-
+    
     
     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
         if(zero) {
@@ -2745,116 +2725,78 @@ void handle_instrument_keys(SDL_Keysym* keysym) {
     
     int cursor_y = visual_cursor_y;
     
-    switch( keysym->sym ) {
-        case SDLK_0:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
-            break;
-        case SDLK_1:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
-            break;
-        case SDLK_2:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
-            break;
-        case SDLK_3:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
-            break;
-        case SDLK_4:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
-            break;
-        case SDLK_5:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
-            break;
-        case SDLK_6:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
-            break;
-        case SDLK_7:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
-            break;
-        case SDLK_8:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
-            break;
-        case SDLK_9:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
-            break;
-        case SDLK_a:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
-            break;
-        case SDLK_b:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
-            break;
-        case SDLK_c:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
-            break;
-        case SDLK_d:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
-            break;
-        case SDLK_e:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
-            break;
-        case SDLK_f:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
-            break;
-        default:
-            break;
+    if(input->key_0) {
+       add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
+    } else if(input->key_1) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
+    } else if(input->key_2) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
+    } else if(input->key_3) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
+    } else if(input->key_4) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
+    } else if(input->key_5) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
+    } else if(input->key_6) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
+    } else if(input->key_7) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
+    } else if(input->key_8) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
+    } else if(input->key_9) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
+    } else if(input->key_a) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
+    } else if(input->key_b) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
+    } else if(input->key_c) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
+    } else if(input->key_d) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
+    } else if(input->key_e) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
+    } else if(input->key_f) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
     }
 }
 
+// TODO this is identical to handle_instrument_keys, could just use one.
 static void handle_effect_keys(SDL_Keysym* keysym) {
     
-    //int cursor_y = synth->track_cursor_y;
     int cursor_y = visual_cursor_y;
     
-    switch( keysym->sym ) {
-        case SDLK_a:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
-            break;
-        case SDLK_b:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
-            break;
-        case SDLK_c:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
-            break;
-        case SDLK_d:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
-            break;
-        case SDLK_e:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
-            break;
-        case SDLK_f:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
-            break;
-        case SDLK_0:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
-            break;
-        case SDLK_1:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
-            break;
-        case SDLK_2:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
-            break;
-        case SDLK_3:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
-            break;
-        case SDLK_4:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
-            break;
-        case SDLK_5:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
-            break;
-        case SDLK_6:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
-            break;
-        case SDLK_7:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
-            break;
-        case SDLK_8:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
-            break;
-        case SDLK_9:
-            add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
-            break;
-        default:
-            break;
+    if(input->key_0) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
+    } else if(input->key_1) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
+    } else if(input->key_2) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
+    } else if(input->key_3) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
+    } else if(input->key_4) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
+    } else if(input->key_5) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
+    } else if(input->key_6) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
+    } else if(input->key_7) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
+    } else if(input->key_8) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
+    } else if(input->key_9) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
+    } else if(input->key_a) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
+    } else if(input->key_b) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
+    } else if(input->key_c) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
+    } else if(input->key_d) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
+    } else if(input->key_e) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
+    } else if(input->key_f) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
     }
 }
 
@@ -2895,62 +2837,42 @@ static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
     int instrument = selected_instrument_id;
     char value = -1;
     
-    switch(keysym->sym) {
-        case SDLK_a:
-            value = 10;
-            break;
-        case SDLK_b:
-            value = 11;
-            break;
-        case SDLK_c:
-            value = 12;
-            break;
-        case SDLK_d:
-            value = 13;
-            break;
-        case SDLK_e:
-            value = 14;
-            break;
-        case SDLK_f:
-            value = 15;
-            break;
-        case SDLK_0:
-            value = 0;
-            break;
-        case SDLK_1:
-            value = 1;
-            break;
-        case SDLK_2:
-            value = 2;
-            break;
-        case SDLK_3:
-            value = 3;
-            break;
-        case SDLK_4:
-            value = 4;
-            break;
-        case SDLK_5:
-            value = 5;
-            break;
-        case SDLK_6:
-            value = 6;
-            break;
-        case SDLK_7:
-            value = 7;
-            break;
-        case SDLK_8:
-            value = 8;
-            break;
-        case SDLK_9:
-            value = 9;
-            break;
-        default:
-            break;
-            
+    if(input->key_0) {
+        value = 0;
+    } else if(input->key_1) {
+        value = 1;
+    } else if(input->key_2) {
+        value = 2;
+    } else if(input->key_3) {
+        value = 3;
+    } else if(input->key_4) {
+        value = 4;
+    } else if(input->key_5) {
+        value = 5;
+    } else if(input->key_6) {
+        value = 6;
+    } else if(input->key_7) {
+        value = 7;
+    } else if(input->key_8) {
+        value = 8;
+    } else if(input->key_9) {
+        value = 9;
+    } else if(input->key_a) {
+        value = 10;
+    } else if(input->key_b) {
+        value = 11;
+    } else if(input->key_c) {
+        value = 12;
+    } else if(input->key_d) {
+        value = 13;
+    } else if(input->key_e) {
+        value = 14;
+    } else if(input->key_f) {
+        value = 15;
     }
-    
+
     //printf("value:%d ins:%d", value, instrument);
-    
+
     if(value > -1) {
         struct CTrackNode *node = synth->instrument_effects[instrument][instrument_editor_effects_y];
         if(node == NULL) {
@@ -2993,49 +2915,6 @@ static void check_sdl_events(SDL_Event event) {
             case SDL_KEYUP:
                 handle_key_up(&event.key.keysym);
                 break;
-                /*
-            case SDL_MOUSEMOTION:
-                convert_input(event.motion.x, event.motion.y);
-                if(input->mouse1 == 1) {
-                    input->touches[0]->x = event.motion.x/4;
-                    input->touches[0]->y = event.motion.y/4;
-                }
-                if(input->mouse2 == 1) {
-                    input->touches[1]->x = event.motion.x/4;
-                    input->touches[1]->y = event.motion.y/4;
-                }
-                break;
-            case SDL_MOUSEBUTTONDOWN:
-                if(event.button.button == SDL_BUTTON_LEFT) {
-                    input->mouse1 = true;
-                    input->touches[0]->active = true;
-                    input->touches[0]->x = event.motion.x/4;
-                    input->touches[0]->y = event.motion.y/4;
-                }
-                if(event.button.button == SDL_BUTTON_RIGHT) {
-                    input->mouse2 = true;
-                    input->touches[1]->active = true;
-                    input->touches[1]->x = event.motion.x;
-                    input->touches[1]->y = event.motion.y;
-                }
-                break;
-            case SDL_MOUSEBUTTONUP:
-                if(event.button.button == SDL_BUTTON_LEFT) {
-                    input->mouse1 = 0;
-                    input->touches[0]->active = false;
-                    input->ended_touches[0]->active = true;
-                    input->ended_touches[0]->x = event.motion.x;
-                    input->ended_touches[0]->y = event.motion.y;
-                }
-                if(event.button.button == SDL_BUTTON_RIGHT) {
-                    input->mouse2 = 0;
-                    input->touches[1]->active = false;
-                    input->ended_touches[1]->active = true;
-                    input->ended_touches[1]->x = event.motion.x;
-                    input->ended_touches[1]->y = event.motion.y;
-                }
-            break;
-                 */
         }
     }
 }
