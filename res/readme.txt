@@ -29,18 +29,18 @@ Edit the json value for "working_dir_path" to an existing folder in you Document
 
 track view
 ----------------
-- enter: toggle editing on/off.
+- return: toggle editing on/off.
 - space: play/stop.
 - arrow keys: move cursor.
 - tab: go to pattern view.
 - modifier+left/right: change octave up/down.
 - modifier+up/down: move notes below cursor.
 - shift+arrow keys: make selection.
-- modifier+c/v: copy paste note (or selection).
+- modifier+c/v/x: copy paste or cut note (or selection).
 - character keys: play notes or edit effects.
 - modifier+f: toggle play cursor follow.
 - home/end: go to top / bottom.
-- plus/minus: transpose halvnote in selection.
+- plus/minus: transpose halfnote in selection.
 - modifier+plus/minus: transpose octave in selection.
 track format explanation:
 a = note, b = instrument number, ccc = effects. 6 supported channels.
@@ -49,23 +49,33 @@ a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
 pattern view
 ----------------
 - arrow keys: move around grid.
-- plus/minus: cycle waveform, pattern numbers, bpm, swing, active etc.
-- spacebar: go to instrument view (when gridcursor is at Ins 0-F)
+- plus/minus: cycle waveform, pattern numbers, active rows etc.
+- return: go to instrument view (when gridcursor is at Ins 0-F)
 - tab: go to track view.
-- e: jump to trackview with current position.
+- e: jump to trackview with current row position.
 - m: mute track (or channel if cursor is at the top)
-- a: activate/inactivate track.
+- x: activate/inactivate track.
 - s: solo track (or channel if cursor is at the top)
-- modifier+up/down: cycle tracks (0-63).
+- modifier+up/down: paginate tracks (0-63).
 - modifier+c/v: copy paste track data.
-- home/end: go to top / bottom.
+- home/end: set cursor to top / bottom.
+
+amp - master amplitude, used both for previewing and exporting.
+rows - number of active rows in patterns.
+arp - general arpeggio speed.
+preview - if notes are audiable when editing.
+tempo - open tempo editor.
+visual - visualiser.
+credits - show credits.
+wavetable - connect a channel to lane 0-5 to combine waves together at different speeds. (see effect 9).
+cust wave - create custom waveform for the "cust" wave type.
 
 instrument view
 ----------------
 - arrow keys: move node.
-- modifier+arrow keys: move node slow.
+- modifier+arrow keys: move node slowly.
 - tab: cycle nodes.
-- spacebar: go to pattern view.
+- return/esc: go to pattern view.
 - shift: toggle editing of envelope or effects.
 - home/end: cycle instruments.
 
@@ -76,16 +86,16 @@ custom wave
 
 wavetable view
 ----------------
-- enter: activate/inactivate row. first row is always active. toggle loop active/inactive.
+- x: activate/inactivate row. first row is always active. toggle loop active/inactive.
 - plus/minus: change speed on top row.
 - 1-F: change overall speed on top row, or speed per row.
 
 tempo view
 ----------------
-- enter: activate/inactivate row. each column must have at least one active row.
+- x: activate/inactivate row. each column must have at least one active row.
 - plus/minus: change BPM on top row.
 - 1-F: change BPM on top row, or beats.
-- modifier+enter: switch tempo column. while playing, column will be armed and switched to when the current pattern has finished.
+- modifier+return: switch tempo column. while playing, column will be armed and switched to when the current pattern has finished.
 
 global controls
 ----------------
@@ -96,6 +106,7 @@ global controls
 - modifier+t: go to tempo view.
 - modifier+r: go to wavetable view.
 - modifier+j: go to custom wave view.
+- space: toggle playback.
 - escape: exit current view.
 
 save view
@@ -119,11 +130,10 @@ effects
 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
 4xx - vibrato (speed, depth).
 5xx - distortion (amp, amp).
-6xx - link distortion (channel, [unused]) premix current channel with another channel (0-6).
+6xx - FM (depth, speed).
 7xx - detune (amount, amount) 88 is middle.
-8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth. FM for other wavetypes (depth, speed).
-9xx - change waveform. (channel 0-5, wavetype 0-5: sine, saw, square, tri, noise, custom).
-    (activate wavetable lane. (channel 6-B, lane 0-5).
+8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth.
+9xx - set wavetable/waveform for current channel. param1: set wavetable lane 0-5 or param2: change waveform 0-5.
 Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
@@ -131,19 +141,25 @@ Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset 
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 
-amp - master amplitude, used both for previewing and exporting.
-active - number of active pattern rows.
-rows - number of active rows in patterns.
-arp - arpeggio speed.
-preview - toggle for if notes should be audiable when playing on the keyboard.
-tempo - open tempo editor.
-visual - visualiser.
-credits - show credits.
-wavetable - connect a channel to lane 0-6 to combine waves together at different speeds. (see effect 9).
-cust wave - create custom waveform for the "cust" wave.
 
 changelog
 ----------------
+
+build 18 - 2015-07-22 10.06
+- removed portamento reset on loopback for smoother transition when previewing. Set effect 3 without
+    params to reset it manually when needed.
+- changed activate button to x for wavetable, tempo and pattern editors.
+- fixed crash bug where sometimes noise phase would get a negative value.
+- preview in instrument view now works with the current instrument you are editing.
+- made FM more chromatic.
+- changed wavetable 900 to work like 90 to select wavetable lane 0 for current voice/channel. 9-0 to change waveform (param2).
+- lowered modifiers for effects 700 and 300.
+- removed linked dist.
+- fixed bug where exported wave header indicated wrong size.
+- fixed bug where detune would not reset.
+- fixed bug where previous arp setting would apply on loopback and initial setting would not trigger.
+- fixed bug where wavetable could not be set.
+
 build 17 - 2015-06-22 11.56
 - removed reads of uninitialized memory to potentially fix some random crashes.
 

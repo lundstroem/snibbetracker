@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker experimental";
+static char *title = "snibbetracker";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -94,8 +94,9 @@ static bool follow = false;
 static bool visualiser = false;
 static bool credits = false;
 static bool help = false;
+static bool reset_confirmation = false;
 static int help_index = 0;
-static int help_index_max = 7;
+static int help_index_max = 8;
 static bool export_project = false;
 static int octave = 2;
 static int visual_pattern_offset = 0;
@@ -253,9 +254,9 @@ unsigned int color_bg6_highlight = cengine_color_bg6_highlight;
 static void reset_project(void);
 static void init_file_settings(void);
 static bool file_exists(char *path);
-static void handle_credits_keys(SDL_Keysym* keysym);
-static void handle_help_keys(SDL_Keysym* keysym);
-static void handle_key_down_file(SDL_Keysym* keysym);
+static void handle_credits_keys();
+static void handle_help_keys();
+static void handle_key_down_file();
 static void set_list_file_name(void);
 static void exit_file_editor(void);
 static void render_files(void);
@@ -290,15 +291,17 @@ static void move_notes_down(void);
 static void change_octave(bool up);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
+static void sdl_key_set_locks(SDL_Keysym* keysym, bool down);
 static void sdl_key_mapping(SDL_Keysym* keysym, bool down);
-static void handle_note_keys(SDL_Keysym* keysym);
-static void handle_pattern_keys(SDL_Keysym* keysym);
-static void handle_instrument_keys(SDL_Keysym* keysym);
-static void handle_effect_keys(SDL_Keysym* keysym);
-static void handle_tempo_keys(SDL_Keysym* keysym);
-static void handle_wavetable_keys(SDL_Keysym* keysym);
-static void instrument_effect_remove();
-static void handle_instrument_effect_keys(SDL_Keysym* keysym);
+static void handle_reset_confirmation_keys(void);
+static void handle_note_keys(void);
+static void handle_pattern_keys(void);
+static void handle_instrument_keys(void);
+static void handle_effect_keys(void);
+static void handle_tempo_keys(void);
+static void handle_wavetable_keys(void);
+static void instrument_effect_remove(void);
+static void handle_instrument_effect_keys(void);
 static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
@@ -319,6 +322,7 @@ static void render_visualiser(void);
 static void render_help(void);
 static void render_credits(void);
 static void render_tempo_editor(double dt);
+static void render_reset_confirmation(double dt);
 static void render_wavetable_editor(double dt);
 static void render_track(double dt);
 static void setup_sdl(void);
@@ -431,7 +435,7 @@ static bool file_exists(char *path) {
 }
 
 
-static void handle_key_down_file(SDL_Keysym* keysym) {
+static void handle_key_down_file(void) {
    
     char c = 0;
     
@@ -1449,13 +1453,40 @@ SDL_Keycode last_key = 0;
 void handle_key_up(SDL_Keysym* keysym) {
     
     sdl_key_mapping(keysym, false);
+    sdl_key_set_locks(keysym, false);
     
     if(last_key == keysym->sym) {
         any_key_pressed = false;
     }
     
-    redraw_screen = true;
+    #if defined(platform_osx)
+        if(!input->key_lock_lgui) {
+            modifier = false;
+        }
+    #elif defined(platform_windows)
+        if(!input->key_lock_lctrl) {
+            modifier = false;
+        }
+    #endif
     
+    if(!input->key_lock_left) {
+        pressed_left = false;
+    }
+    if(!input->key_lock_right) {
+        pressed_right = false;
+    }
+    if(!input->key_lock_up) {
+        pressed_up = false;
+    }
+    if(!input->key_lock_down) {
+        pressed_down = false;
+    }
+    if (!input->key_lock_lshift) {
+        shift_down = false;
+    }
+    
+    redraw_screen = true;
+    /*
     switch( keysym->sym ) {
         case SDLK_LGUI:
             modifier = false;
@@ -1479,16 +1510,16 @@ void handle_key_up(SDL_Keysym* keysym) {
             shift_down = false;
             break;
         
-    }
+    }*/
     
 }
 
 void handle_key_down(SDL_Keysym* keysym) {
     
     sdl_key_mapping(keysym, true);
+    sdl_key_set_locks(keysym, true);
     
     if(last_key != keysym->sym) {
-        // TODO reset lock
         synth->preview_locked = false;
         synth->preview_started = false;
     }
@@ -1498,17 +1529,22 @@ void handle_key_down(SDL_Keysym* keysym) {
     redraw_screen = true;
     
     if(help) {
-        handle_help_keys(keysym);
+        handle_help_keys();
         return;
     }
     
     if(credits) {
-        handle_credits_keys(keysym);
+        handle_credits_keys();
         return;
     }
     
+    if(reset_confirmation) {
+        handle_reset_confirmation_keys();
+    }
+    
+    
     if(file_editor) {
-        handle_key_down_file(keysym);
+        handle_key_down_file();
         return;
     } else {
         if(input->key_i) {
@@ -1576,9 +1612,12 @@ void handle_key_down(SDL_Keysym* keysym) {
         if(input->key_n) {
             if(modifier) {
                 // new project.
+                /*
                 set_info_timer("reset project");
                 reset_project();
                 cSynthReset(synth);
+                */
+                reset_confirmation = true;
                 return;
             }
         }
@@ -2162,7 +2201,9 @@ void handle_key_down(SDL_Keysym* keysym) {
                         help = true;
                     }
                 } else {
-                    toggle_editing();
+                    if(!input->key_lock_return) {
+                        toggle_editing();
+                    }
                 }
             }
         }
@@ -2186,25 +2227,150 @@ void handle_key_down(SDL_Keysym* keysym) {
     int x_count = visual_cursor_x%5;
     
     if(tempo_editor) {
-        handle_tempo_keys(keysym);
+        handle_tempo_keys();
         return;
     } else if(wavetable_editor) {
-        handle_wavetable_keys(keysym);
+        handle_wavetable_keys();
         return;
     } else if(instrument_editor && instrument_editor_effects) {
-        handle_instrument_effect_keys(keysym);
+        handle_instrument_effect_keys();
         return;
     } else if(pattern_editor && !instrument_editor && !visualiser) {
-        handle_pattern_keys(keysym);
+        handle_pattern_keys();
         return;
     } else if(x_count == 1 && editing && !instrument_editor && !visualiser) {
-        handle_instrument_keys(keysym);
+        handle_instrument_keys();
         return;
     } else if((x_count > 1 && editing) && (x_count < 5 && editing) && !instrument_editor && !visualiser) {
-        handle_effect_keys(keysym);
+        handle_effect_keys();
         return;
     } else {
-        handle_note_keys(keysym);
+        handle_note_keys();
+    }
+}
+
+static void sdl_key_set_locks(SDL_Keysym* keysym, bool down) {
+    
+    switch(keysym->sym) {
+        case SDLK_0: input->key_pending_lock_0 = down; break;
+        case SDLK_1: input->key_pending_lock_1 = down; break;
+        case SDLK_2: input->key_pending_lock_2 = down; break;
+        case SDLK_3: input->key_pending_lock_3 = down; break;
+        case SDLK_4: input->key_pending_lock_4 = down; break;
+        case SDLK_5: input->key_pending_lock_5 = down; break;
+        case SDLK_6: input->key_pending_lock_6 = down; break;
+        case SDLK_7: input->key_pending_lock_7 = down; break;
+        case SDLK_8: input->key_pending_lock_8 = down; break;
+        case SDLK_9: input->key_pending_lock_9 = down; break;
+            
+        case SDLK_a: input->key_pending_lock_a = down; break;
+        case SDLK_b: input->key_pending_lock_b = down; break;
+        case SDLK_c: input->key_pending_lock_c = down; break;
+        case SDLK_d: input->key_pending_lock_d = down; break;
+        case SDLK_e: input->key_pending_lock_e = down; break;
+        case SDLK_f: input->key_pending_lock_f = down; break;
+        case SDLK_g: input->key_pending_lock_g = down; break;
+        case SDLK_h: input->key_pending_lock_h = down; break;
+        case SDLK_i: input->key_pending_lock_i = down; break;
+        case SDLK_j: input->key_pending_lock_j = down; break;
+        case SDLK_k: input->key_pending_lock_k = down; break;
+        case SDLK_l: input->key_pending_lock_l = down; break;
+        case SDLK_m: input->key_pending_lock_m = down; break;
+        case SDLK_n: input->key_pending_lock_n = down; break;
+        case SDLK_o: input->key_pending_lock_o = down; break;
+        case SDLK_p: input->key_pending_lock_p = down; break;
+        case SDLK_q: input->key_pending_lock_q = down; break;
+        case SDLK_r: input->key_pending_lock_r = down; break;
+        case SDLK_s: input->key_pending_lock_s = down; break;
+        case SDLK_t: input->key_pending_lock_t = down; break;
+        case SDLK_u: input->key_pending_lock_u = down; break;
+        case SDLK_v: input->key_pending_lock_v = down; break;
+        case SDLK_w: input->key_pending_lock_w = down; break;
+        case SDLK_x: input->key_pending_lock_x = down; break;
+        case SDLK_y: input->key_pending_lock_y = down; break;
+        case SDLK_z: input->key_pending_lock_z = down; break;
+            
+        case SDLK_SPACE: input->key_pending_lock_space = down; break;
+        case SDLK_PLUS: input->key_pending_lock_plus = down; break;
+        case SDLK_MINUS: input->key_pending_lock_minus = down; break;
+        case SDLK_TAB: input->key_pending_lock_tab = down; break;
+        case SDLK_LGUI: input->key_pending_lock_lgui = down; break;
+        case SDLK_LCTRL: input->key_pending_lock_lctrl = down; break;
+        case SDLK_ESCAPE: input->key_pending_lock_escape = down; break;
+        case SDLK_RETURN: input->key_pending_lock_return = down; break;
+        case SDLK_LEFT: input->key_pending_lock_left = down; break;
+        case SDLK_RIGHT: input->key_pending_lock_right = down; break;
+        case SDLK_UP: input->key_pending_lock_up = down; break;
+        case SDLK_DOWN: input->key_pending_lock_down = down; break;
+        case SDLK_LSHIFT: input->key_pending_lock_lshift = down; break;
+        case SDLK_HOME: input->key_pending_lock_home = down; break;
+        case SDLK_END: input->key_pending_lock_end = down; break;
+        case SDLK_BACKSPACE: input->key_pending_lock_backspace = down; break;
+        case SDLK_DELETE: input->key_pending_lock_delete = down; break;
+        case SDLK_COMMA: input->key_pending_lock_comma = down; break;
+        case SDLK_PERIOD: input->key_pending_lock_period = down; break;
+    }
+    
+    if(!down) {
+        switch(keysym->sym) {
+            case SDLK_0: input->key_lock_0 = down; break;
+            case SDLK_1: input->key_lock_1 = down; break;
+            case SDLK_2: input->key_lock_2 = down; break;
+            case SDLK_3: input->key_lock_3 = down; break;
+            case SDLK_4: input->key_lock_4 = down; break;
+            case SDLK_5: input->key_lock_5 = down; break;
+            case SDLK_6: input->key_lock_6 = down; break;
+            case SDLK_7: input->key_lock_7 = down; break;
+            case SDLK_8: input->key_lock_8 = down; break;
+            case SDLK_9: input->key_lock_9 = down; break;
+                
+            case SDLK_a: input->key_lock_a = down; break;
+            case SDLK_b: input->key_lock_b = down; break;
+            case SDLK_c: input->key_lock_c = down; break;
+            case SDLK_d: input->key_lock_d = down; break;
+            case SDLK_e: input->key_lock_e = down; break;
+            case SDLK_f: input->key_lock_f = down; break;
+            case SDLK_g: input->key_lock_g = down; break;
+            case SDLK_h: input->key_lock_h = down; break;
+            case SDLK_i: input->key_lock_i = down; break;
+            case SDLK_j: input->key_lock_j = down; break;
+            case SDLK_k: input->key_lock_k = down; break;
+            case SDLK_l: input->key_lock_l = down; break;
+            case SDLK_m: input->key_lock_m = down; break;
+            case SDLK_n: input->key_lock_n = down; break;
+            case SDLK_o: input->key_lock_o = down; break;
+            case SDLK_p: input->key_lock_p = down; break;
+            case SDLK_q: input->key_lock_q = down; break;
+            case SDLK_r: input->key_lock_r = down; break;
+            case SDLK_s: input->key_lock_s = down; break;
+            case SDLK_t: input->key_lock_t = down; break;
+            case SDLK_u: input->key_lock_u = down; break;
+            case SDLK_v: input->key_lock_v = down; break;
+            case SDLK_w: input->key_lock_w = down; break;
+            case SDLK_x: input->key_lock_x = down; break;
+            case SDLK_y: input->key_lock_y = down; break;
+            case SDLK_z: input->key_lock_z = down; break;
+                
+            case SDLK_SPACE: input->key_lock_space = down; break;
+            case SDLK_PLUS: input->key_lock_plus = down; break;
+            case SDLK_MINUS: input->key_lock_minus = down; break;
+            case SDLK_TAB: input->key_lock_tab = down; break;
+            case SDLK_LGUI: input->key_lock_lgui = down; break;
+            case SDLK_LCTRL: input->key_lock_lctrl = down; break;
+            case SDLK_ESCAPE: input->key_lock_escape = down; break;
+            case SDLK_RETURN: input->key_lock_return = down; break;
+            case SDLK_LEFT: input->key_lock_left = down; break;
+            case SDLK_RIGHT: input->key_lock_right = down; break;
+            case SDLK_UP: input->key_lock_up = down; break;
+            case SDLK_DOWN: input->key_lock_down = down; break;
+            case SDLK_LSHIFT: input->key_lock_lshift = down; break;
+            case SDLK_HOME: input->key_lock_home = down; break;
+            case SDLK_END: input->key_lock_end = down; break;
+            case SDLK_BACKSPACE: input->key_lock_backspace = down; break;
+            case SDLK_DELETE: input->key_lock_delete = down; break;
+            case SDLK_COMMA: input->key_lock_comma = down; break;
+            case SDLK_PERIOD: input->key_lock_period = down; break;
+        }
     }
 }
 
@@ -2273,7 +2439,20 @@ static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
     }
 }
 
-static void handle_tempo_keys(SDL_Keysym* keysym) {
+static void handle_reset_confirmation_keys(void) {
+    if(input->key_return) {
+        set_info_timer("reset project");
+        reset_project();
+        cSynthReset(synth);
+        reset_confirmation = false;
+        input->key_lock_return = true;
+    } else {
+        // reset cancelled.
+        reset_confirmation = false;
+    }
+}
+
+static void handle_tempo_keys(void) {
     
     bool zero = false;
     bool move_cursor_down = false;
@@ -2394,7 +2573,7 @@ static void handle_tempo_keys(SDL_Keysym* keysym) {
     }
 }
 
-static void handle_wavetable_keys(SDL_Keysym* keysym) {
+static void handle_wavetable_keys(void) {
     
     bool zero = false;
     bool move_cursor_down = false;
@@ -2527,7 +2706,7 @@ static void handle_wavetable_keys(SDL_Keysym* keysym) {
 }
 
 
-static void handle_note_keys(SDL_Keysym* keysym) {
+static void handle_note_keys(void) {
     
     //int cursor_y = synth->track_cursor_y;
     int cursor_y = visual_cursor_y;
@@ -2599,7 +2778,7 @@ static void handle_note_keys(SDL_Keysym* keysym) {
     }
 }
 
-static void handle_pattern_keys(SDL_Keysym* keysym) {
+static void handle_pattern_keys(void) {
     
     bool zero = false;
     int number = 0;
@@ -2721,7 +2900,7 @@ static void handle_pattern_keys(SDL_Keysym* keysym) {
     }
 }
 
-void handle_instrument_keys(SDL_Keysym* keysym) {
+void handle_instrument_keys(void) {
     
     int cursor_y = visual_cursor_y;
     
@@ -2761,7 +2940,7 @@ void handle_instrument_keys(SDL_Keysym* keysym) {
 }
 
 // TODO this is identical to handle_instrument_keys, could just use one.
-static void handle_effect_keys(SDL_Keysym* keysym) {
+static void handle_effect_keys(void) {
     
     int cursor_y = visual_cursor_y;
     
@@ -2832,7 +3011,7 @@ static void instrument_effect_remove() {
     }
 }
 
-static void handle_instrument_effect_keys(SDL_Keysym* keysym) {
+static void handle_instrument_effect_keys(void) {
     
     int instrument = selected_instrument_id;
     char value = -1;
@@ -3777,6 +3956,16 @@ static void render_tempo_editor(double dt) {
     }
 }
 
+static void render_reset_confirmation(double dt) {
+    
+    for(int x = 0; x < s_width; x++) {
+        for(int y = 0; y < s_height; y++) {
+            raster2d[x][y] = color_bg;
+        }
+    }
+    cEngineRenderLabelWithParams(raster2d, "Reset project? Press [RETURN] to reset or [ESCAPE].", 2, 3, color_text, -1);
+}
+
 static void render_wavetable_editor(double dt) {
     
     int inset_x = 5;
@@ -3863,6 +4052,9 @@ static void render_track(double dt) {
         return;
     } else if(credits) {
         render_credits();
+        return;
+    } else if(reset_confirmation) {
+        render_reset_confirmation(dt);
         return;
     } else if(visualiser && !instrument_editor && !file_editor) {
         render_visualiser();
@@ -4337,7 +4529,7 @@ static void main_loop(void) {
     }
     
     check_sdl_events(event);
-    
+    cInputApplyPendingLocks(input);
     
     if(instrument_editor) {
         synth->needs_redraw = true;
@@ -4466,7 +4658,6 @@ static void load_config(void) {
     char *b = load_file("config.txt");
     
     if(b != NULL) {
-        success = false;
         success = parse_config(b);
         cAllocatorFree(b);
     }
@@ -4990,7 +5181,7 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
 }
 
 
-static void handle_credits_keys(SDL_Keysym* keysym) {
+static void handle_credits_keys(void) {
     
     credits_left = false;
     credits_right = false;
@@ -5017,7 +5208,7 @@ static void handle_credits_keys(SDL_Keysym* keysym) {
     }
 }
 
-static void handle_help_keys(SDL_Keysym* keysym) {
+static void handle_help_keys() {
     
     if(input->key_return || input->key_escape) {
         help = false;
@@ -5069,7 +5260,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- enter: toggle editing on/off.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- return: toggle editing on/off.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- space: play/stop.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5082,7 +5273,7 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: move notes below cursor.", inset_x+x+offset_x, y, color, bg_color);
             y++;
-            cEngineRenderLabelWithParams(raster2d, "- ctrl+c/v: copy paste note (or selection).", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+c/v/x: copy paste or cut note (or selection).", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -5093,7 +5284,7 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+up/down: move notes below cursor.", inset_x+x+offset_x, y, color, bg_color);
             y++;
-            cEngineRenderLabelWithParams(raster2d, "- cmd+c/v: copy paste note (or selection).", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- cmd+c/v/x: copy paste or cut note (or selection).", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -5128,7 +5319,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "- plus/minus: cycle waveform, pattern numbers, rows etc.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- enter: go to instrument view (when gridcursor is at Ins 0-F)", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- return: go to instrument view (when cursor is at Ins 0-F)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- tab: go to track view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5136,12 +5327,12 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "- m: mute track (or channel if cursor is at the top)", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- a: activate/inactivate track.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- x: activate/inactivate track.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- s: solo track (or channel if cursor is at the top)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         #if defined(platform_windows)
-            cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: cycle tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: paginate tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+c/v: copy paste track data.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -5151,7 +5342,7 @@ static void render_help(void) {
             cEngineRenderLabelWithParams(raster2d, "- cmd+c/v: copy paste track data.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #endif
-        cEngineRenderLabelWithParams(raster2d, "- home/end: go to top / bottom.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- home/end: set cursor to top / bottom.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "amp - master amplitude.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5187,15 +5378,15 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "- arrow keys: move node.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         #if defined(platform_windows)
-            cEngineRenderLabelWithParams(raster2d, "- ctrl+arrow keys: move node slow.", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+arrow keys: move node slowly.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #elif defined(platform_osx)
-            cEngineRenderLabelWithParams(raster2d, "- cmd+arrow keys: move node slow.", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- cmd+arrow keys: move node slowly.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #endif
         cEngineRenderLabelWithParams(raster2d, "- tab: cycle nodes.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- spacebar: go to pattern view.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- return: go to pattern view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- shift: toggle editing of envelope or effects.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5205,12 +5396,47 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "3 / 7", 1, 22, color, bg_color);
     }
     
+    
+    /*
+     custom wave
+     ----------------
+     - arrow keys: move node.
+     - tab: cycle nodes.
+     
+     wavetable view
+     ----------------
+     - x: activate/inactivate row. first row is always active. toggle loop active/inactive.
+     - plus/minus: change speed on top row.
+     - 1-F: change overall speed on top row, or speed per row.
+     */
     if(page == 3) {
+        cEngineRenderLabelWithParams(raster2d, "custom wave", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- arrow keys: move node.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- tab: cycle nodes.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "wavetable view", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- x: activate/inactivate row. first row is always", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "  active. toggle loop active/inactive.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "- 1-F: change overall speed on top row, or speed per row.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+    }
+    
+    if(page == 4) {
         cEngineRenderLabelWithParams(raster2d, "tempo view", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- enter: activate/inactivate row. each column", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- x: activate/inactivate row. each column", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "  must have at least one active row.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5233,7 +5459,7 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "4 / 7", 1, 22, color, bg_color);
     }
     
-    if(page == 4) {
+    if(page == 5) {
         
         cEngineRenderLabelWithParams(raster2d, "global controls", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5287,7 +5513,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "- backspace: remove character.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- enter: save/load file.", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- return: save/load file.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5295,7 +5521,7 @@ static void render_help(void) {
         
     }
     
-    if(page == 5) {
+    if(page == 6) {
         cEngineRenderLabelWithParams(raster2d, "effects 1(2)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
@@ -5320,9 +5546,7 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "5xx - distortion (amp, amp).", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "6xx - link distortion (channel, [unused]) premix current", inset_x+x+offset_x, y, color, bg_color);
-        y++;
-        cEngineRenderLabelWithParams(raster2d, "      channel with another channel (0-6).", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "6xx - FM (depth, speed).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "7xx - detune (amount, amount) 88 is middle.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5330,25 +5554,22 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "      speed) on squarewave. if param2 is present, param1", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "      will be used for osc depth. FM for other wavetypes", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "      will be used for osc depth.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "      (depth, speed).", inset_x+x+offset_x, y, color, bg_color);
-        y++;
-        
         cEngineRenderLabelWithParams(raster2d, "6 / 7", 1, 22, color, bg_color);
         
     }
     
-    if(page == 6) {
+    if(page == 7) {
         cEngineRenderLabelWithParams(raster2d, "effects 2(2)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "----------------", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "9xx - change waveform. (channel 0-5, wavetype 0-5: sine, saw,", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "9xx - set wavetable/waveform for current channel.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "      square, tri, noise, custom).", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "      param1: set wavetable lane 0-5 or param2:", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "      activate wavetable lane. (channel 6-B, lane 0-5).", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "      change waveform 0-5.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "Axx - (left amplitud, right amplitud) can be used for", inset_x+x+offset_x, y, color, bg_color);
         y++;
