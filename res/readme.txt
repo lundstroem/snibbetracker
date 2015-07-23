@@ -145,12 +145,12 @@ Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be co
 
 changelog
 ----------------
-build 18 - 2015-07-23 12.06
+build 18 - 2015-07-23 13.26
 - changed activate button to x for wavetable, tempo and pattern editors.
 - changed wavetable 900 to work like 90 to select wavetable lane 0 for current voice/channel. 9-0 to change waveform (param2).
 - removed portamento reset on loopback for smoother transition when previewing. Set effect 3 without
     params to reset it manually when needed.
-- made FM more chromatic and using now using effects 600.
+- made FM more chromatic and using now using effect 600.
 - removed linked dist.
 - fixed crash bug where sometimes noise phase would get a negative value.
 - preview in instrument view now works with the current instrument you are editing.
@@ -173,7 +173,7 @@ build 16 - 2015-06-22 09.28
 build 15 - 2015-06-11 14.58
 - tempo editor.
 - improved preview: amplitude ramp, sustain (with third envelope node > 0), instrument effects added to preview.
-preview is disabled when playback is active.
+    preview is disabled when playback is active.
 - shortcuts: ctrl (or cmd on OSX) + i for instruments, + t for tempo + p for visualiser. Exit views with escape.
 - editable color scheme.
 - delay effect: 2xx (speed, feedback).
