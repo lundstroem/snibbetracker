@@ -106,6 +106,7 @@ global controls
 - modifier+t: go to tempo view.
 - modifier+r: go to wavetable view.
 - modifier+j: go to custom wave view.
+- modifier+n: reset project.
 - space: toggle playback.
 - escape: exit current view.
 
@@ -144,17 +145,17 @@ Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be co
 
 changelog
 ----------------
-
-build 18 - 2015-07-22 10.06
+build 18 - 2015-07-23 12.06
+- changed activate button to x for wavetable, tempo and pattern editors.
+- changed wavetable 900 to work like 90 to select wavetable lane 0 for current voice/channel. 9-0 to change waveform (param2).
 - removed portamento reset on loopback for smoother transition when previewing. Set effect 3 without
     params to reset it manually when needed.
-- changed activate button to x for wavetable, tempo and pattern editors.
+- made FM more chromatic and using now using effects 600.
+- removed linked dist.
 - fixed crash bug where sometimes noise phase would get a negative value.
 - preview in instrument view now works with the current instrument you are editing.
-- made FM more chromatic.
-- changed wavetable 900 to work like 90 to select wavetable lane 0 for current voice/channel. 9-0 to change waveform (param2).
 - lowered modifiers for effects 700 and 300.
-- removed linked dist.
+- refactored input.
 - fixed bug where exported wave header indicated wrong size.
 - fixed bug where detune would not reset.
 - fixed bug where previous arp setting would apply on loopback and initial setting would not trigger.

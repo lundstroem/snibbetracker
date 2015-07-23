@@ -63,7 +63,7 @@ static const bool errorlog = true;
 static const int passive_render_delay_ms = 16;
 static const int active_render_delay_ms = 16;
 static const bool lock_device = false;
-static bool log_file_enabled = true;
+static bool log_file_enabled = false;
 static bool run_with_sdl = true;
 static bool redraw_screen = true;
 static bool passive_rendering = true;
@@ -89,7 +89,6 @@ static bool editing = false;
 static bool modifier = false;
 static bool shift_down = false;
 static bool selection_enabled = false;
-//static bool selection_set = false;
 static bool follow = false;
 static bool visualiser = false;
 static bool credits = false;
@@ -144,7 +143,29 @@ static struct CTimer *info_timer = NULL;
 static char *info_string = NULL;
 static struct FileSettings *file_settings = NULL;
 static int envelope_node_camera_offset = 0;
+static int fullscreen = 0;
+static int fps_print_interval = 0;
+static int print_interval_limit = 100;
+static int old_time = 0;
+static int last_dt = 16;
+static SDL_Keycode last_key = 0;
 
+// 256, 512, 1024, 2048, 4096, 8192, 16384, 32768
+Uint16 bufferSize = 8192; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
+Uint32 samplesPerFrame = 0;
+Uint32 msPerFrame = 0;
+double practicallySilent = 0.001;
+SDL_atomic_t audioCallbackLeftOff;
+Sint32 audioMainLeftOff = 0;
+Sint8 audioMainAccumulator = 0;
+SDL_AudioDeviceID AudioDevice;
+SDL_AudioSpec audioSpec;
+SDL_Event event;
+SDL_bool running = SDL_TRUE;
+SDL_Window *window = NULL;
+SDL_Texture *texture = NULL;
+SDL_Renderer *renderer = NULL;
+SDL_GLContext context;
 
 // credits
 static float c_hue_a = 0;
@@ -177,14 +198,9 @@ static void resetColorValues();
 static void TtransformHSV(float H, float S, float V);
 static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation);
 
-
-
 #define MAX_TOUCHES 8
 #define sheet_width 1024
 #define sheet_height 1024
-int fullscreen = 0;
-
-
 
 #define cengine_color_dull_red 0xFF771111
 #define cengine_color_red 0xFFFF0000
@@ -211,8 +227,6 @@ int fullscreen = 0;
 #define cengine_color_bg4_highlight 0xFF443344
 #define cengine_color_bg5_highlight 0xFF444433
 #define cengine_color_bg6_highlight 0xFF334444
-
-
 
 unsigned int color_info_text_bg = cengine_color_black;
 unsigned int color_file_name_text = cengine_color_red;
@@ -296,8 +310,8 @@ static void sdl_key_mapping(SDL_Keysym* keysym, bool down);
 static void handle_reset_confirmation_keys(void);
 static void handle_note_keys(void);
 static void handle_pattern_keys(void);
-static void handle_instrument_keys(void);
-static void handle_effect_keys(void);
+static void handle_param_value(void);
+//static void handle_effect_keys(void);
 static void handle_tempo_keys(void);
 static void handle_wavetable_keys(void);
 static void instrument_effect_remove(void);
@@ -311,8 +325,6 @@ static void change_waveform(int plus);
 static void change_param(bool plus);
 static void draw_line(int x0, int y0, int x1, int y1);
 static void render_custom_table(double dt);
-//static void write_custom_table_from_nodes(void);
-//static double get_amp_for_custom_table(struct CInstrument *i, int base_node, double cursor);
 static void render_instrument_editor(double dt);
 static void adsr_invert_y_render(double x, double y, int color);
 static void render_pattern_mapping(void);
@@ -346,7 +358,6 @@ static void change_param(bool plus);
 static void export_wav(char *filename);
 static void write_little_endian(unsigned int word, int num_bytes, FILE *wav_file);
 static void write_wav(char *filename, unsigned long num_samples, short int *data, int s_rate);
-
 
 static void reset_project(void) {
     
@@ -433,7 +444,6 @@ static bool file_exists(char *path) {
     }
     return exists;
 }
-
 
 static void handle_key_down_file(void) {
    
@@ -691,13 +701,6 @@ static void render_files(void) {
     if(file_settings->file_dirs[0] == NULL && conf_default_dir != NULL) {
         getDirectoryList(conf_default_dir);
     }
-	
-	/*
-	else  {
-		#if defined(platform_windows)
-			getDirectoryListWin("", file_settings);
-		#endif
-    }*/
 	
     int offset_y = 0;
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
@@ -989,7 +992,6 @@ static void init_data(void) {
         }
     }
     
-    
     info_timer = cTimerNew(3000);
     cTimerReset(info_timer);
 }
@@ -1118,6 +1120,7 @@ static void copy_pattern(int cursor_x, int cursor_y) {
     }
     
 }
+
 static void paste_pattern(int cursor_x, int cursor_y) {
     
     int target_x = cursor_x;
@@ -1125,19 +1128,16 @@ static void paste_pattern(int cursor_x, int cursor_y) {
     if(target_y > 0 && target_y < 17) {
         target_y = target_y-1+visual_pattern_offset;
         cSynthPasteNotesFromPattern(synth, last_copied_pattern_x, last_copied_pattern_y, target_x, target_y);
-        if(debug_log) { printf("paste pattern to x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y); }
+        if(debuglog) { printf("paste pattern to x:%d y:%d", last_copied_pattern_x, last_copied_pattern_y); }
     }
 }
 
 static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     
-    //printf("track node value:%d\n", value);
-    
     int x_count = visual_cursor_x%5;
     int instrument = synth->current_instrument;
     
     if(instrument_editor || pattern_editor || visualiser || !editing) {
-        // only allow preview of notes in editor
         if(instrument_editor) {
             instrument = selected_instrument_id;
         }
@@ -1197,10 +1197,6 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
 
 // only move across active tracks
 static void set_visual_cursor(int diff_x, int diff_y, bool user) {
-    
-    if(diff_x == 0 && diff_y == 1) {
-        //printf("moving down true\n");
-    }
     
     if(shift_down) {
         int node_x = (int)floor(visual_cursor_x/5);
@@ -1396,6 +1392,7 @@ static void toggle_playback(void) {
         // note off to all voices when stopping playing.
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
             synth->voices[v_i]->note_on = false;
+            // TODO: has commented lines below any effect?
             //cSynthResetPortamento(synth->voices[v_i]);
             //cSynthResetAllEffects(synth->voices[v_i]);
         }
@@ -1447,9 +1444,6 @@ static void change_octave(bool up) {
     }
 }
 
-
-SDL_Keycode last_key = 0;
-
 void handle_key_up(SDL_Keysym* keysym) {
     
     sdl_key_mapping(keysym, false);
@@ -1486,7 +1480,7 @@ void handle_key_up(SDL_Keysym* keysym) {
     }
     
     redraw_screen = true;
-    /*
+    /* keep this a while longer until it's confirmed it works.
     switch( keysym->sym ) {
         case SDLK_LGUI:
             modifier = false;
@@ -1541,7 +1535,6 @@ void handle_key_down(SDL_Keysym* keysym) {
     if(reset_confirmation) {
         handle_reset_confirmation_keys();
     }
-    
     
     if(file_editor) {
         handle_key_down_file();
@@ -1611,12 +1604,6 @@ void handle_key_down(SDL_Keysym* keysym) {
         }
         if(input->key_n) {
             if(modifier) {
-                // new project.
-                /*
-                set_info_timer("reset project");
-                reset_project();
-                cSynthReset(synth);
-                */
                 reset_confirmation = true;
                 return;
             }
@@ -1630,7 +1617,6 @@ void handle_key_down(SDL_Keysym* keysym) {
                     ins_id = synth->max_instruments-1;
                 }
                 selected_instrument_id = ins_id;
-                //printf("selected ins:%d", ins_id);
             } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                 pattern_cursor_y = 0;
             } else {
@@ -1646,7 +1632,6 @@ void handle_key_down(SDL_Keysym* keysym) {
                     ins_id = 0;
                 }
                 selected_instrument_id = ins_id;
-                //printf("selected ins:%d", ins_id);
             } else if(pattern_editor && !instrument_editor && !visualiser && !tempo_editor && !wavetable_editor) {
                 pattern_cursor_y = synth->patterns_and_voices_height-1;
             }  else {
@@ -1736,7 +1721,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else {
                     if(editing) {
                         copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, false, true);
-                        set_info_timer("copy");
+                        set_info_timer("copy notes");
                     }
                     return;
                 }
@@ -1747,11 +1732,11 @@ void handle_key_down(SDL_Keysym* keysym) {
                 if(instrument_editor) {}
                 else if(file_editor) {}
                 else if(pattern_editor) {
-                    // TODO make copy/paste for pattern editor.
+                    // cut for pattern editor is not supported.
                 } else if(!instrument_editor && !visualiser && !tempo_editor && !wavetable_editor){
                     if(editing) {
                         copy_notes(current_track, visual_cursor_x, visual_cursor_y, selection_x, selection_y, true, true);
-                        set_info_timer("cut");
+                        set_info_timer("cut notes");
                     }
                     return;
                 }
@@ -1786,7 +1771,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                 } else {
                     if(editing) {
                         paste_notes(current_track, visual_cursor_x, visual_cursor_y);
-                        set_info_timer("paste");
+                        set_info_timer("paste notes");
                     }
                     return;
                 }
@@ -1951,12 +1936,6 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
             } else {
                 if(modifier) {
-                    /*
-                    octave--;
-                    if(octave < 0) {
-                        octave = 0;
-                    }
-                    set_info_timer_with_int("octave", octave);*/
                     change_octave(false);
                 } else if(pattern_editor) {
                     pattern_cursor_x -= 1;
@@ -1993,12 +1972,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                     }
                 }
             } else {
-                if(modifier) {/*
-                    octave++;
-                    if(octave > 7) {
-                        octave = 7;
-                    }
-                    set_info_timer_with_int("octave", octave);*/
+                if(modifier) {
                     change_octave(true);
                 } else if(pattern_editor) {
                     pattern_cursor_x += 1;
@@ -2143,7 +2117,6 @@ void handle_key_down(SDL_Keysym* keysym) {
             }
         }
         if(input->key_return) {
-            
             if(tempo_editor) {
                 if(modifier) {
                     if (playing) {
@@ -2152,7 +2125,7 @@ void handle_key_down(SDL_Keysym* keysym) {
                         synth->current_tempo_column = tempo_selection_x;
                     }
                 } else {
-                    //tempo_editor = false;
+                    
                 }
             } else if(visualiser) {
                 visualiser = false;
@@ -2239,10 +2212,10 @@ void handle_key_down(SDL_Keysym* keysym) {
         handle_pattern_keys();
         return;
     } else if(x_count == 1 && editing && !instrument_editor && !visualiser) {
-        handle_instrument_keys();
+        handle_param_value();
         return;
     } else if((x_count > 1 && editing) && (x_count < 5 && editing) && !instrument_editor && !visualiser) {
-        handle_effect_keys();
+        handle_param_value();
         return;
     } else {
         handle_note_keys();
@@ -2586,9 +2559,6 @@ static void handle_wavetable_keys(void) {
         h_switch = true;
     }
     
-    //switch(keysym->sym) {
-    //    case SDLK_PLUS:
-    
     if(input->key_plus) {
             if(cursor_y == 0 && h_switch) {
                 synth->wavetable_map[cursor_x][cursor_y]->speed++;
@@ -2708,7 +2678,6 @@ static void handle_wavetable_keys(void) {
 
 static void handle_note_keys(void) {
     
-    //int cursor_y = synth->track_cursor_y;
     int cursor_y = visual_cursor_y;
     
     if(input->key_z) {
@@ -2809,7 +2778,6 @@ static void handle_pattern_keys(void) {
         return;
     }
     
-    
     if(pattern_cursor_y > 0 && pattern_cursor_y < 17) {
         if(zero) {
             synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset] = 0;
@@ -2900,7 +2868,7 @@ static void handle_pattern_keys(void) {
     }
 }
 
-void handle_instrument_keys(void) {
+void handle_param_value(void) {
     
     int cursor_y = visual_cursor_y;
     
@@ -2938,47 +2906,6 @@ void handle_instrument_keys(void) {
         add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
     }
 }
-
-// TODO this is identical to handle_instrument_keys, could just use one.
-static void handle_effect_keys(void) {
-    
-    int cursor_y = visual_cursor_y;
-    
-    if(input->key_0) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 0);
-    } else if(input->key_1) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 1);
-    } else if(input->key_2) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 2);
-    } else if(input->key_3) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 3);
-    } else if(input->key_4) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 4);
-    } else if(input->key_5) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 5);
-    } else if(input->key_6) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 6);
-    } else if(input->key_7) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 7);
-    } else if(input->key_8) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 8);
-    } else if(input->key_9) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 9);
-    } else if(input->key_a) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 10);
-    } else if(input->key_b) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 11);
-    } else if(input->key_c) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 12);
-    } else if(input->key_d) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 13);
-    } else if(input->key_e) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
-    } else if(input->key_f) {
-        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
-    }
-}
-
 
 static void instrument_effect_remove() {
     
@@ -3050,8 +2977,6 @@ static void handle_instrument_effect_keys(void) {
         value = 15;
     }
 
-    //printf("value:%d ins:%d", value, instrument);
-
     if(value > -1) {
         struct CTrackNode *node = synth->instrument_effects[instrument][instrument_editor_effects_y];
         if(node == NULL) {
@@ -3099,22 +3024,7 @@ static void check_sdl_events(SDL_Event event) {
 }
 
 
-//const double ChromaticRatio = 1.059463094359295264562;
-const double Tao = 6.283185307179586476925;
 
-// 256, 512, 1024, 2048, 4096, 8192, 16384, 32768
-
-Uint16 bufferSize = 8192; // must be a power of two, decrease to allow for a lower syncCompensationFactor to allow for lower latency, increase to reduce risk of underrun
-Uint32 samplesPerFrame; // = sampleRate/frameRate;
-Uint32 msPerFrame; // = 1000/frameRate;
-double practicallySilent = 0.001;
-SDL_atomic_t audioCallbackLeftOff;
-Sint32 audioMainLeftOff;
-Sint8 audioMainAccumulator;
-SDL_AudioDeviceID AudioDevice;
-SDL_AudioSpec audioSpec;
-SDL_Event event;
-SDL_bool running = SDL_TRUE;
 
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     
@@ -3125,36 +3035,27 @@ static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 i
     printf("\n\n");
 }
 
-
-
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     
     memset(byteStream, 0, byteStreamLength);
-    
     if(quit || exporting) {
         return;
     }
-    
     Sint16 *s_byteStream = (Sint16 *)byteStream;
     int remain = byteStreamLength / 2;
-    
     long chunk_size = 64;
     int iterations = remain/chunk_size;
-    
     for(long i = 0; i < iterations; i++) {
         long begin = i*chunk_size;
         long end = (i*chunk_size) + chunk_size;
         cSynthRenderAudio(synth, s_byteStream, begin, end, chunk_size, playing, exporting);
     }
-    
-
     if(visualiser) {
         prepare_visualiser(s_byteStream, byteStreamLength);
     }
 }
 
 static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
-    
     
     for(int v_x = 0; v_x < s_width; v_x++) {
         for(int v_y = 0; v_y < s_height; v_y++) {
@@ -3164,9 +3065,7 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
     
     int x_counter = 0;
     for(int v_x = 0; v_x < s_width*2; v_x+=2) {
-        
         int scaled_x = v_x;
-        
         if(scaled_x < byteStreamLength-1 && x_counter < s_width) {
             Sint16 sample_left = s_byteStream[scaled_x];
             Sint16 sample_right = s_byteStream[scaled_x+1];
@@ -3175,12 +3074,9 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
             int fourth = 72;
             int visual_left = sample_left + fourth;
             int visual_right = sample_right + (fourth*3);
-            //int fourth_times_three = (fourth*3);
             int middle = s_height/2;
             visualiser2d[x_counter][middle] = 0xFFFFFFFF;
-            
             unsigned int color = color_visualiser;
-            
             if(visual_left < 0) {
                 visual_left = 0;
                 color = color_visualiser_clipping;
@@ -3189,16 +3085,6 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
                 color = color_visualiser_clipping;
             }
             visualiser2d[x_counter][visual_left] = color;
-            //color = color_left;
-            /*
-            
-            for(int v_y = visual_left; v_y < fourth; v_y++) {
-                visualiser2d[x_counter][v_y] = color;
-            }
-            for(int v_y = fourth; v_y < sample_left+fourth; v_y++) {
-                visualiser2d[x_counter][v_y] = color;
-            }*/
-            
             color = color_visualiser;
             if(visual_right < fourth*2) {
                 visual_right = fourth*2;
@@ -3208,35 +3094,9 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
                 color = color_visualiser_clipping;
             }
             visualiser2d[x_counter][visual_right] = color;
-            //color = color_right;
-            /*
-            
-            for(int v_y = visual_right; v_y < fourth_times_three; v_y++) {
-                visualiser2d[x_counter][v_y] = color;
-            }
-            for(int v_y = fourth_times_three; v_y < sample_right+fourth_times_three; v_y++) {
-                visualiser2d[x_counter][v_y] = color;
-            }*/
-            
             x_counter++;
         }
     }
-    
-    /*
-    for(int v_x = 0; v_x < s_width; v_x++) {
-        for(int v_y = 0; v_y < s_height; v_y++) {
-            float mod = 0.9f;
-            unsigned int rast = visualiser2d[v_x][v_y];
-            unsigned char blue = rast & 0xff;
-            unsigned char green = (rast >> 8) & 0xff;
-            unsigned char red = (rast >> 16) & 0xff;
-            unsigned char alpha = (rast >> 24) & 0xff;
-            red *= mod;
-            green *= mod;
-            blue *= mod;
-            visualiser2d[v_x][v_y] = (alpha << 24) | (red << 16) | (green << 8) | blue;
-        }
-    }*/
 }
 
 static void change_waveform(int plus) {
@@ -3283,7 +3143,6 @@ static void change_param(bool plus) {
     if(y == 0) {
         change_waveform(plus);
     } else if(y == 17 || y == 18) {
-        //int ins_nr = x;
         // instruments
         if(y == 18) {
             //ins_nr += 6;
@@ -3438,7 +3297,6 @@ static void render_custom_table(double dt) {
         }
     }
 
-    
     double amp_factor = 100;
     double pos_factor = 400;
     int i;
@@ -3615,17 +3473,14 @@ static void render_instrument_editor(double dt) {
             }
             
             if(t != NULL) {
-                
                 if(x == 0) {
                     sprintf(cval, "%c", t->effect);
                     cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
                 }
-                
                 if(x == 1) {
                     sprintf(cval, "%c", t->effect_param1);
                     cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
                 }
-                
                 if(x == 2) {
                     sprintf(cval, "%c", t->effect_param2);
                     cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
@@ -3638,6 +3493,7 @@ static void render_instrument_editor(double dt) {
 }
 
 static void adsr_invert_y_render(double x, double y, int color) {
+    
     int i_x = (int)x;
     int i_y = (int)y/-1+170;
     if(check_screen_bounds(i_x, i_y)) {
@@ -3735,8 +3591,6 @@ static void render_pattern_mapping(void) {
                     cEngineRenderLabelWithParams(raster2d, "preview 0", x*10+inset_x, y+inset_y, color, bg_color);
                 }
             } else if(y == 21 && x == 1) {
-                //char cval[20];
-                //sprintf(cval, "Beats %d", synth->track_highlight_interval);
                 cEngineRenderLabelWithParams(raster2d, "help", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 21 && x == 5) {
                 cEngineRenderLabelWithParams(raster2d, "credits", x*10+inset_x, y+inset_y, color, bg_color);
@@ -3879,8 +3733,6 @@ static void render_tempo_editor(double dt) {
     int inset_x = 5;
     int inset_y = 1;
 
-    /* if playing, make the column swap pending to let the current bar finish before switching. Make the pending bar blink to indicate the coming change.*/
-    
     if(synth->pending_tempo_column > -1) {
 		redraw_screen = true;
         synth->pending_tempo_blink_counter += dt;
@@ -3907,10 +3759,8 @@ static void render_tempo_editor(double dt) {
 
             int color = color_inactive_text;
             int bg_color = -1;
-            
             char cval[10];
             struct CTempoNode *t = synth->tempo_map[x][y];
-            
             
             if(synth->current_tempo_column == x) {
                 if(t->active) {
@@ -4219,7 +4069,6 @@ static void render_track(double dt) {
                 offset_x += 3;
             } else {
                 int pattern = synth->patterns[node_x][current_track];
-                
                 struct CTrackNode *t = synth->track[pattern][node_x][y];
                 if(t != NULL) {
                     if(x_count == 1) {
@@ -4270,10 +4119,7 @@ static void render_track(double dt) {
     }
 }
 
-SDL_Window *window = NULL;
-SDL_Texture *texture = NULL;
-SDL_Renderer *renderer = NULL;
-SDL_GLContext context;
+
 
 static void setup_sdl(void) {
     
@@ -4294,11 +4140,10 @@ static void setup_sdl(void) {
 		}
 	}
 	
-    //SDL_WINDOW_FULLSCREEN
     if(fullscreen) {
         window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN);
     } else {
-        window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL /*| SDL_WINDOW_FULLSCREEN*/);
+        window = SDL_CreateWindow("", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_OPENGL);
     }
     
     if(window != NULL) {
@@ -4480,11 +4325,8 @@ static void cleanup_synth(void) {
     cAllocatorCleanup();
 }
 
-int fps_print_interval = 0;
-int print_interval_limit = 100;
-int old_time = 0;
-
 static int get_delta(void) {
+    
     int currentTime = SDL_GetTicks();
     int delta = 0;
     
@@ -4509,12 +4351,6 @@ static int get_delta(void) {
     fps_print_interval++;
     
     return delta;
-}
-
-int last_dt = 16;
-
-static void redraw_screen_function(void) {
-    
 }
 
 static void main_loop(void) {
@@ -4554,12 +4390,10 @@ static void main_loop(void) {
     if(any_key_pressed && !synth->preview_locked) {
         synth->sustain_active = true;
         synth->preview_locked = true;
-        //printf("pressed\n");
     } else if(!any_key_pressed && synth->preview_locked) {
         synth->preview_locked = false;
         synth->preview_started = false;
         cSynthTurnOffSustain(synth);
-        //printf("unpressed\n");
     }
     
     update_info(last_dt);
@@ -4582,10 +4416,7 @@ static void main_loop(void) {
         }
         redraw_screen = false;
         synth->needs_redraw = false;
-        
     }
-    
-    
     
     SDL_UpdateTexture(texture, NULL, raster, s_width * sizeof (unsigned int));
     SDL_RenderClear(renderer);
@@ -4612,7 +4443,7 @@ static void main_loop(void) {
 }
 
 static void debug_log(char *str) {
-    
+    // TODO need to use write safe location before using this.
     if(log_file_enabled) {
         FILE * fp;
         fp = fopen ("log.txt", "a");
@@ -4969,6 +4800,7 @@ static void st_pause(void) {
     
 	SDL_Delay(5000);
 }
+
 static void st_log(char *message) {
     
     if(debuglog) {
@@ -5180,7 +5012,6 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
     }
 }
 
-
 static void handle_credits_keys(void) {
     
     credits_left = false;
@@ -5232,27 +5063,12 @@ static void handle_help_keys() {
 
 static void render_help(void) {
     
-    /*
-     
-     The movement should feel light fluid and responsive but still have weight.
-     Most of the weight is in attacking, getting attacked, block, parry, roll etc.
-     
-     
-     How to know which page relates to which view?
-     If switching to a page automatically because of context, it can get annoying
-     if you only want to read about effects.
-     
-     Only make scroller for now.
-     */
-    
     int x = 0;
     int offset_x = 1;
     int inset_x = 1;
     int y = 1;
     int color = color_text;
     int bg_color = -1;
-    
-    // make char* to
     int page = help_index;
     
     if(page == 0) {
@@ -5293,7 +5109,7 @@ static void render_help(void) {
         #endif
         cEngineRenderLabelWithParams(raster2d, "- plus/minus: transpose halfnote", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- shift+arrow keys: make selection.(if edit is on)", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- shift+arrow keys: make selection. (if edit is on)", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- character keys: play notes or edit effects.", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5319,17 +5135,17 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "- plus/minus: cycle waveform, pattern numbers, rows etc.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- return: go to instrument view (when cursor is at Ins 0-F)", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- return: go to instrument view (when cursor is at Ins 0-F).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- tab: go to track view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- e: jump to trackview with current position.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- m: mute track (or channel if cursor is at the top)", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- m: mute track (or channel if cursor is at the top).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "- x: activate/inactivate track.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "- s: solo track (or channel if cursor is at the top)", inset_x+x+offset_x, y, color, bg_color);
+        cEngineRenderLabelWithParams(raster2d, "- s: solo track (or channel if cursor is at the top).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         #if defined(platform_windows)
             cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: paginate tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
@@ -5358,15 +5174,6 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "cust wave - open custom wave editor.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        /*
-         Amp - master amplitude, used both for previewing and exporting. Shows red if clipping.
-         Rows - number of active rows in patterns.
-         Arp - arpeggio speed.
-         Preview - toggle for if notes should be audiable when playing on the keyboard.
-         Tempo - open tempo editor.
-         Credits - show credits.
-         */
-        
         cEngineRenderLabelWithParams(raster2d, "2 / 7", 1, 22, color, bg_color);
     }
     
@@ -5396,19 +5203,6 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "3 / 7", 1, 22, color, bg_color);
     }
     
-    
-    /*
-     custom wave
-     ----------------
-     - arrow keys: move node.
-     - tab: cycle nodes.
-     
-     wavetable view
-     ----------------
-     - x: activate/inactivate row. first row is always active. toggle loop active/inactive.
-     - plus/minus: change speed on top row.
-     - 1-F: change overall speed on top row, or speed per row.
-     */
     if(page == 3) {
         cEngineRenderLabelWithParams(raster2d, "custom wave", inset_x+x+offset_x, y, color, bg_color);
         y++;
@@ -5518,7 +5312,6 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "5 / 7", 1, 22, color, bg_color);
-        
     }
     
     if(page == 6) {
@@ -5557,7 +5350,6 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "      will be used for osc depth.", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "6 / 7", 1, 22, color, bg_color);
-        
     }
     
     if(page == 7) {
@@ -5712,24 +5504,7 @@ static void render_credits(void) {
         credits_higher_contrast = false;
         credits_scanlines_x = false;
         credits_scanlines_y = false;
-        
-        /*
-        if(rand() % 2 == 1) {
-            credits_higher_contrast = true;
-        }
-        
-        if(rand() % 2 == 1) {
-            credits_scanlines_x = true;
-        }
-        
-        if(rand() % 2 == 1) {
-            credits_scanlines_y = true;
-        }
-        */
-        
-        //change_colors = false;
     }
-    
     
     cEngineRenderLabelByPixelPos(credits2d, "_code_and_design_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
@@ -5804,25 +5579,20 @@ static void render_credits(void) {
     }
 }
 
-
-
-static void resetColorValues(void)
-{
+static void resetColorValues(void) {
+    
     c_hue_a = 0;
     c_hue_r = 0;
     c_hue_g = 0;
     c_hue_b = 0;
     
-    //c_new_hue_a = 0;
     c_new_hue_r = 0;
     c_new_hue_g = 0;
     c_new_hue_b = 0;
 }
 
-
-
-static void TtransformHSV(float H, float S, float V)
-{
+static void TtransformHSV(float H, float S, float V) {
+    
     float VSU = 0.1f;
     float VSW = 0.1f;
     
@@ -5850,152 +5620,52 @@ static void TtransformHSV(float H, float S, float V)
 static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation) {
     
     if (data != NULL) {
-
         for(int x = start_x; x < w+start_x; x++) {
-
             if(credits_scanlines_x) {
                 if (x % 2 == 0) {
                     continue;
                 }
             }
-            
             for(int y = start_y; y < h+start_y; y++) {
-
                 if(credits_scanlines_y) {
                     if (y % 2 == 0) {
                         continue;
                     }
                 }
-                
                 unsigned int rast = data[x][y];
                 unsigned char red = rast & 0xff;
                 unsigned char green = (rast >> 8) & 0xff;
                 unsigned char blue = (rast >> 16) & 0xff;
-                
                 float rscale = red /255.0f;
                 float gscale = green /255.0f;
                 float bscale = blue /255.0f;
-                
                 c_hue_r = rscale;
                 c_hue_g = gscale;
                 c_hue_b = bscale;
-                
-
                 TtransformHSV(rotation, 1.0f, 0.99f);
-                
                 c_new_hue_r = (float)(c_new_hue_r*255.0);
                 c_new_hue_g = (float)(c_new_hue_g*255.0);
                 c_new_hue_b = (float)(c_new_hue_b*255.0);
-                
                 if (c_new_hue_r > 255) {
                     c_new_hue_r = 255;
                 }
-                
                 if (c_new_hue_g > 255) {
                     c_new_hue_g = 255;
                 }
-                
                 if (c_new_hue_b > 255) {
                     c_new_hue_b = 255;
                 }
-                
                 if(c_new_hue_r < 0) {
                     c_new_hue_r = 0;
                 }
-                
                 if(c_new_hue_g < 0) {
                     c_new_hue_g = 0;
                 }
-                
                 if(c_new_hue_b < 0) {
                     c_new_hue_b = 0;
                 }
-                
                 data[x][y] = (255 << 24) | ((unsigned char)c_new_hue_b << 16) | ((unsigned char)c_new_hue_g << 8) | (unsigned char)c_new_hue_r;
-                
             }
         }
     }
 }
-
-
-//static void renderPixels(char *data, int w, int h, float rotation)
-//{
-//    if (data != NULL)
-//    {
-//        // **** You have a pointer to the image data ****
-//        // **** Do stuff with the data here ****
-//        
-//        for(int i = 0; i < w*h; i++)
-//        {
-//            
-//            int offset = 4*i;
-//            unsigned char alpha = data[offset];
-//            unsigned char red = data[offset+1];
-//            unsigned char green = data[offset+2];
-//            unsigned char blue = data[offset+3];
-//            
-//            float ascale = alpha /255.0f;
-//            float rscale = red /255.0f;
-//            float gscale = green /255.0f;
-//            float bscale = blue /255.0f;
-//            
-//            c_hue_a = ascale;
-//            c_hue_r = rscale;
-//            c_hue_g = gscale;
-//            c_hue_b = bscale;
-//            
-//            c_new_hue_a = ascale;
-//            
-//            TtransformHSV(rotation, 1.0, 0.99);
-//            
-//            c_new_hue_a = (c_new_hue_a*255.0);
-//            c_new_hue_r = (c_new_hue_r*255.0);
-//            c_new_hue_g = (c_new_hue_g*255.0);
-//            c_new_hue_b = (c_new_hue_b*255.0);
-//            
-//            if (c_new_hue_a > 255)
-//            {
-//                c_new_hue_a = 255;
-//            }
-//            if (c_new_hue_r > 255)
-//            {
-//                c_new_hue_r = 255;
-//            }
-//            if (c_new_hue_g > 255)
-//            {
-//                c_new_hue_g = 255;
-//            }
-//            if (c_new_hue_b > 255)
-//            {
-//                c_new_hue_b = 255;
-//            }
-//            
-//            if(c_new_hue_a < 0)
-//                c_new_hue_a = 0;
-//            
-//            if(c_new_hue_r < 0)
-//                c_new_hue_r = 0;
-//            
-//            if(c_new_hue_g < 0)
-//                c_new_hue_g = 0;
-//            
-//            if(c_new_hue_b < 0)
-//                c_new_hue_b = 0;
-//            
-//            //data[offset] = new_hue_a;
-//            
-//            /*for (int r_x = 0; r_x < s_width; r_x++) {
-//             for (int r_y = 0; r_y < s_height; r_y++) {
-//             raster[r_x+r_y*s_width] = raster2d[r_x][r_y];
-//             }
-//             }*/
-//            
-//            /*
-//            data[offset+1] = c_new_hue_r;
-//            data[offset+2] = c_new_hue_g;
-//            data[offset+3] = c_new_hue_b;
-//            */
-//        }
-//    }
-//}
