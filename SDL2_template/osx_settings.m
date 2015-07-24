@@ -14,7 +14,7 @@ char *get_user_default_dir(void) {
     if (content) {
         const char *chars = [content UTF8String];
         char *my_str = strdup(chars);
-        printf("user dir:%s\n", my_str);
+        //printf("user dir:%s\n", my_str);
         return my_str;
     }
     return NULL;
