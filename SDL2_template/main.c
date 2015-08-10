@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker";
+static char *title = "snibbetracker experimental";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -1137,6 +1137,8 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
     int x_count = visual_cursor_x%5;
     int instrument = synth->current_instrument;
     
+    //only effects are allowed to go over F so limit it.
+    
     if(instrument_editor || pattern_editor || visualiser || !editing) {
         if(instrument_editor) {
             instrument = selected_instrument_id;
@@ -1154,6 +1156,12 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
                 if(editing) {
                     move_down = true;
                 }
+            }
+            
+            // only effects are allowed to go over F.
+            if(x_count != 0 && x_count != 2 && value > 15) {
+                printf("only effects are allowed to go over F.\n");
+                return;
             }
             
             if(x_count == 1 && editing) {
@@ -2099,6 +2107,8 @@ void handle_key_down(SDL_Keysym* keysym) {
                         cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     } else if(x_count == 2) {
                         cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, true, false, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
+                        cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, false, true);
                     } else if(x_count == 3) {
                         cSynthRemoveTrackNodeParams(synth, current_track, synth->track_cursor_x, synth->track_cursor_y, false, false, true, false);
                     } else if(x_count == 4) {
@@ -2904,6 +2914,8 @@ void handle_param_value(void) {
         add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 14);
     } else if(input->key_f) {
         add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 15);
+    } else if(input->key_g) {
+        add_track_node_with_octave(synth->track_cursor_x, cursor_y, editing, 16);
     }
 }
 
@@ -2918,6 +2930,13 @@ static void instrument_effect_remove() {
     }
     
     if(instrument_editor_effects_x == 0) {
+        
+        // TODO this is ugly, find a better way
+        if(node->effect_value == 16) {
+            // remove bitcrush
+            synth->bitcrush_active = false;
+        }
+        
         node->effect = '-';
         node->effect_value = -1;
         // remove params as well
@@ -2975,6 +2994,8 @@ static void handle_instrument_effect_keys(void) {
         value = 14;
     } else if(input->key_f) {
         value = 15;
+    } else if(input->key_g) {
+        value = 16;
     }
 
     if(value > -1) {
@@ -2982,6 +3003,11 @@ static void handle_instrument_effect_keys(void) {
         if(node == NULL) {
             node = cSynthNewTrackNode();
             synth->instrument_effects[instrument][instrument_editor_effects_y] = node;
+        }
+        
+        // only effects are allowed to go over F.
+        if(instrument_editor_effects_x != 0 && value > 15) {
+            return;
         }
         
         if(instrument_editor_effects_x == 0) {
