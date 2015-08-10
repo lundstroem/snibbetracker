@@ -141,10 +141,15 @@ Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose ei
 Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
 Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
 Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-
+Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all channels.
 
 changelog
 ----------------
+build 19 - 2015-08-10 11.27
+- fixed reset of downsample.
+- added bitcrusher effect.
+- when removing effect in trackview, the params are also remove.
+
 build 18 - 2015-07-23 13.26
 - changed activate button to x for wavetable, tempo and pattern editors.
 - changed wavetable 900 to work like 90 to select wavetable lane 0 for current voice/channel. 9-0 to change waveform (param2).

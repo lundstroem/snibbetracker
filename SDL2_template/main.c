@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker experimental";
+static char *title = "snibbetracker";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -1406,6 +1406,7 @@ static void toggle_playback(void) {
         }
         cSynthResetOnLoopBack(synth);
         playing = false;
+        synth->bitcrush_active = false;
         set_info_timer("playback stopped");
     }
 }
@@ -3011,6 +3012,13 @@ static void handle_instrument_effect_keys(void) {
         }
         
         if(instrument_editor_effects_x == 0) {
+            
+            // TODO this is ugly, find a better way
+            if(node->effect_value == 16 && value != 16) {
+                // remove bitcrush
+                synth->bitcrush_active = false;
+            }
+            
             node->effect = cSynthGetCharFromParam(value);
             node->effect_value = value;
         }
@@ -5415,7 +5423,10 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "      both values can be combined to increase effect.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        
+        cEngineRenderLabelWithParams(raster2d, "Gxx - bitcrush, params are multiplied to represent", inset_x+x+offset_x, y, color, bg_color);
+        y++;
+        cEngineRenderLabelWithParams(raster2d, "      a bit depth. Affects all channels.", inset_x+x+offset_x, y, color, bg_color);
+        y++;
         cEngineRenderLabelWithParams(raster2d, "7 / 7", 1, 22, color, bg_color);
     }
 }
