@@ -145,10 +145,10 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
-build 19 - 2015-08-10 11.27
+build 19 - 2015-08-10 12.27
 - fixed reset of downsample.
-- added bitcrusher effect.
-- when removing effect in trackview, the params are also remove.
+- added bitcrush effect.
+- when removing effect in trackview, the params are also removed.
 
 build 18 - 2015-07-23 13.26
 - changed activate button to x for wavetable, tempo and pattern editors.
