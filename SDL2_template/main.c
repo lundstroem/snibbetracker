@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker";
+static char *title = "snibbetracker BETA";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -5503,9 +5503,9 @@ static void render_credits(void) {
         change_colors = true;
     }
     
-    if(credits_y > s_height-195) {
+    if(credits_y > s_height-215) {
         credits_y_inc = -credits_y_inc;
-        credits_y = s_height-196;
+        credits_y = s_height-216;
         change_colors = true;
     } else if(credits_y < 0) {
         credits_y_inc = -credits_y_inc;
@@ -5548,9 +5548,12 @@ static void render_credits(void) {
     cEngineRenderLabelByPixelPos(credits2d, "   lundstroem", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "_feedback_and_testing_", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "_design_and_testing_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   salkinitzor", int_x+inset_x, int_y+inset_y, color, bg_color);
+    inset_y+=inc;
+    inset_y+=inc;
+    cEngineRenderLabelByPixelPos(credits2d, "_feedback_and_testing_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "   nordloef", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
@@ -5581,7 +5584,7 @@ static void render_credits(void) {
     int hue_x = int_x;
     int hue_y = int_y;
     int hue_width = 240;
-    int hue_height = 195;
+    int hue_height = 215;
    
     if (hue_x >= s_width) {
         hue_x = s_width-1;

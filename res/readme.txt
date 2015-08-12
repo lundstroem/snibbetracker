@@ -1,18 +1,38 @@
-snibbetracker test
+snibbetracker BETA
 ==================
- 
 
 introduction
 ----------------
-This is a test version, please do not re-distribute. Functionality may change significantly 
-during the test phase, and there will be no focus on preserving backwards compatibility 
-(projects made with previous builds may not work as expected). Subsequent test builds will 
-have an accompanying changelog as a part of this document.
+snibbetracker is a music tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
+I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it
+can be useful for someone.
+This is the BETA version of snibbetracker. I will try to keep backwards compatibility as intact as possible so
+that old songs will sound the same in newer versions, and generally just maintain existing functionality.
+However if something appears to be fundamentally broken, I might consider fixing it in a later version, and
+in that case it will be clearly documented in the changelog. Linux version will available at a later date
+depending on interest.
 No warranty either implicit or implied is included. Use at your own risk.
-snibbetracker (c) Palestone Software.
+(c) Palestone Software.
+
+credits
+----------------
+lundstroem
+salkinitzor
+nordloef
+Linde
+sunfl0wr
+Rockard
+0c0
+OlofsonArcade
+goto80
+lolloise
+crabinfo
 
 contact/support
 ----------------
+If you encounter bugs or other issues, please let me know and if possible the steps to reproduce them.
+Feel free to contact if you have other feedback or questions, or if you've made a song
+you'd like to share.
 palestonesoftware@gmail.com
 http://www.palestonesoftware.com/snibbetracker.html
 
@@ -145,6 +165,9 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
+build 20 - 2015-08-12 16.00
+- set default amp to 50% instead of 100%.
+
 build 19 - 2015-08-10 12.27
 - fixed reset of downsample.
 - added bitcrush effect.
