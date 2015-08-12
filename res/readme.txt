@@ -167,6 +167,8 @@ changelog
 ----------------
 build 20 - 2015-08-12 16.00
 - set default amp to 50% instead of 100%.
+- fixed bug where visualiser showed twice the actual amplitude.
+- increased max file name length to 40 instead of 20.
 
 build 19 - 2015-08-10 12.27
 - fixed reset of downsample.

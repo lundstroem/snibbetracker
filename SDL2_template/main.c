@@ -410,7 +410,7 @@ static void init_file_settings(void) {
     f->file_path_pos = 0;
     f->reload_dirs = true;
     f->file_name = NULL;
-    f->file_name_limit = 20;
+    f->file_name_limit = 40;
     f->file_enter_pressed = false;
     f->file_moved_in_list = false;
     
@@ -3103,8 +3103,8 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
         if(scaled_x < byteStreamLength-1 && x_counter < s_width) {
             Sint16 sample_left = s_byteStream[scaled_x];
             Sint16 sample_right = s_byteStream[scaled_x+1];
-            sample_left *= 0.00439466536454;
-            sample_right *= 0.00439466536454;
+            sample_left *= 0.00439466536454*0.5;
+            sample_right *= 0.00439466536454*0.5;
             int fourth = 72;
             int visual_left = sample_left + fourth;
             int visual_right = sample_right + (fourth*3);
