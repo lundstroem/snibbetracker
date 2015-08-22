@@ -9,7 +9,7 @@ can be useful for someone.
 This is the BETA version of snibbetracker. I will try to keep backwards compatibility as intact as possible so
 that old songs will sound the same in newer versions, and generally just maintain existing functionality.
 However if something appears to be fundamentally broken, I might consider fixing it in a later version, and
-in that case it will be clearly documented in the changelog. Linux version will available at a later date
+in that case it will be clearly documented in the changelog. Linux version will be available at a later date
 depending on interest.
 No warranty either implicit or implied is included. Use at your own risk.
 (c) Palestone Software.

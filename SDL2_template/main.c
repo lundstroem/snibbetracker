@@ -320,6 +320,7 @@ static void check_sdl_events(SDL_Event event);
 static int get_delta(void);
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment);
 void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength);
+static void clear_clipping_color_from_visualiser(void);
 static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength);
 static void change_waveform(int plus);
 static void change_param(bool plus);
@@ -1395,6 +1396,7 @@ static void toggle_playback(void) {
         }
         cSynthResetTempoIndex(synth);
         synth->tempo_skip_step = true;
+        clear_clipping_color_from_visualiser();
         set_info_timer("playback started");
     } else {
         // note off to all voices when stopping playing.
@@ -3089,11 +3091,22 @@ void audio_callback(void *unused, Uint8 *byteStream, int byteStreamLength) {
     }
 }
 
-static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
+static void clear_clipping_color_from_visualiser(void) {
     
     for(int v_x = 0; v_x < s_width; v_x++) {
         for(int v_y = 0; v_y < s_height; v_y++) {
             visualiser2d[v_x][v_y] = color_bg;
+        }
+    }
+}
+
+static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
+    
+    for(int v_x = 0; v_x < s_width; v_x++) {
+        for(int v_y = 0; v_y < s_height; v_y++) {
+            if(visualiser2d[v_x][v_y] != color_visualiser_clipping) {
+                visualiser2d[v_x][v_y] = color_bg;
+            }
         }
     }
     
@@ -3103,31 +3116,35 @@ static void prepare_visualiser(Sint16 *s_byteStream, int byteStreamLength) {
         if(scaled_x < byteStreamLength-1 && x_counter < s_width) {
             Sint16 sample_left = s_byteStream[scaled_x];
             Sint16 sample_right = s_byteStream[scaled_x+1];
-            sample_left *= 0.00439466536454*0.5;
-            sample_right *= 0.00439466536454*0.5;
+            sample_left *= 0.00219733268227;
+            sample_right *= 0.00219733268227;
             int fourth = 72;
             int visual_left = sample_left + fourth;
             int visual_right = sample_right + (fourth*3);
             int middle = s_height/2;
             visualiser2d[x_counter][middle] = 0xFFFFFFFF;
             unsigned int color = color_visualiser;
-            if(visual_left < 0) {
+            if(visual_left < 2) {
                 visual_left = 0;
                 color = color_visualiser_clipping;
-            } else if (visual_left >= fourth*2) {
-                visual_left = fourth*2;
+            } else if (visual_left >= (fourth*2)-1) {
+                visual_left = (fourth*2)-1;
                 color = color_visualiser_clipping;
             }
-            visualiser2d[x_counter][visual_left] = color;
+            if(visualiser2d[x_counter][visual_left] != color_visualiser_clipping) {
+                visualiser2d[x_counter][visual_left] = color;
+            }
             color = color_visualiser;
-            if(visual_right < fourth*2) {
-                visual_right = fourth*2;
+            if(visual_right < (fourth*2)+2) {
+                visual_right = (fourth*2)+1;
                 color = color_visualiser_clipping;
-            } else if (visual_right >= s_height) {
+            } else if (visual_right >= s_height-1) {
                 visual_right = s_height-1;
                 color = color_visualiser_clipping;
             }
-            visualiser2d[x_counter][visual_right] = color;
+            if(visualiser2d[x_counter][visual_right] != color_visualiser_clipping) {
+                visualiser2d[x_counter][visual_right] = color;
+            }
             x_counter++;
         }
     }
