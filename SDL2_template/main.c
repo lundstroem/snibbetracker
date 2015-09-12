@@ -4939,12 +4939,6 @@ static void export_wav(char *filename) {
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
     cSynthResetTempoIndex(synth);
-    for (int i = 0; i < synth->track_width; i++) {
-        struct CVoice *v = synth->voices[i];
-        for(int i = 0; i < v->delay_buffer_size; i++) {
-            v->delay_buffer[i] = 0;
-        }
-    }
     exporting = true;
     synth->looped = false;
     
@@ -4970,8 +4964,28 @@ static void export_wav(char *filename) {
     if(debuglog) { printf("export buffer size:%ld\n", buffer_size); }
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
+    cSynthResetTempoIndex(synth);
+    
+    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
+        
+        // TODO: has commented lines below any effect?
+        //cSynthResetPortamento(synth->voices[v_i]);
+        //cSynthResetAllEffects(synth->voices[v_i]);
+    }
+    
+    cSynthResetOnLoopBack(synth);
     exporting = true;
     synth->looped = false;
+    synth->bitcrush_active = false;
+    
+    for (int i = 0; i < synth->track_width; i++) {
+        struct CVoice *v = synth->voices[i];
+        v->adsr_cursor = 0;
+        v->note_on = false;
+        for(int i = 0; i < v->delay_buffer_size; i++) {
+            v->delay_buffer[i] = 0;
+        }
+    }
     
     // alloc buffer
     buffer = cAllocatorAlloc(sizeof(Sint16) * buffer_size, "export buffer");
