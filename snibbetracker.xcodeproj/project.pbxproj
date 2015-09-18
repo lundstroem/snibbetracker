@@ -54,6 +54,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		033568DD1BABFBE3007632EA /* CNoiseTable.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CNoiseTable.h; sourceTree = "<group>"; };
 		033AC4891A99DEC000183CD7 /* chars_gfx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = chars_gfx.h; sourceTree = "<group>"; };
 		03420CCF1A077D3500B4EF5D /* CAnimation.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAnimation.c; sourceTree = "<group>"; };
 		03420CD01A077D3500B4EF5D /* CAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAnimation.h; sourceTree = "<group>"; };
@@ -123,6 +124,7 @@
 		03420CCD1A077D3500B4EF5D /* cengine */ = {
 			isa = PBXGroup;
 			children = (
+				033568DD1BABFBE3007632EA /* CNoiseTable.h */,
 				03F0ADDA1A80EE8500884785 /* cJSON */,
 				03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */,
 				03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */,
