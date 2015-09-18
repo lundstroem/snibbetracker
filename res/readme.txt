@@ -165,6 +165,13 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
+build 21
+- show red lingering pixels in visualiser to display when audio clips.
+- reset will now clear wavetable and custom waveform.
+- noise table is now predefined instead of randomly generated at runtime.
+- fixed preview of downsample sweep effect.
+- fixed bug where notes at the end of the song leak into the start when exporting wav.
+
 build 20 - 2015-08-12 16.00
 - set default amp to 50% instead of 100%.
 - fixed bug where visualiser showed twice the actual amplitude.
