@@ -3302,7 +3302,7 @@ static void render_custom_table(double dt) {
     
     struct CInstrument *ins = synth->custom_instrument;
     int max_nodes = ins->adsr_nodes;
-    int inset_x = 10;
+    int inset_x = 50;
     int inset_y_node = 50;
     double speed = 0.0008*dt;
     if(modifier) {
@@ -3352,7 +3352,7 @@ static void render_custom_table(double dt) {
     double pos_factor = 400;
     int i;
     
-    for(i = 200; i < 1000; i++) {
+    for(i = 0; i < 1000; i++) {
         double g_pos = (i*(pos_factor*0.001)) + inset_x;
         int top_line_y = 150;
         int bottom_line_y = -50;
@@ -3363,8 +3363,8 @@ static void render_custom_table(double dt) {
     }
     
     for(i = 20; i < 220; i++) {
-        raster2d[90][i] = color_text;
-        raster2d[410][i] = color_text;
+        raster2d[50][i] = color_text;
+        raster2d[450][i] = color_text;
     }
     
     for(i = 0; i < max_nodes-1; i++) {
