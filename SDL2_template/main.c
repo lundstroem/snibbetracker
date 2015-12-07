@@ -212,6 +212,7 @@ static void renderPixels(unsigned int **data, int start_x, int start_y, int w, i
 #define cengine_color_grey 0xFF666666
 #define cengine_color_magenta 0xFFFF00FF
 #define cengine_color_dull_green 0xFF117711
+#define cengine_color_transparent 0x00000000
 
 #define cengine_color_bg 0xFF000000
 #define cengine_color_bg1 0xFF332222
@@ -707,9 +708,9 @@ static void render_files(void) {
     for (int i = 0; i < file_settings->file_dir_max_length; i++) {
         if (file_settings->file_dirs[i] != NULL) {
             if(i == file_settings->file_cursor_y) {
-                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, color_text, -1);
+                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, color_text, cengine_color_transparent);
             } else {
-                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, color_inactive_text, -1);
+                cEngineRenderLabelWithParams(raster2d, file_settings->file_dirs[i], 0, offset_y-file_settings->file_cursor_y+10, color_inactive_text, cengine_color_transparent);
             }
         }
         offset_y++;
@@ -3503,7 +3504,7 @@ static void render_instrument_editor(double dt) {
     char cval[64];
     char c = cSynthGetCharFromParam((char)selected_instrument_id);
     sprintf(cval, "instrument %c", c);
-    cEngineRenderLabelWithParams(raster2d, cval, 1, 2, color_text, -1);
+    cEngineRenderLabelWithParams(raster2d, cval, 1, 2, color_text, cengine_color_transparent);
     
     // render preset instrument effects.
     int offset_y = 13;
@@ -3515,7 +3516,7 @@ static void render_instrument_editor(double dt) {
             struct CTrackNode *t = synth->instrument_effects[selected_instrument_id][y];
             
             int color = color_text;
-            int bg_color = -1;
+            int bg_color = cengine_color_transparent;
             if(x == instrument_editor_effects_x && y == instrument_editor_effects_y && instrument_editor_effects) {
                 color = color_edit_text;
                 bg_color = color_edit_marker;
@@ -3559,7 +3560,7 @@ static void render_pattern_mapping(void) {
     for (int x = 0; x < synth->patterns_and_voices_width; x++) {
         for (int y = 0; y < synth->patterns_and_voices_height; y++) {
             
-            int bg_color = -1;
+            int bg_color = cengine_color_transparent;
             int color = color_text;
             if(x == pattern_cursor_x && y == pattern_cursor_y) {
                 bg_color = color_edit_marker;
@@ -3700,7 +3701,7 @@ static void render_pattern_mapping(void) {
                     if(track_nr < 10) {
                         x_offset = 2;
                     }
-                    cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, -1);
+                    cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, cengine_color_transparent);
                 }
             }
         }
@@ -3716,7 +3717,7 @@ static void render_pattern_mapping(void) {
     if(track_at_cursor > -1 && pattern_at_cursor > -1) {
         char cval[20];
         sprintf(cval, "p:%d t:%d", pattern_at_cursor, track_at_cursor);
-        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, -1);
+        cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_transparent);
     }
 }
 
@@ -3757,7 +3758,7 @@ static void draw_wave_types(void) {
         } else if(synth->voices[x]->muted == 1) {
             wave_color = color_mute;
         }
-        cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), 2+x*10, -visual_cursor_y+5, wave_color, -1);
+        cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), 2+x*10, -visual_cursor_y+5, wave_color, cengine_color_transparent);
     }
 }
 
@@ -3805,11 +3806,11 @@ static void render_tempo_editor(double dt) {
                 if(track_nr < 10) {
                     x_offset = 2;
                 }
-                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, -1);
+                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, cengine_color_transparent);
             }
 
             int color = color_inactive_text;
-            int bg_color = -1;
+            int bg_color = cengine_color_transparent;
             char cval[10];
             struct CTempoNode *t = synth->tempo_map[x][y];
             
@@ -3864,7 +3865,7 @@ static void render_reset_confirmation(double dt) {
             raster2d[x][y] = color_bg;
         }
     }
-    cEngineRenderLabelWithParams(raster2d, "Reset project? Press [RETURN] to reset or [ESCAPE].", 2, 3, color_text, -1);
+    cEngineRenderLabelWithParams(raster2d, "Reset project? Press [RETURN] to reset or [ESCAPE].", 2, 3, color_text, cengine_color_transparent);
 }
 
 static void render_wavetable_editor(double dt) {
@@ -3886,11 +3887,11 @@ static void render_wavetable_editor(double dt) {
                 if(track_nr < 10) {
                     x_offset = 2;
                 }
-                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, -1);
+                cEngineRenderLabelWithParams(raster2d, cval, x_offset, y+1, color_text, cengine_color_transparent);
             }
             
             int color = color_inactive_text;
-            int bg_color = -1;
+            int bg_color = cengine_color_transparent;
             
             char cval[20];
             struct CWavetableNode *t = synth->wavetable_map[x][y];
@@ -4358,6 +4359,8 @@ static void setup_cengine(void) {
     c->level_width = 64;
     c->level_height = 64;
     c->max_buttons = 10;
+    c->color_mode_argb = true;
+    c->color_mode_rgba = false;
     c->show_fps = false;
     c->ground_render_enabled = false;
     cEngineInit(c);
@@ -5133,7 +5136,7 @@ static void render_help(void) {
     int inset_x = 1;
     int y = 1;
     int color = color_text;
-    int bg_color = -1;
+    int bg_color = cengine_color_transparent;
     int page = help_index;
     
     if(page == 0) {
@@ -5566,7 +5569,7 @@ static void render_credits(void) {
         credits_brush_color = rand();
         
         if(rand() % 2 == 1) {
-            credits_bg_color = -1;
+            credits_bg_color = cengine_color_transparent;
         }
         
         credits_higher_contrast = false;

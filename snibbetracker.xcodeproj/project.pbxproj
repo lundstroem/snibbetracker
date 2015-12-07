@@ -27,6 +27,7 @@
 		03BA8FB31AFB3AF800F296DB /* [IconName].iconset in Resources */ = {isa = PBXBuildFile; fileRef = 03BA8FB21AFB3AF800F296DB /* [IconName].iconset */; };
 		03BA8FB61AFB5C4F00F296DB /* config.txt in Resources */ = {isa = PBXBuildFile; fileRef = 03BA8FB51AFB5C4F00F296DB /* config.txt */; };
 		03BA8FB81AFB5EAB00F296DB /* osx_settings.m in Sources */ = {isa = PBXBuildFile; fileRef = 03BA8FB71AFB5EAB00F296DB /* osx_settings.m */; };
+		03C811C01C158756006CE873 /* CStr.c in Sources */ = {isa = PBXBuildFile; fileRef = 03C811BE1C158756006CE873 /* CStr.c */; };
 		03D930E91AA491AC000251CC /* groundtiles.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D930E81AA491AC000251CC /* groundtiles.png */; };
 		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
 		03F0ADE71A80EE8500884785 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDD1A80EE8500884785 /* LICENSE */; };
@@ -96,6 +97,8 @@
 		03BA8FB71AFB5EAB00F296DB /* osx_settings.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = osx_settings.m; sourceTree = "<group>"; };
 		03BA8FB91AFB5EB800F296DB /* osx_settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = osx_settings.h; sourceTree = "<group>"; };
 		03C75C971A96370E00DA3DE7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		03C811BE1C158756006CE873 /* CStr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CStr.c; sourceTree = "<group>"; };
+		03C811BF1C158756006CE873 /* CStr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CStr.h; sourceTree = "<group>"; };
 		03D930E41AA48D33000251CC /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
 		03D930E81AA491AC000251CC /* groundtiles.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = groundtiles.png; sourceTree = "<group>"; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
@@ -126,6 +129,8 @@
 		03420CCD1A077D3500B4EF5D /* cengine */ = {
 			isa = PBXGroup;
 			children = (
+				03C811BE1C158756006CE873 /* CStr.c */,
+				03C811BF1C158756006CE873 /* CStr.h */,
 				033568DD1BABFBE3007632EA /* CNoiseTable.h */,
 				03F0ADDA1A80EE8500884785 /* cJSON */,
 				03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */,
@@ -341,6 +346,7 @@
 				03F0ADE91A80EE8500884785 /* test.c in Sources */,
 				037D46EC1A1DE73300EA2179 /* CSynth.c in Sources */,
 				03420CE91A077D3500B4EF5D /* CTimer.c in Sources */,
+				03C811C01C158756006CE873 /* CStr.c in Sources */,
 				03420CE71A077D3500B4EF5D /* CLabel.c in Sources */,
 				03420CE41A077D3500B4EF5D /* CButton.c in Sources */,
 				03420CE51A077D3500B4EF5D /* CEngine.c in Sources */,
