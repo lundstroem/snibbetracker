@@ -334,6 +334,7 @@ static char *get_wave_type_as_char(int type);
 static void draw_wave_types(void);
 static void render_visualiser(void);
 static void render_help(void);
+static void set_view(int view);
 static void render_credits(void);
 static void render_tempo_editor(double dt);
 static void render_reset_confirmation(double dt);
@@ -1534,6 +1535,36 @@ void handle_key_down(SDL_Keysym* keysym) {
     any_key_pressed = true;
     redraw_screen = true;
     
+    if(!file_editor) {
+        if(input->key_f1) {
+            set_view(0);
+        }
+        if(input->key_f2) {
+            set_view(1);
+        }
+        if(input->key_f3) {
+            set_view(2);
+        }
+        if(input->key_f4) {
+            set_view(3);
+        }
+        if(input->key_f5) {
+            set_view(4);
+        }
+        if(input->key_f6) {
+            set_view(5);
+        }
+        if(input->key_f7) {
+            set_view(6);
+        }
+        if(input->key_f8) {
+            set_view(7);
+        }
+        if(input->key_f9) {
+            set_view(8);
+        }
+    }
+    
     if(help) {
         handle_help_keys();
         return;
@@ -1552,6 +1583,8 @@ void handle_key_down(SDL_Keysym* keysym) {
         handle_key_down_file();
         return;
     } else {
+
+        
         if(input->key_i) {
             if(modifier) {
                 if (instrument_editor) {
@@ -2236,6 +2269,37 @@ void handle_key_down(SDL_Keysym* keysym) {
     }
 }
 
+static void set_view(int view) {
+    
+    instrument_editor = false;
+    visualiser = false;
+    tempo_editor = false;
+    wavetable_editor = false;
+    custom_table = false;
+    help = false;
+    credits = false;
+    pattern_editor = false;
+    
+    if (view == 1) {
+        pattern_editor = true;
+    } else if (view == 2) {
+        instrument_editor = true;
+    } else if (view == 3) {
+        tempo_editor = true;
+    } else if (view == 4) {
+        wavetable_editor = true;
+    } else if (view == 5) {
+        custom_table = true;
+    } else if (view == 6) {
+        visualiser = true;
+    } else if (view == 7) {
+        help = true;
+    } else if (view == 8) {
+        credits = true;
+    }
+    
+}
+
 static void sdl_key_set_locks(SDL_Keysym* keysym, bool down) {
     
     switch(keysym->sym) {
@@ -2278,13 +2342,22 @@ static void sdl_key_set_locks(SDL_Keysym* keysym, bool down) {
         case SDLK_z: input->key_pending_lock_z = down; break;
             
         case SDLK_SPACE: input->key_pending_lock_space = down; break;
-        case SDLK_PLUS: input->key_pending_lock_plus = down; break;
-        case SDLK_MINUS: input->key_pending_lock_minus = down; break;
+        case SDLK_PLUS:
+        case SDLK_KP_PLUS:
+            input->key_pending_lock_plus = down;
+            break;
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS:
+            input->key_pending_lock_minus = down;
+            break;
         case SDLK_TAB: input->key_pending_lock_tab = down; break;
         case SDLK_LGUI: input->key_pending_lock_lgui = down; break;
         case SDLK_LCTRL: input->key_pending_lock_lctrl = down; break;
         case SDLK_ESCAPE: input->key_pending_lock_escape = down; break;
-        case SDLK_RETURN: input->key_pending_lock_return = down; break;
+        case SDLK_RETURN:
+        case SDLK_KP_ENTER:
+            input->key_pending_lock_return = down;
+            break;
         case SDLK_LEFT: input->key_pending_lock_left = down; break;
         case SDLK_RIGHT: input->key_pending_lock_right = down; break;
         case SDLK_UP: input->key_pending_lock_up = down; break;
@@ -2296,6 +2369,18 @@ static void sdl_key_set_locks(SDL_Keysym* keysym, bool down) {
         case SDLK_DELETE: input->key_pending_lock_delete = down; break;
         case SDLK_COMMA: input->key_pending_lock_comma = down; break;
         case SDLK_PERIOD: input->key_pending_lock_period = down; break;
+        case SDLK_F1: input->key_pending_lock_f1 = down; break;
+        case SDLK_F2: input->key_pending_lock_f2 = down; break;
+        case SDLK_F3: input->key_pending_lock_f3 = down; break;
+        case SDLK_F4: input->key_pending_lock_f4 = down; break;
+        case SDLK_F5: input->key_pending_lock_f5 = down; break;
+        case SDLK_F6: input->key_pending_lock_f6 = down; break;
+        case SDLK_F7: input->key_pending_lock_f7 = down; break;
+        case SDLK_F8: input->key_pending_lock_f8 = down; break;
+        case SDLK_F9: input->key_pending_lock_f9 = down; break;
+        case SDLK_F10: input->key_pending_lock_f10 = down; break;
+        case SDLK_F11: input->key_pending_lock_f11 = down; break;
+        case SDLK_F12: input->key_pending_lock_f12 = down; break;
     }
     
     if(!down) {
@@ -2339,13 +2424,22 @@ static void sdl_key_set_locks(SDL_Keysym* keysym, bool down) {
             case SDLK_z: input->key_lock_z = down; break;
                 
             case SDLK_SPACE: input->key_lock_space = down; break;
-            case SDLK_PLUS: input->key_lock_plus = down; break;
-            case SDLK_MINUS: input->key_lock_minus = down; break;
+            case SDLK_PLUS:
+            case SDLK_KP_PLUS:
+                input->key_pending_lock_plus = down;
+                break;
+            case SDLK_MINUS:
+            case SDLK_KP_MINUS:
+                input->key_pending_lock_minus = down;
+                break;
             case SDLK_TAB: input->key_lock_tab = down; break;
             case SDLK_LGUI: input->key_lock_lgui = down; break;
             case SDLK_LCTRL: input->key_lock_lctrl = down; break;
             case SDLK_ESCAPE: input->key_lock_escape = down; break;
-            case SDLK_RETURN: input->key_lock_return = down; break;
+            case SDLK_RETURN:
+            case SDLK_KP_ENTER:
+                input->key_lock_return = down;
+                break;
             case SDLK_LEFT: input->key_lock_left = down; break;
             case SDLK_RIGHT: input->key_lock_right = down; break;
             case SDLK_UP: input->key_lock_up = down; break;
@@ -2357,6 +2451,18 @@ static void sdl_key_set_locks(SDL_Keysym* keysym, bool down) {
             case SDLK_DELETE: input->key_lock_delete = down; break;
             case SDLK_COMMA: input->key_lock_comma = down; break;
             case SDLK_PERIOD: input->key_lock_period = down; break;
+            case SDLK_F1: input->key_lock_f1 = down; break;
+            case SDLK_F2: input->key_lock_f2 = down; break;
+            case SDLK_F3: input->key_lock_f3 = down; break;
+            case SDLK_F4: input->key_lock_f4 = down; break;
+            case SDLK_F5: input->key_lock_f5 = down; break;
+            case SDLK_F6: input->key_lock_f6 = down; break;
+            case SDLK_F7: input->key_lock_f7 = down; break;
+            case SDLK_F8: input->key_lock_f8 = down; break;
+            case SDLK_F9: input->key_lock_f9 = down; break;
+            case SDLK_F10: input->key_lock_f10 = down; break;
+            case SDLK_F11: input->key_lock_f11 = down; break;
+            case SDLK_F12: input->key_lock_f12 = down; break;
         }
     }
 }
@@ -2405,13 +2511,22 @@ static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
         case SDLK_z: input->key_z = down; break;
           
         case SDLK_SPACE: input->key_space = down; break;
-        case SDLK_PLUS: input->key_plus = down; break;
-        case SDLK_MINUS: input->key_minus = down; break;
+        case SDLK_PLUS:
+        case SDLK_KP_PLUS:
+            input->key_plus = down;
+            break;
+        case SDLK_MINUS:
+        case SDLK_KP_MINUS:
+            input->key_minus = down;
+            break;
         case SDLK_TAB: input->key_tab = down; break;
         case SDLK_LGUI: input->key_lgui = down; break;
         case SDLK_LCTRL: input->key_lctrl = down; break;
         case SDLK_ESCAPE: input->key_escape = down; break;
-        case SDLK_RETURN: input->key_return = down; break;
+        case SDLK_RETURN:
+        case SDLK_KP_ENTER:
+            input->key_return = down;
+        break;
         case SDLK_LEFT: input->key_left = down; break;
         case SDLK_RIGHT: input->key_right = down; break;
         case SDLK_UP: input->key_up = down; break;
@@ -2423,6 +2538,19 @@ static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
         case SDLK_DELETE: input->key_delete = down; break;
         case SDLK_COMMA: input->key_comma = down; break;
         case SDLK_PERIOD: input->key_period = down; break;
+        case SDLK_F1: input->key_f1 = down; break;
+        case SDLK_F2: input->key_f2 = down; break;
+        case SDLK_F3: input->key_f3 = down; break;
+        case SDLK_F4: input->key_f4 = down; break;
+        case SDLK_F5: input->key_f5 = down; break;
+        case SDLK_F6: input->key_f6 = down; break;
+        case SDLK_F7: input->key_f7 = down; break;
+        case SDLK_F8: input->key_f8 = down; break;
+        case SDLK_F9: input->key_f9 = down; break;
+        case SDLK_F10: input->key_f10 = down; break;
+        case SDLK_F11: input->key_f11 = down; break;
+        case SDLK_F12: input->key_f12 = down; break;
+            
     }
 }
 
@@ -5366,6 +5494,7 @@ static void render_help(void) {
             cEngineRenderLabelWithParams(raster2d, "- escape: exit view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #endif
+        cEngineRenderLabelWithParams(raster2d, "- f1-f9: switch views", inset_x+x+offset_x, y, color, bg_color);
         y++;
         cEngineRenderLabelWithParams(raster2d, "save/load view", inset_x+x+offset_x, y, color, bg_color);
         y++;
