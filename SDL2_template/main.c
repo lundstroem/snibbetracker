@@ -4482,7 +4482,6 @@ static void setup_cengine(void) {
     c->width = s_width;
     c->height = s_height;
     c->sprite_size = 16;
-    c->sheet_size = 1024;
     c->max_touches = 8;
     c->level_width = 64;
     c->level_height = 64;
