@@ -602,9 +602,9 @@ static void handle_key_down_file(void) {
                 file_editor_existing_file = false;
                 char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
                 if(conf_default_dir != NULL) {
-                    sprintf(file_path, "%s%s.json", conf_default_dir, file_settings->file_name);
+                    sprintf(file_path, "%s%s.snibb", conf_default_dir, file_settings->file_name);
                 } else {
-                    sprintf(file_path, "%s.json", file_settings->file_name);
+                    sprintf(file_path, "%s.snibb", file_settings->file_name);
                 }
                 if(file_editor_confirm_action) {
                     load_project_file(file_path);
@@ -668,7 +668,13 @@ static void set_list_file_name(void) {
         if(file_settings->file_name[length-2] == 'a') {
             // wav file
             file_settings->file_name[length-4] = '\0';
-        } else {
+            // it will be of at least a certain size.
+        } else if(file_settings->file_name[length-2] == 'b') {
+            // snibb file
+            file_settings->file_name[length-6] = '\0';
+        }
+        else {
+            // json file
             file_settings->file_name[length-5] = '\0';
         }
     }
@@ -833,9 +839,9 @@ static void save_project_file(void) {
     if(file_settings->file_name != NULL) {
         char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
         if(conf_default_dir != NULL) {
-            sprintf(save_path, "%s%s.json", conf_default_dir, file_settings->file_name);
+            sprintf(save_path, "%s%s.snibb", conf_default_dir, file_settings->file_name);
         } else {
-            sprintf(save_path, "%s.json", file_settings->file_name);
+            sprintf(save_path, "%s.snibb", file_settings->file_name);
         }
         
         cJSON *root = cSynthSaveProject(synth);
@@ -5461,6 +5467,8 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+e: export wav.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+n: reset project.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+i: go to instrument view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+t: go to tempo view.", inset_x+x+offset_x, y, color, bg_color);
@@ -5479,6 +5487,8 @@ static void render_help(void) {
             cEngineRenderLabelWithParams(raster2d, "- cmd+o: go to load view.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+e: export wav.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+n: reset project.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+i: go to instrument view.", inset_x+x+offset_x, y, color, bg_color);
             y++;

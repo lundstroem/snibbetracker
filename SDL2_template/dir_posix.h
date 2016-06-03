@@ -12,6 +12,5 @@
 #define __snibbetracker__dir_posix__
 
 int getDirectoryListPosix(char *dir_string, struct FileSettings *f);
-struct PeekDirResult *peekDirPosix(char *dir_name, struct FileSettings *f);
 
 #endif /* defined(__snibbetracker__dir_posix__) */
