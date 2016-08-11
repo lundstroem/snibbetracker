@@ -607,9 +607,16 @@ static void handle_key_down_file(void) {
                     sprintf(file_path, "%s.snibb", file_settings->file_name);
                 }
                 if(file_editor_confirm_action) {
+                    bool was_playing = playing;
+                    if(was_playing) {
+                        toggle_playback();
+                    }
                     load_project_file(file_path);
                     visual_track_height = synth->track_height;
                     file_editor_confirm_action = false;
+                    if(was_playing) {
+                        toggle_playback();
+                    }
                 } else {
                     // save project
                     file_editor_confirm_action = true;
