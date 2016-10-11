@@ -4693,7 +4693,7 @@ static void load_config(void) {
         FILE * fp;
         fp = fopen("config.txt", "w+");
         if(fp != NULL) {
-            fprintf(fp, "%s", "{\"buffer_size\":8192,\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"working_dir_path\":\"\",\"working_dir_path_info\":\"Use full path like /Users/d/Desktop/snibbetracker_workspace/ dir must be created manually. The default (empty path) will use the directory the executable is in. \",\"passive_rendering\":true, \"fullscreen\":false}");
+            fprintf(fp, "%s", "{\"buffer_size\":8192,\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"fullscreen\":false}");
             fclose(fp);
         }
     }
