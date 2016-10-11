@@ -7,21 +7,44 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <stdlib.h>
+#import "osx_settings.h"
 
-char *get_user_default_dir(void) {
-    // TODO how to handle memory here..
-    NSString *content = [[NSString alloc] initWithFormat:@"%@/Documents/", NSHomeDirectory()];
-    if (content) {
-        const char *chars = [content UTF8String];
-        char *my_str = strdup(chars);
-        //printf("user dir:%s\n", my_str);
-        return my_str;
+void copy_demo_songs(const char *path) {
+    NSString *demo_songs_key = @"demo_songs_added";
+    NSString *demo_songs_added = [[NSUserDefaults standardUserDefaults] stringForKey:demo_songs_key];
+    if (demo_songs_added == nil) {
+        load_and_save_demo_from_bundle(path, "kissemisse");
+        load_and_save_demo_from_bundle(path, "fiskbolja");
+        load_and_save_demo_from_bundle(path, "catslayer");
+        load_and_save_demo_from_bundle(path, "laptopmidi");
+        load_and_save_demo_from_bundle(path, "korvhastig");
+        load_and_save_demo_from_bundle(path, "websnacks");
+        load_and_save_demo_from_bundle(path, "horizon");
+        load_and_save_demo_from_bundle(path, "dunsa2");
+        load_and_save_demo_from_bundle(path, "wrestchest");
+        [[NSUserDefaults standardUserDefaults] setObject:@"true" forKey:demo_songs_key];
     }
-    return NULL;
+}
+
+void load_and_save_demo_from_bundle(const char *path, const char *name) {
+    NSString *ns_name = [NSString stringWithUTF8String:name];
+    NSString *bundle_path = [[NSBundle mainBundle] pathForResource:ns_name ofType:@"snibb"];
+    NSData *data = [NSData dataWithContentsOfFile:bundle_path];
+    NSString *file_name = [NSString stringWithUTF8String:name];
+    NSString *file_path = [NSString stringWithUTF8String:path];
+    file_path = [file_path stringByAppendingString:file_name];
+    file_path = [file_path stringByAppendingString:@".snibb"];
+    NSFileHandle *output = [NSFileHandle fileHandleForWritingAtPath:file_path];
+    if(output == nil) {
+        [[NSFileManager defaultManager] createFileAtPath:file_path contents:data attributes:nil];
+        output = [NSFileHandle fileHandleForWritingAtPath:file_path];
+    } else {
+        NSLog(@"error: could not create file handle for path:%@", file_path);
+    }
 }
 
 char *get_settings_json(void) {
-    
     NSString *filePath = [[NSBundle mainBundle] pathForResource:@"config" ofType:@"txt"];
     NSError* error = nil;
     NSString* content = [NSString stringWithContentsOfFile:filePath

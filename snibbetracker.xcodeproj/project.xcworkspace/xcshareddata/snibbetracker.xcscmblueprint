@@ -9,8 +9,8 @@
   },
   "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "FEBBE278-D586-4D08-90DB-23B4A69B1B1E",
   "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
-    "C4D6EFF8926804CF95C1D0E3F3187B354CF8EE87" : "cengine",
-    "1E655E55D34180930F338391307226E47EC98BA2" : "synth"
+    "C4D6EFF8926804CF95C1D0E3F3187B354CF8EE87" : "cengine\/",
+    "1E655E55D34180930F338391307226E47EC98BA2" : "synth\/"
   },
   "DVTSourceControlWorkspaceBlueprintNameKey" : "snibbetracker",
   "DVTSourceControlWorkspaceBlueprintVersion" : 204,

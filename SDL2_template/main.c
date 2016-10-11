@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker BETA";
+static char *title = "snibbetracker 1.0.0";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -4361,7 +4361,7 @@ static void setup_sdl(void) {
             
             SDL_GL_SetSwapInterval(1);
             char title_string[256];
-            sprintf(title_string, "%s (build:%d)", title, synth->build_number);
+            sprintf(title_string, "%s", title);
             SDL_SetWindowTitle(window, title_string);
             visual_track_height = synth->track_height;
         } else {
@@ -4739,11 +4739,8 @@ static bool parse_config(char *json) {
     cJSON *root = NULL;
     cJSON *object = NULL;
     char *param_buffer_size = "buffer_size";
-    char *param_working_dir_path = "working_dir_path";
-    char *param_passive_rendering = "passive_rendering";
     char *param_fullscreen = "fullscreen";
     char *param_preview = "preview";
-    
     char *param_color_info_text_bg = "color_info_text_bg";
     char *param_color_file_name_text = "color_file_name_text";
     char *param_color_inactive_instrument_node = "color_inactive_instrument_node";
@@ -4781,7 +4778,6 @@ static bool parse_config(char *json) {
     char *param_color_bg5_highlight = "color_bg5_highlight";
     char *param_color_bg6_highlight = "color_bg6_highlight";
     
-
     root = cJSON_Parse(json);
     if(root != NULL) {
         
@@ -4795,52 +4791,14 @@ static bool parse_config(char *json) {
             if(errorlog) { printf("could not find buffersize in config.\n"); }
         }
         
-        // path
-        bool path_in_config = false;
-        object = cJSON_GetObjectItem(root, param_working_dir_path);
-        if(object != NULL) {
-            char *path = object->valuestring;
-            if(path != NULL) {
-                if(strlen(path) > 0) {
-                    conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
-                    sprintf(conf_default_dir, "%s", path);
-                    if(debuglog) { printf("path in config:%s\n", conf_default_dir); }
-                    path_in_config = true;
-                }
-            } else {
-                if(debuglog) { printf("could not find path in config 1.\n"); }
-            }
+        // get path from SDL2
+        char *pref_path = SDL_GetPrefPath("Palestone Software", "snibbetracker");
+        if (pref_path != NULL) {
+            conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
+            snprintf(conf_default_dir, 1023, "%s", pref_path);
+            printf("default dir:%s\n", conf_default_dir);
         } else {
-            if(debuglog) { printf("could not find path in config 2.\n"); }
-        }
-        
-        if (!path_in_config) {
-            #if defined(platform_osx)
-                // get default path from ObjC.
-                char *default_dir = get_user_default_dir();
-                conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir");
-                sprintf(conf_default_dir, "%s", default_dir);
-                if(debuglog) { printf("using default dir:%s\n", conf_default_dir); }
-                free(default_dir);
-            #elif defined(platform_windows)
-				conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
-				sprintf(conf_default_dir, "%s", "");
-			#endif
-        }
-        
-        // passive rendering
-        object = cJSON_GetObjectItem(root, param_passive_rendering);
-        if(object != NULL) {
-            bool passive_render_val = object->valueint;
-            if(passive_render_val) {
-                if(debuglog) { printf("passive rendering in config is true\n"); }
-                passive_rendering = true;
-            } else {
-                if(debuglog) { printf("passive rendering in config is false\n"); }
-                passive_rendering = false;
-            }
-        } else {
-            if(debuglog) { printf("could not find passive rendering in config.\n"); }
+            if(debuglog) { printf("SDL_GetPrefPath returned NULL\n"); }
         }
         
         // fullscreen
@@ -5011,6 +4969,9 @@ int main(int argc, char* argv[]) {
         //osx, load from bundle
         char *settings = get_settings_json();
         parse_config(settings);
+        if(conf_default_dir != NULL) {
+            copy_demo_songs(conf_default_dir);
+        }
         free(settings);
     #else
         //linux

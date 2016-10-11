@@ -127,6 +127,7 @@ global controls
 - modifier+n: reset project.
 - space: toggle playback.
 - escape: exit current view.
+- F1, F2 etc to change views.
 
 save view
 ----------------
@@ -163,6 +164,15 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
+v1.0.0 - 2016-10-11
+- file ending changed to .snibb, change ending on old projects to be able to load them.
+- numpad plus and minus now works.
+- added F keys for fast switching of views.
+- working directory setting removed, SDL2 will provide a working dir depending on the platform. Default on macOS is /Users/username/Library/Application Support/Palestone Software/snibbetracker/
+- setting for passive render removed, will always use passive.
+- fixed bug where tempo would get misaligned when loading a project while playing back.
+- fixed alignment of first custom wave node.
+
 build 21 - 2015-09-18 10.52
 - show red lingering pixels in visualiser to display when audio clips.
 - reset will now clear wavetable and custom waveform.

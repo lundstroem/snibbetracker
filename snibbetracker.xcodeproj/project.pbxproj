@@ -23,21 +23,21 @@
 		038D21961A08D11100CD39F5 /* CInput.c in Sources */ = {isa = PBXBuildFile; fileRef = 038D21941A08D11100CD39F5 /* CInput.c */; };
 		0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 0399B2F317F35C1D005ACCBE /* InfoPlist.strings */; };
 		0399B2F717F35C1D005ACCBE /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 0399B2F617F35C1D005ACCBE /* main.c */; };
+		03A4319C1DACE5670069859A /* catslayer.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431931DACE5670069859A /* catslayer.snibb */; };
+		03A4319D1DACE5670069859A /* dunsa2.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431941DACE5670069859A /* dunsa2.snibb */; };
+		03A4319E1DACE5670069859A /* fiskbolja.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431951DACE5670069859A /* fiskbolja.snibb */; };
+		03A4319F1DACE5670069859A /* horizon.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431961DACE5670069859A /* horizon.snibb */; };
+		03A431A01DACE5670069859A /* kissemisse.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431971DACE5670069859A /* kissemisse.snibb */; };
+		03A431A11DACE5670069859A /* korvhastig.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431981DACE5670069859A /* korvhastig.snibb */; };
+		03A431A21DACE5670069859A /* laptopmidi.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A431991DACE5670069859A /* laptopmidi.snibb */; };
+		03A431A31DACE5670069859A /* websnacks.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A4319A1DACE5670069859A /* websnacks.snibb */; };
+		03A431A41DACE5670069859A /* wrestchest.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03A4319B1DACE5670069859A /* wrestchest.snibb */; };
 		03B5F57C1A0F8FB100C3E7FE /* CAllocator.c in Sources */ = {isa = PBXBuildFile; fileRef = 03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */; };
 		03BA8FB31AFB3AF800F296DB /* [IconName].iconset in Resources */ = {isa = PBXBuildFile; fileRef = 03BA8FB21AFB3AF800F296DB /* [IconName].iconset */; };
 		03BA8FB61AFB5C4F00F296DB /* config.txt in Resources */ = {isa = PBXBuildFile; fileRef = 03BA8FB51AFB5C4F00F296DB /* config.txt */; };
 		03BA8FB81AFB5EAB00F296DB /* osx_settings.m in Sources */ = {isa = PBXBuildFile; fileRef = 03BA8FB71AFB5EAB00F296DB /* osx_settings.m */; };
 		03C811C01C158756006CE873 /* CStr.c in Sources */ = {isa = PBXBuildFile; fileRef = 03C811BE1C158756006CE873 /* CStr.c */; };
-		03D930E91AA491AC000251CC /* groundtiles.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D930E81AA491AC000251CC /* groundtiles.png */; };
 		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
-		03F0ADE71A80EE8500884785 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDD1A80EE8500884785 /* LICENSE */; };
-		03F0ADE81A80EE8500884785 /* README in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADDE1A80EE8500884785 /* README */; };
-		03F0ADE91A80EE8500884785 /* test.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDF1A80EE8500884785 /* test.c */; };
-		03F0ADEA1A80EE8500884785 /* test1 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE11A80EE8500884785 /* test1 */; };
-		03F0ADEB1A80EE8500884785 /* test2 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE21A80EE8500884785 /* test2 */; };
-		03F0ADEC1A80EE8500884785 /* test3 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE31A80EE8500884785 /* test3 */; };
-		03F0ADED1A80EE8500884785 /* test4 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE41A80EE8500884785 /* test4 */; };
-		03F0ADEE1A80EE8500884785 /* test5 in Resources */ = {isa = PBXBuildFile; fileRef = 03F0ADE51A80EE8500884785 /* test5 */; };
 		03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; };
 		03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
@@ -90,6 +90,15 @@
 		0399B2F417F35C1D005ACCBE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		0399B2F617F35C1D005ACCBE /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		0399B30717F35D84005ACCBE /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = /Library/Frameworks/SDL2.framework; sourceTree = "<absolute>"; };
+		03A431931DACE5670069859A /* catslayer.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = catslayer.snibb; sourceTree = "<group>"; };
+		03A431941DACE5670069859A /* dunsa2.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = dunsa2.snibb; sourceTree = "<group>"; };
+		03A431951DACE5670069859A /* fiskbolja.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = fiskbolja.snibb; sourceTree = "<group>"; };
+		03A431961DACE5670069859A /* horizon.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = horizon.snibb; sourceTree = "<group>"; };
+		03A431971DACE5670069859A /* kissemisse.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = kissemisse.snibb; sourceTree = "<group>"; };
+		03A431981DACE5670069859A /* korvhastig.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = korvhastig.snibb; sourceTree = "<group>"; };
+		03A431991DACE5670069859A /* laptopmidi.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = laptopmidi.snibb; sourceTree = "<group>"; };
+		03A4319A1DACE5670069859A /* websnacks.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = websnacks.snibb; sourceTree = "<group>"; };
+		03A4319B1DACE5670069859A /* wrestchest.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = wrestchest.snibb; sourceTree = "<group>"; };
 		03B5F57A1A0F8FB100C3E7FE /* CAllocator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CAllocator.c; sourceTree = "<group>"; };
 		03B5F57B1A0F8FB100C3E7FE /* CAllocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CAllocator.h; sourceTree = "<group>"; };
 		03BA8FB21AFB3AF800F296DB /* [IconName].iconset */ = {isa = PBXFileReference; lastKnownFileType = folder.iconset; path = "[IconName].iconset"; sourceTree = "<group>"; };
@@ -100,17 +109,8 @@
 		03C811BE1C158756006CE873 /* CStr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CStr.c; sourceTree = "<group>"; };
 		03C811BF1C158756006CE873 /* CStr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CStr.h; sourceTree = "<group>"; };
 		03D930E41AA48D33000251CC /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
-		03D930E81AA491AC000251CC /* groundtiles.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = groundtiles.png; sourceTree = "<group>"; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
 		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
-		03F0ADDD1A80EE8500884785 /* LICENSE */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
-		03F0ADDE1A80EE8500884785 /* README */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = README; sourceTree = "<group>"; };
-		03F0ADDF1A80EE8500884785 /* test.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = test.c; sourceTree = "<group>"; };
-		03F0ADE11A80EE8500884785 /* test1 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test1; sourceTree = "<group>"; };
-		03F0ADE21A80EE8500884785 /* test2 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test2; sourceTree = "<group>"; };
-		03F0ADE31A80EE8500884785 /* test3 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test3; sourceTree = "<group>"; };
-		03F0ADE41A80EE8500884785 /* test4 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test4; sourceTree = "<group>"; };
-		03F0ADE51A80EE8500884785 /* test5 */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = test5; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -216,13 +216,29 @@
 			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
+		03A431921DACE5670069859A /* demos */ = {
+			isa = PBXGroup;
+			children = (
+				03A431931DACE5670069859A /* catslayer.snibb */,
+				03A431941DACE5670069859A /* dunsa2.snibb */,
+				03A431951DACE5670069859A /* fiskbolja.snibb */,
+				03A431961DACE5670069859A /* horizon.snibb */,
+				03A431971DACE5670069859A /* kissemisse.snibb */,
+				03A431981DACE5670069859A /* korvhastig.snibb */,
+				03A431991DACE5670069859A /* laptopmidi.snibb */,
+				03A4319A1DACE5670069859A /* websnacks.snibb */,
+				03A4319B1DACE5670069859A /* wrestchest.snibb */,
+			);
+			path = demos;
+			sourceTree = "<group>";
+		};
 		03D930E71AA491AC000251CC /* res */ = {
 			isa = PBXGroup;
 			children = (
+				03A431921DACE5670069859A /* demos */,
 				03BA8FB51AFB5C4F00F296DB /* config.txt */,
 				03BA8FB21AFB3AF800F296DB /* [IconName].iconset */,
 				0360E0931AA9A305006B4276 /* readme.txt */,
-				03D930E81AA491AC000251CC /* groundtiles.png */,
 			);
 			path = res;
 			sourceTree = "<group>";
@@ -232,24 +248,8 @@
 			children = (
 				03F0ADDB1A80EE8500884785 /* cJSON.c */,
 				03F0ADDC1A80EE8500884785 /* cJSON.h */,
-				03F0ADDD1A80EE8500884785 /* LICENSE */,
-				03F0ADDE1A80EE8500884785 /* README */,
-				03F0ADDF1A80EE8500884785 /* test.c */,
-				03F0ADE01A80EE8500884785 /* tests */,
 			);
 			path = cJSON;
-			sourceTree = "<group>";
-		};
-		03F0ADE01A80EE8500884785 /* tests */ = {
-			isa = PBXGroup;
-			children = (
-				03F0ADE11A80EE8500884785 /* test1 */,
-				03F0ADE21A80EE8500884785 /* test2 */,
-				03F0ADE31A80EE8500884785 /* test3 */,
-				03F0ADE41A80EE8500884785 /* test4 */,
-				03F0ADE51A80EE8500884785 /* test5 */,
-			);
-			path = tests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -283,6 +283,8 @@
 				ORGANIZATIONNAME = D;
 				TargetAttributes = {
 					0399B2E617F35C1D005ACCBE = {
+						DevelopmentTeam = QM9YTQA8XQ;
+						ProvisioningStyle = Manual;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
@@ -313,18 +315,19 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03A431A01DACE5670069859A /* kissemisse.snibb in Resources */,
 				0360E0941AA9A305006B4276 /* readme.txt in Resources */,
-				03D930E91AA491AC000251CC /* groundtiles.png in Resources */,
-				03F0ADED1A80EE8500884785 /* test4 in Resources */,
-				03F0ADEC1A80EE8500884785 /* test3 in Resources */,
-				03F0ADEE1A80EE8500884785 /* test5 in Resources */,
 				03BA8FB31AFB3AF800F296DB /* [IconName].iconset in Resources */,
-				03F0ADEA1A80EE8500884785 /* test1 in Resources */,
-				03F0ADE81A80EE8500884785 /* README in Resources */,
-				03F0ADEB1A80EE8500884785 /* test2 in Resources */,
-				03F0ADE71A80EE8500884785 /* LICENSE in Resources */,
+				03A4319F1DACE5670069859A /* horizon.snibb in Resources */,
+				03A431A21DACE5670069859A /* laptopmidi.snibb in Resources */,
 				03BA8FB61AFB5C4F00F296DB /* config.txt in Resources */,
+				03A4319D1DACE5670069859A /* dunsa2.snibb in Resources */,
+				03A431A11DACE5670069859A /* korvhastig.snibb in Resources */,
+				03A431A31DACE5670069859A /* websnacks.snibb in Resources */,
 				0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */,
+				03A4319E1DACE5670069859A /* fiskbolja.snibb in Resources */,
+				03A431A41DACE5670069859A /* wrestchest.snibb in Resources */,
+				03A4319C1DACE5670069859A /* catslayer.snibb in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -343,7 +346,6 @@
 				03420CE21A077D3500B4EF5D /* CAnimation.c in Sources */,
 				03420CEA1A077D3500B4EF5D /* CTouch.c in Sources */,
 				038D21961A08D11100CD39F5 /* CInput.c in Sources */,
-				03F0ADE91A80EE8500884785 /* test.c in Sources */,
 				037D46EC1A1DE73300EA2179 /* CSynth.c in Sources */,
 				03420CE91A077D3500B4EF5D /* CTimer.c in Sources */,
 				03C811C01C158756006CE873 /* CStr.c in Sources */,
@@ -432,8 +434,9 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = QM9YTQA8XQ;
 				FRAMEWORK_SEARCH_PATHS = (
 					/Library/Frameworks,
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
@@ -444,7 +447,10 @@
 				GCC_WARN_PEDANTIC = NO;
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.palestonesoftware.snibbetracker.mac;
 				PRODUCT_NAME = snibbetracker;
+				PROVISIONING_PROFILE = "dadcf81c-4a9f-4498-bb31-eab5cf74d670";
+				PROVISIONING_PROFILE_SPECIFIER = snibbetracker_mac_dev_profile;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -454,8 +460,9 @@
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
 				CLANG_WARN_SUSPICIOUS_IMPLICIT_CONVERSION = YES;
-				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_IDENTITY = "Developer ID Application";
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = QM9YTQA8XQ;
 				FRAMEWORK_SEARCH_PATHS = (
 					/Library/Frameworks,
 					"$(LOCAL_LIBRARY_DIR)/Frameworks",
@@ -466,7 +473,10 @@
 				GCC_WARN_PEDANTIC = NO;
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.palestonesoftware.snibbetracker.mac;
 				PRODUCT_NAME = snibbetracker;
+				PROVISIONING_PROFILE = "68659e2b-67fa-400d-b508-4d51dbe478de";
+				PROVISIONING_PROFILE_SPECIFIER = snibbetracker_mac_dist_profile;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
