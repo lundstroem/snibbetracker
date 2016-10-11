@@ -1,4 +1,4 @@
-snibbetracker BETA
+snibbetracker 1.0.0
 ==================
 
 introduction
@@ -6,9 +6,6 @@ introduction
 snibbetracker is a music tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
 I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it
 can be useful for someone.
-This is the BETA version of snibbetracker. I will try to keep backwards compatibility as intact as possible so
-that old songs will sound the same in newer versions. Linux version will be available at a later date
-depending on interest.
 No warranty either implicit or implied is included. Use at your own risk.
 (c) Palestone Software.
 
@@ -38,12 +35,10 @@ controls overview
 ----------------
 * modfier key is cmd on OSX and ctrl on win.
 
-OSX
+macOS
 ----------------
-To be able to save/load/export you will have to set a working directory in:
+To change settings, edit the config located at:
 snibbetracker.app/Contents/Resources/config.txt
-Edit the json value for "working_dir_path" to an existing folder in you Documents directory like:
-"working_dir_path":"/Users/d/Documents/snibbetracker/"
 
 track view
 ----------------
@@ -164,7 +159,7 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
-v1.0.0 - 2016-10-11
+v1.0.0 - 2016-10-11 15.34
 - file ending changed to .snibb, change ending on old projects to be able to load them.
 - numpad plus and minus now works.
 - added F keys for fast switching of views.
