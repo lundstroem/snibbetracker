@@ -4687,13 +4687,14 @@ static void load_config(void) {
         cAllocatorFree(b);
     }
     
+    // for windows
     if(!success) {
         if(debuglog) { printf("could not find config file. Writing config.txt.\n"); }
         bufferSize = 8192;
         FILE * fp;
         fp = fopen("config.txt", "w+");
         if(fp != NULL) {
-            fprintf(fp, "%s", "{\"buffer_size\":8192,\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\", \"fullscreen\":false}");
+            fprintf(fp, "%s", "{\r\n\"buffer_size\":4096,\r\n\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\",\r\n\"fullscreen\":false,\r\n\"preview\":true,\r\n\"color_info_text_bg\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_file_name_text\" : {\"r\" : 250, \"g\" : 100, \"b\" : 100},\r\n\"color_inactive_instrument_node\" : {\"r\" : 100, \"g\" : 100, \"b\" : 0},\r\n\"color_active_instrument_node\" : {\"r\" : 255, \"g\" : 100, \"b\" : 0},\r\n\"color_envelope\" : {\"r\" : 0, \"g\" : 100, \"b\" : 100},\r\n\"color_visualiser\" : {\"r\" : 100, \"g\" : 250, \"b\" : 100},\r\n\"color_visualiser_clipping\" : {\"r\" : 250, \"g\" : 100, \"b\" : 100},\r\n\"color_inactive_text\" : {\"r\" : 100, \"g\" : 100, \"b\" : 100},\r\n\"color_text\" : {\"r\" : 240, \"g\" : 240, \"b\" : 240},\r\n\"color_text_bg\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_marker\" : {\"r\" : 100, \"g\" : 100, \"b\" : 0},\r\n\"color_solo\" : {\"r\" : 0, \"g\" : 0, \"b\" : 100},\r\n\"color_solo_text\" : {\"r\" : 255, \"g\" : 255, \"b\" : 255},\r\n\"color_mute\" : {\"r\" : 200, \"g\" : 0, \"b\" : 0},\r\n\"color_mute_text\" : {\"r\" : 255, \"g\" : 255, \"b\" : 255},\r\n\"color_active_row\" : {\"r\" : 0, \"g\" : 100, \"b\" : 100},\r\n\"color_active_row_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_playing_row\" : {\"r\" : 100, \"g\" : 250, \"b\" : 100},\r\n\"color_playing_row_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_edit_marker\" : {\"r\" : 255, \"g\" : 100, \"b\" : 0},\r\n\"color_edit_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_selection_marker\" : {\"r\" : 0, \"g\" : 255, \"b\" : 255},\r\n\"color_selection_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_bg\" : {\"r\" : 20, \"g\" : 20, \"b\" : 20},\r\n\"color_bg1\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg2\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg3\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg4\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg5\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg6\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg1_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg2_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg3_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg4_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg5_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg6_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40}\r\n}\r\n");
             fclose(fp);
         }
     }
