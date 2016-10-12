@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		031E1F241BE12CF40070EBA5 /* SDL2_image.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03D930E41AA48D33000251CC /* SDL2_image.framework */; };
 		03420CE21A077D3500B4EF5D /* CAnimation.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CCF1A077D3500B4EF5D /* CAnimation.c */; };
 		03420CE31A077D3500B4EF5D /* CAnimationFrame.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CD11A077D3500B4EF5D /* CAnimationFrame.c */; };
 		03420CE41A077D3500B4EF5D /* CButton.c in Sources */ = {isa = PBXBuildFile; fileRef = 03420CD31A077D3500B4EF5D /* CButton.c */; };
@@ -118,7 +117,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				031E1F241BE12CF40070EBA5 /* SDL2_image.framework in Frameworks */,
 				03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
