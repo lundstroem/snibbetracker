@@ -350,6 +350,7 @@ static void cleanup_synth(void);
 static void main_loop(void);
 static void debug_log(char *str);
 static int get_buffer_size_from_index(int i);
+static void copy_project_win(const char *name);
 static void load_config(void);
 static bool parse_config(char *json);
 static void st_log(char *message);
@@ -568,9 +569,9 @@ static void handle_key_down_file(void) {
             if(file_settings->file_name != NULL) {
                 char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
                 if(conf_default_dir != NULL) {
-                    sprintf(file_path, "%s%s.wav", conf_default_dir, file_settings->file_name);
+                    snprintf(file_path, file_settings->file_name_max_length-1, "%s%s.wav", conf_default_dir, file_settings->file_name);
                 } else {
-                    sprintf(file_path, "%s.wav", file_settings->file_name);
+                    snprintf(file_path, file_settings->file_name_max_length-1, "%s.wav", file_settings->file_name);
                 }
                 
                 if(file_editor_confirm_action) {
@@ -602,9 +603,9 @@ static void handle_key_down_file(void) {
                 file_editor_existing_file = false;
                 char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
                 if(conf_default_dir != NULL) {
-                    sprintf(file_path, "%s%s.snibb", conf_default_dir, file_settings->file_name);
+                    snprintf(file_path, file_settings->file_name_max_length-1, "%s%s.snibb", conf_default_dir, file_settings->file_name);
                 } else {
-                    sprintf(file_path, "%s.snibb", file_settings->file_name);
+                    snprintf(file_path, file_settings->file_name_max_length-1, "%s.snibb", file_settings->file_name);
                 }
                 if(file_editor_confirm_action) {
                     bool was_playing = playing;
@@ -667,7 +668,7 @@ static void set_list_file_name(void) {
 		int length = (int)strlen(list_name);
         file_settings->file_name = cAllocatorFree(file_settings->file_name);
         char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
-        sprintf(temp_chars, "%s", list_name);
+        snprintf(temp_chars, file_settings->file_name_max_length-1, "%s", list_name);
         file_settings->file_name = temp_chars;
         
         // a list_name cannot be added unless it has the correct file endings, so we can assume
@@ -769,7 +770,7 @@ static void add_filename_char(char c) {
     int len = (int)strlen(file_settings->file_name);
     if(len < file_settings->file_name_limit) {
         char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
-        sprintf(temp_chars, "%s%c", file_settings->file_name, c);
+        snprintf(temp_chars, file_settings->file_name_max_length-1, "%s%c", file_settings->file_name, c);
         file_settings->file_name = cAllocatorFree(file_settings->file_name);
         file_settings->file_name = temp_chars;
     }
@@ -787,7 +788,7 @@ static void remove_filename_char(void) {
         file_settings->file_name[len] = ' ';
         file_settings->file_name[len-1] = '\0';
         char *temp_chars = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "file name chars");
-        sprintf(temp_chars, "%s", file_settings->file_name);
+        snprintf(temp_chars, file_settings->file_name_max_length-1, "%s", file_settings->file_name);
         file_settings->file_name = cAllocatorFree(file_settings->file_name);
         file_settings->file_name = temp_chars;
     }
@@ -846,9 +847,9 @@ static void save_project_file(void) {
     if(file_settings->file_name != NULL) {
         char *save_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "save_path chars");
         if(conf_default_dir != NULL) {
-            sprintf(save_path, "%s%s.snibb", conf_default_dir, file_settings->file_name);
+            snprintf(save_path, file_settings->file_name_max_length-1, "%s%s.snibb", conf_default_dir, file_settings->file_name);
         } else {
-            sprintf(save_path, "%s.snibb", file_settings->file_name);
+            snprintf(save_path, file_settings->file_name_max_length-1, "%s.snibb", file_settings->file_name);
         }
         
         cJSON *root = cSynthSaveProject(synth);
@@ -880,7 +881,7 @@ static void set_info_timer(char *string) {
         int len = (int)strlen(string);
         if(len < max_size-1) {
             char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer string");
-            sprintf(info, "%s", string);
+            snprintf(info, max_size-1, "%s", string);
             if(info_string != NULL) {
                 info_string = cAllocatorFree(info_string);
             }
@@ -899,7 +900,7 @@ static void set_info_timer_with_int(char *string, int data) {
         int len = (int)strlen(string);
         if(len < max_size) {
             char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer with int");
-            sprintf(info, "%s:%d", string, data);
+            snprintf(info, max_size-1, "%s:%d", string, data);
             if(info_string != NULL) {
                 info_string = cAllocatorFree(info_string);
             }
@@ -3644,7 +3645,7 @@ static void render_instrument_editor(double dt) {
     
     char cval[64];
     char c = cSynthGetCharFromParam((char)selected_instrument_id);
-    sprintf(cval, "instrument %c", c);
+    snprintf(cval, 63, "instrument %c", c);
     cEngineRenderLabelWithParams(raster2d, cval, 1, 2, color_text, cengine_color_transparent);
     
     // render preset instrument effects.
@@ -3667,15 +3668,15 @@ static void render_instrument_editor(double dt) {
             
             if(t != NULL) {
                 if(x == 0) {
-                    sprintf(cval, "%c", t->effect);
+                    snprintf(cval, 19, "%c", t->effect);
                     cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
                 }
                 if(x == 1) {
-                    sprintf(cval, "%c", t->effect_param1);
+                    snprintf(cval, 19, "%c", t->effect_param1);
                     cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
                 }
                 if(x == 2) {
-                    sprintf(cval, "%c", t->effect_param2);
+                    snprintf(cval, 19, "%c", t->effect_param2);
                     cEngineRenderLabelWithParams(raster2d, cval, x+1, y+offset_y, color, bg_color);
                 }
             } else {
@@ -3730,27 +3731,27 @@ static void render_pattern_mapping(void) {
                 
                 int val = synth->patterns_and_voices[x][y];
                 char cval[3];
-                sprintf(cval, "%d", val);
+                snprintf(cval, 2, "%d", val);
                 cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
             } else if(y == 17) {
                 char cval[10];
                 int ins_nr = x;
                 char c = cSynthGetCharFromParam((char)ins_nr);
-                sprintf(cval, "ins %c", c);
+                snprintf(cval, 9, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 18) {
                 char cval[10];
                 int ins_nr = x;
                 ins_nr += 6;
                 char c = cSynthGetCharFromParam((char)ins_nr);
-                sprintf(cval, "ins %c", c);
+                snprintf(cval, 9, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 19 && x < 4) {
                 char cval[10];
                 int ins_nr = x;
                 ins_nr += 12;
                 char c = cSynthGetCharFromParam((char)ins_nr);
-                sprintf(cval, "ins %c", c);
+                snprintf(cval, 9, "ins %c", c);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 0) {
                 cEngineRenderLabelWithParams(raster2d, "wavetable", x*10+inset_x, y+inset_y, color, bg_color);
@@ -3758,7 +3759,7 @@ static void render_pattern_mapping(void) {
                 cEngineRenderLabelWithParams(raster2d, "cust edit", x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 1) {
                 char cval[10];
-                sprintf(cval, "amp %d%%", synth->master_amp_percent);
+                snprintf(cval, 9, "amp %d%%", synth->master_amp_percent);
                 if(synth->audio_clips) {
                     bg_color = color_file_name_text;
                     synth->audio_clips = false;
@@ -3766,11 +3767,11 @@ static void render_pattern_mapping(void) {
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 2) {
                 char cval[20];
-                sprintf(cval, "rows %d", synth->track_height);
+                snprintf(cval, 19, "rows %d", synth->track_height);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 3) {
                 char cval[20];
-                sprintf(cval, "arp %d", synth->arpeggio_speed);
+                snprintf(cval, 19, "arp %d", synth->arpeggio_speed);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
             } else if(y == 20 && x == 4) {
                 cEngineRenderLabelWithParams(raster2d, "tempo", x*10+inset_x, y+inset_y, color, bg_color);
@@ -3830,14 +3831,14 @@ static void render_pattern_mapping(void) {
                 
                 int pattern = synth->patterns[x][y-1+visual_pattern_offset];
                 char cval[3];
-                sprintf(cval, "%d", pattern);
+                snprintf(cval, 2, "%d", pattern);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
                 
                 if(x == 0) {
                     // print track numbers
                     int track_nr = y-1+visual_pattern_offset;
                     char cval[3];
-                    sprintf(cval, "%d", track_nr);
+                    snprintf(cval, 2, "%d", track_nr);
                     int x_offset = 1;
                     if(track_nr < 10) {
                         x_offset = 2;
@@ -3857,7 +3858,7 @@ static void render_pattern_mapping(void) {
     
     if(track_at_cursor > -1 && pattern_at_cursor > -1) {
         char cval[20];
-        sprintf(cval, "p:%d t:%d", pattern_at_cursor, track_at_cursor);
+        snprintf(cval, 19, "p:%d t:%d", pattern_at_cursor, track_at_cursor);
         cEngineRenderLabelWithParams(raster2d, cval, 55, 23, cengine_color_white, cengine_color_transparent);
     }
 }
@@ -3942,7 +3943,7 @@ static void render_tempo_editor(double dt) {
                 // print track numbers
                 int track_nr = y-1;
                 char cval[3];
-                sprintf(cval, "%d", track_nr);
+                snprintf(cval, 2, "%d", track_nr);
                 int x_offset = 1;
                 if(track_nr < 10) {
                     x_offset = 2;
@@ -3988,11 +3989,11 @@ static void render_tempo_editor(double dt) {
             
             if (y == 0) {
                 int bpm = t->bpm;
-                sprintf(cval, "BPM %d", bpm);
+                snprintf(cval, 9, "BPM %d", bpm);
             } else {
                 char node_value = t->ticks;
                 char c = cSynthGetCharFromParam((char)node_value);
-                sprintf(cval, "%c", c);
+                snprintf(cval, 9, "%c", c);
             }
             cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
         }
@@ -4023,7 +4024,7 @@ static void render_wavetable_editor(double dt) {
                 // print track numbers
                 int track_nr = y-2;
                 char cval[3];
-                sprintf(cval, "%d", track_nr);
+                snprintf(cval, 2, "%d", track_nr);
                 int x_offset = 1;
                 if(track_nr < 10) {
                     x_offset = 2;
@@ -4048,7 +4049,7 @@ static void render_wavetable_editor(double dt) {
             if(h_switch) {
                 
                 if (y == 0) {
-                    sprintf(cval, "speed %d", t->speed);
+                    snprintf(cval, 19, "speed %d", t->speed);
                     cEngineRenderLabelWithParams(raster2d, cval, x*5+inset_x, y+inset_y, color, bg_color);
                 } else if (y == 1) {
                     
@@ -4056,7 +4057,7 @@ static void render_wavetable_editor(double dt) {
                 } else {
                     char node_value = t->value;
                     char c = cSynthGetCharFromParam((char)node_value);
-                    sprintf(cval, "%c", c);
+                    snprintf(cval, 19, "%c", c);
                     cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(node_value), x*5+inset_x, y+inset_y, color, bg_color);
                 }
                 
@@ -4070,7 +4071,7 @@ static void render_wavetable_editor(double dt) {
                     }
                     char node_value = t->value;
                     char c = cSynthGetCharFromParam((char)node_value);
-                    sprintf(cval, "%c", c);
+                    snprintf(cval, 19, "%c", c);
                     cEngineRenderLabelWithParams(raster2d, cval, x*5+inset_x, y+inset_y, color, bg_color);
                 } else {
                     //cEngineRenderLabelWithParams(raster2d, "-", x*5+inset_x+4, y+inset_y, color_inactive_text, bg_color);
@@ -4268,7 +4269,7 @@ static void render_track(double dt) {
                         if(t->instrument != NULL) {
                             char cval[20];
                             char c = cSynthGetCharFromParam((char)t->instrument_nr);
-                            sprintf(cval, "%c", c);
+                            snprintf(cval, 19, "%c", c);
                             cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                         } else {
                             cEngineRenderLabelWithParams(raster2d, "-", inset_x+x+offset_x, pos_y, color, bg_color);
@@ -4276,17 +4277,17 @@ static void render_track(double dt) {
                     } else if(x_count == 2) {
                         //effect type
                         char cval[20];
-                        sprintf(cval, "%c", t->effect);
+                        snprintf(cval, 19, "%c", t->effect);
                         cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                     } else if(x_count == 3) {
                         //effect type
                         char cval[20];
-                        sprintf(cval, "%c", t->effect_param1);
+                        snprintf(cval, 19, "%c", t->effect_param1);
                         cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                     } else if(x_count == 4) {
                         //effect type
                         char cval[20];
-                        sprintf(cval, "%c", t->effect_param2);
+                        snprintf(cval, 19, "%c", t->effect_param2);
                         cEngineRenderLabelWithParams(raster2d, cval, inset_x+x+offset_x, pos_y, color, bg_color);
                     }
                 } else {
@@ -4307,7 +4308,7 @@ static void render_track(double dt) {
         int pattern_at_cursor = synth->patterns[cursor_x][current_track];
         current_pattern = pattern_at_cursor;
         char cval[20];
-        sprintf(cval, "p:%d t:%d r:%d", current_pattern, current_track, visual_cursor_y);
+        snprintf(cval, 19, "p:%d t:%d r:%d", current_pattern, current_track, visual_cursor_y);
         cEngineRenderLabelWithParams(raster2d, cval, 50, 23, color_text, color_text_bg);
     }
 }
@@ -4361,7 +4362,7 @@ static void setup_sdl(void) {
             
             SDL_GL_SetSwapInterval(1);
             char title_string[256];
-            sprintf(title_string, "%s", title);
+            snprintf(title_string, 255, "%s", title);
             SDL_SetWindowTitle(window, title_string);
             visual_track_height = synth->track_height;
         } else {
@@ -4677,19 +4678,35 @@ static int get_buffer_size_from_index(int i) {
 
 }
 
+static void copy_project_win(const char *name) {
+    char *path = cAllocatorAlloc((1024 * sizeof(char*)), "config path");
+    snprintf(path, 1023, "%s%s", conf_default_dir, name);
+    char *b = load_file(path);
+    if(b != NULL) {
+        FILE * fp;
+        fp = fopen(path, "w+");
+        if(fp != NULL) {
+            fprintf(fp, "%s", b);
+            fclose(fp);
+        }
+    } else {
+        if(debuglog) { printf("could not load file %s", path); }
+    }
+    cAllocatorFree(path);
+}
+
 static void load_config(void) {
-    
+    // for windows
     bool success = false;
-    char *b = load_file("config.txt");
-    
+    char *path = cAllocatorAlloc((1024 * sizeof(char*)), "config path");
+    snprintf(path, 1023, "%sconfig.txt", conf_default_dir);
+    char *b = load_file(path);
     if(b != NULL) {
         success = parse_config(b);
         cAllocatorFree(b);
     }
-    
-    // for windows
     if(!success) {
-        if(debuglog) { printf("could not find config file. Writing config.txt.\n"); }
+        if(debuglog) { printf("could not find config file. Writing config.txt and copying demo projects.\n"); }
         bufferSize = 8192;
         FILE * fp;
         fp = fopen("config.txt", "w+");
@@ -4697,7 +4714,23 @@ static void load_config(void) {
             fprintf(fp, "%s", "{\r\n\"buffer_size\":4096,\r\n\"buffer_size_info\":\"Must be a power of two, for example 256, 512, 1024, 2048, 4096, 8192, 16384\",\r\n\"fullscreen\":false,\r\n\"preview\":true,\r\n\"color_info_text_bg\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_file_name_text\" : {\"r\" : 250, \"g\" : 100, \"b\" : 100},\r\n\"color_inactive_instrument_node\" : {\"r\" : 100, \"g\" : 100, \"b\" : 0},\r\n\"color_active_instrument_node\" : {\"r\" : 255, \"g\" : 100, \"b\" : 0},\r\n\"color_envelope\" : {\"r\" : 0, \"g\" : 100, \"b\" : 100},\r\n\"color_visualiser\" : {\"r\" : 100, \"g\" : 250, \"b\" : 100},\r\n\"color_visualiser_clipping\" : {\"r\" : 250, \"g\" : 100, \"b\" : 100},\r\n\"color_inactive_text\" : {\"r\" : 100, \"g\" : 100, \"b\" : 100},\r\n\"color_text\" : {\"r\" : 240, \"g\" : 240, \"b\" : 240},\r\n\"color_text_bg\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_marker\" : {\"r\" : 100, \"g\" : 100, \"b\" : 0},\r\n\"color_solo\" : {\"r\" : 0, \"g\" : 0, \"b\" : 100},\r\n\"color_solo_text\" : {\"r\" : 255, \"g\" : 255, \"b\" : 255},\r\n\"color_mute\" : {\"r\" : 200, \"g\" : 0, \"b\" : 0},\r\n\"color_mute_text\" : {\"r\" : 255, \"g\" : 255, \"b\" : 255},\r\n\"color_active_row\" : {\"r\" : 0, \"g\" : 100, \"b\" : 100},\r\n\"color_active_row_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_playing_row\" : {\"r\" : 100, \"g\" : 250, \"b\" : 100},\r\n\"color_playing_row_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_edit_marker\" : {\"r\" : 255, \"g\" : 100, \"b\" : 0},\r\n\"color_edit_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_selection_marker\" : {\"r\" : 0, \"g\" : 255, \"b\" : 255},\r\n\"color_selection_text\" : {\"r\" : 0, \"g\" : 0, \"b\" : 0},\r\n\"color_bg\" : {\"r\" : 20, \"g\" : 20, \"b\" : 20},\r\n\"color_bg1\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg2\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg3\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg4\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg5\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg6\" : {\"r\" : 60, \"g\" : 60, \"b\" : 60},\r\n\"color_bg1_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg2_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg3_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg4_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg5_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40},\r\n\"color_bg6_highlight\" : {\"r\" : 40, \"g\" : 40, \"b\" : 40}\r\n}\r\n");
             fclose(fp);
         }
+        b = load_file(path);
+        if(b != NULL) {
+            success = parse_config(b);
+            cAllocatorFree(b);
+            copy_project_win("catslayer.snibb");
+            copy_project_win("dunsa2.snibb");
+            copy_project_win("fiskbolja.snibb");
+            copy_project_win("horizon.snibb");
+            copy_project_win("kissemisse.snibb");
+            copy_project_win("korvhastig.snibb");
+            copy_project_win("websnacks.snibb");
+            copy_project_win("wrestchest.snibb");
+        } else {
+            if(debuglog) { printf("could not find config file after writing. path:%s\n", path); }
+        }
     }
+    path = cAllocatorFree(path);
 }
 
 static unsigned int get_color_from_json_config(cJSON *color_obj) {
@@ -4790,16 +4823,6 @@ static bool parse_config(char *json) {
             bufferSize = (Uint16)buffer_index_value;
         } else {
             if(errorlog) { printf("could not find buffersize in config.\n"); }
-        }
-        
-        // get path from SDL2
-        char *pref_path = SDL_GetPrefPath("Palestone Software", "snibbetracker");
-        if (pref_path != NULL) {
-            conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
-            snprintf(conf_default_dir, 1023, "%s", pref_path);
-            printf("default dir:%s\n", conf_default_dir);
-        } else {
-            if(debuglog) { printf("SDL_GetPrefPath returned NULL\n"); }
         }
         
         // fullscreen
@@ -4962,6 +4985,16 @@ static void st_log(char *message) {
 }
 
 int main(int argc, char* argv[]) {
+    
+    // get path from SDL2
+    char *pref_path = SDL_GetPrefPath("Palestone Software", "snibbetracker");
+    if (pref_path != NULL) {
+        conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
+        snprintf(conf_default_dir, 1023, "%s", pref_path);
+        printf("default dir:%s\n", conf_default_dir);
+    } else {
+        if(debuglog) { printf("SDL_GetPrefPath returned NULL\n"); }
+    }
     
     #if defined(platform_windows)
         load_config();
