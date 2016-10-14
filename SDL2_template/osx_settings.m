@@ -23,6 +23,7 @@ void copy_demo_songs(const char *path) {
         load_and_save_demo_from_bundle(path, "horizon");
         load_and_save_demo_from_bundle(path, "dunsa2");
         load_and_save_demo_from_bundle(path, "wrestchest");
+        load_and_save_demo_from_bundle(path, "projectcart");
         [[NSUserDefaults standardUserDefaults] setObject:@"true" forKey:demo_songs_key];
     }
 }
@@ -30,17 +31,23 @@ void copy_demo_songs(const char *path) {
 void load_and_save_demo_from_bundle(const char *path, const char *name) {
     NSString *ns_name = [NSString stringWithUTF8String:name];
     NSString *bundle_path = [[NSBundle mainBundle] pathForResource:ns_name ofType:@"snibb"];
-    NSData *data = [NSData dataWithContentsOfFile:bundle_path];
-    NSString *file_name = [NSString stringWithUTF8String:name];
-    NSString *file_path = [NSString stringWithUTF8String:path];
-    file_path = [file_path stringByAppendingString:file_name];
-    file_path = [file_path stringByAppendingString:@".snibb"];
-    NSFileHandle *output = [NSFileHandle fileHandleForWritingAtPath:file_path];
-    if(output == nil) {
-        [[NSFileManager defaultManager] createFileAtPath:file_path contents:data attributes:nil];
-        output = [NSFileHandle fileHandleForWritingAtPath:file_path];
-    } else {
-        NSLog(@"error: could not create file handle for path:%@", file_path);
+    if(bundle_path != nil) {
+        if(bundle_path != nil) {
+            NSData *data = [NSData dataWithContentsOfFile:bundle_path];
+            if(data != nil) {
+                NSString *file_name = [NSString stringWithUTF8String:name];
+                NSString *file_path = [NSString stringWithUTF8String:path];
+                file_path = [file_path stringByAppendingString:file_name];
+                file_path = [file_path stringByAppendingString:@".snibb"];
+                NSFileHandle *output = [NSFileHandle fileHandleForWritingAtPath:file_path];
+                if(output == nil) {
+                    [[NSFileManager defaultManager] createFileAtPath:file_path contents:data attributes:nil];
+                    output = [NSFileHandle fileHandleForWritingAtPath:file_path];
+                } else {
+                    NSLog(@"error: could not create file handle for path:%@", file_path);
+                }
+            }
+        }
     }
 }
 

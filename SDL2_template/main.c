@@ -696,7 +696,6 @@ static void exit_file_editor(void) {
         }
     }
     file_settings->file_path = cAllocatorFree(file_settings->file_path);
-    //file_settings->file_name = cAllocatorFree(file_settings->file_name);
     file_editor = false;
     file_settings->file_editor_save = false;
     file_settings->reload_dirs = true;
@@ -795,7 +794,6 @@ static void remove_filename_char(void) {
 }
 
 static char *load_file(char *path) {
-    
     if(path != NULL) {
         FILE *fp = NULL;
         fp = fopen(path, "rb");
@@ -803,7 +801,6 @@ static char *load_file(char *path) {
             fseek(fp, 0L, SEEK_END);
             long sz = 0;
             sz = ftell(fp);
-            //printf("file size:%ld\n", sz);
             char *b = NULL;
             b = cAllocatorAlloc(sizeof(char)*sz, "load file chars");
             if(b != NULL) {
@@ -879,7 +876,7 @@ static void set_info_timer(char *string) {
     if(string != NULL) {
         int max_size = file_settings->file_name_max_length;
         int len = (int)strlen(string);
-        if(len < max_size-1) {
+        if(len < max_size) {
             char *info = cAllocatorAlloc(max_size * sizeof(char), "info timer string");
             snprintf(info, max_size-1, "%s", string);
             if(info_string != NULL) {
@@ -3730,8 +3727,8 @@ static void render_pattern_mapping(void) {
                 }
                 
                 int val = synth->patterns_and_voices[x][y];
-                char cval[3];
-                snprintf(cval, 2, "%d", val);
+                char cval[4];
+                snprintf(cval, 3, "%d", val);
                 cEngineRenderLabelWithParams(raster2d, get_wave_type_as_char(val), x*10+inset_x, y+inset_y, wave_color, bg_color);
             } else if(y == 17) {
                 char cval[10];
@@ -3830,15 +3827,15 @@ static void render_pattern_mapping(void) {
                 }
                 
                 int pattern = synth->patterns[x][y-1+visual_pattern_offset];
-                char cval[3];
-                snprintf(cval, 2, "%d", pattern);
+                char cval[4];
+                snprintf(cval, 3, "%d", pattern);
                 cEngineRenderLabelWithParams(raster2d, cval, x*10+inset_x, y+inset_y, color, bg_color);
                 
                 if(x == 0) {
                     // print track numbers
                     int track_nr = y-1+visual_pattern_offset;
-                    char cval[3];
-                    snprintf(cval, 2, "%d", track_nr);
+                    char cval[4];
+                    snprintf(cval, 3, "%d", track_nr);
                     int x_offset = 1;
                     if(track_nr < 10) {
                         x_offset = 2;
@@ -3942,8 +3939,8 @@ static void render_tempo_editor(double dt) {
             if(x == 0 && y > 0) {
                 // print track numbers
                 int track_nr = y-1;
-                char cval[3];
-                snprintf(cval, 2, "%d", track_nr);
+                char cval[4];
+                snprintf(cval, 3, "%d", track_nr);
                 int x_offset = 1;
                 if(track_nr < 10) {
                     x_offset = 2;
@@ -4023,8 +4020,8 @@ static void render_wavetable_editor(double dt) {
             if(x == 0 && y > 1) {
                 // print track numbers
                 int track_nr = y-2;
-                char cval[3];
-                snprintf(cval, 2, "%d", track_nr);
+                char cval[4];
+                snprintf(cval, 3, "%d", track_nr);
                 int x_offset = 1;
                 if(track_nr < 10) {
                     x_offset = 2;
@@ -4986,14 +4983,28 @@ static void st_log(char *message) {
 
 int main(int argc, char* argv[]) {
     
+    // override to use exe dir as default_dir
+    bool path_defined = false;
+    #if defined(platform_windows)
+        char *b = load_file("exe_dir_as_workspace.txt");
+        if(b != NULL) {
+            path_defined = true;
+            conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir exe dir");
+            snprintf(conf_default_dir, 1023, "%s", "");
+            printf("exe dir override found. default dir:%s\n", conf_default_dir);
+            cAllocatorFree(b);
+        }
+    #endif
     // get path from SDL2
-    char *pref_path = SDL_GetPrefPath("Palestone Software", "snibbetracker");
-    if (pref_path != NULL) {
-        conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
-        snprintf(conf_default_dir, 1023, "%s", pref_path);
-        printf("default dir:%s\n", conf_default_dir);
-    } else {
-        if(debuglog) { printf("SDL_GetPrefPath returned NULL\n"); }
+    if(path_defined == false) {
+        char *pref_path = SDL_GetPrefPath("Palestone Software", "snibbetracker");
+        if (pref_path != NULL) {
+            conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
+            snprintf(conf_default_dir, 1023, "%s", pref_path);
+            printf("default dir:%s\n", conf_default_dir);
+        } else {
+            if(debuglog) { printf("SDL_GetPrefPath returned NULL\n"); }
+        }
     }
     
     #if defined(platform_windows)

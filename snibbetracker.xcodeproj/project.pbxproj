@@ -36,6 +36,7 @@
 		03BA8FB61AFB5C4F00F296DB /* config.txt in Resources */ = {isa = PBXBuildFile; fileRef = 03BA8FB51AFB5C4F00F296DB /* config.txt */; };
 		03BA8FB81AFB5EAB00F296DB /* osx_settings.m in Sources */ = {isa = PBXBuildFile; fileRef = 03BA8FB71AFB5EAB00F296DB /* osx_settings.m */; };
 		03C811C01C158756006CE873 /* CStr.c in Sources */ = {isa = PBXBuildFile; fileRef = 03C811BE1C158756006CE873 /* CStr.c */; };
+		03EB37241DB0FF720026857F /* projectcart.snibb in Resources */ = {isa = PBXBuildFile; fileRef = 03EB37231DB0FF720026857F /* projectcart.snibb */; };
 		03F0ADE61A80EE8500884785 /* cJSON.c in Sources */ = {isa = PBXBuildFile; fileRef = 03F0ADDB1A80EE8500884785 /* cJSON.c */; };
 		03FCECB317F606C20045D4FB /* SDL2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; };
 		03FCECB417F606D50045D4FB /* SDL2.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 0399B30717F35D84005ACCBE /* SDL2.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -108,6 +109,7 @@
 		03C811BE1C158756006CE873 /* CStr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CStr.c; sourceTree = "<group>"; };
 		03C811BF1C158756006CE873 /* CStr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CStr.h; sourceTree = "<group>"; };
 		03D930E41AA48D33000251CC /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
+		03EB37231DB0FF720026857F /* projectcart.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = projectcart.snibb; sourceTree = "<group>"; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
 		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -217,6 +219,7 @@
 		03A431921DACE5670069859A /* demos */ = {
 			isa = PBXGroup;
 			children = (
+				03EB37231DB0FF720026857F /* projectcart.snibb */,
 				03A431931DACE5670069859A /* catslayer.snibb */,
 				03A431941DACE5670069859A /* dunsa2.snibb */,
 				03A431951DACE5670069859A /* fiskbolja.snibb */,
@@ -323,6 +326,7 @@
 				03A431A11DACE5670069859A /* korvhastig.snibb in Resources */,
 				03A431A31DACE5670069859A /* websnacks.snibb in Resources */,
 				0399B2F517F35C1D005ACCBE /* InfoPlist.strings in Resources */,
+				03EB37241DB0FF720026857F /* projectcart.snibb in Resources */,
 				03A4319E1DACE5670069859A /* fiskbolja.snibb in Resources */,
 				03A431A41DACE5670069859A /* wrestchest.snibb in Resources */,
 				03A4319C1DACE5670069859A /* catslayer.snibb in Resources */,

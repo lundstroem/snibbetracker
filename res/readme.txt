@@ -3,7 +3,7 @@ snibbetracker 1.0.0
 
 introduction
 ----------------
-snibbetracker is a music tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
+snibbetracker is a fakebit tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
 I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it
 can be useful for someone.
 No warranty either implicit or implied is included. Use at your own risk.
@@ -159,14 +159,15 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
-v1.0.0 - 2016-10-11 15.34
-- file ending changed to .snibb, change ending on old projects to be able to load them.
+v1.0.0 - 2016-10-14 15.34
+- file ending changed to .snibb, change ending on old project files to be able to load them.
 - numpad plus and minus now works.
-- added F keys for fast switching of views.
-- working directory setting removed, SDL2 will provide a working dir depending on the platform. Default on macOS is /Users/username/Library/Application Support/Palestone Software/snibbetracker/
+- added F1, F2 etc keys for fast switching of views.
+- working directory setting removed, SDL2 will provide a working dir depending on the platform. Default on macOS is /Users/username/Library/Application Support/Palestone Software/snibbetracker/ on Windows it can be overridden with creating a file named exe_dir_as_workspace.txt in the exe dir.
 - setting for passive render removed, will always use passive.
 - fixed bug where tempo would get misaligned when loading a project while playing back.
 - fixed alignment of first custom wave node.
+- added "author", "title", and "info" strings to file format.
 
 build 21 - 2015-09-18 10.52
 - show red lingering pixels in visualiser to display when audio clips.
