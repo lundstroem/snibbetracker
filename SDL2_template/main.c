@@ -98,6 +98,7 @@ static int help_index = 0;
 static int help_index_max = 8;
 static bool export_project = false;
 static int octave = 2;
+static int step_size = 1;
 static int visual_pattern_offset = 0;
 static int visual_track_width = 30;
 static int visual_track_height = 16;
@@ -303,6 +304,7 @@ static void toggle_playback(void);
 static void toggle_editing(void);
 static void move_notes_up(void);
 static void move_notes_down(void);
+static void move_patterns(int direction);
 static void change_octave(bool up);
 void handle_key_up(SDL_Keysym* keysym);
 void handle_key_down(SDL_Keysym* keysym);
@@ -312,7 +314,6 @@ static void handle_reset_confirmation_keys(void);
 static void handle_note_keys(void);
 static void handle_pattern_keys(void);
 static void handle_param_value(void);
-//static void handle_effect_keys(void);
 static void handle_tempo_keys(void);
 static void handle_wavetable_keys(void);
 static void instrument_effect_remove(void);
@@ -565,7 +566,6 @@ static void handle_key_down_file(void) {
         exit_file_editor();
     } else if(input->key_return) {
         if(export_project) {
-            // TODO export wav.
             if(file_settings->file_name != NULL) {
                 char *file_path = cAllocatorAlloc(sizeof(char)*file_settings->file_name_max_length, "load_path chars");
                 if(conf_default_dir != NULL) {
@@ -573,7 +573,6 @@ static void handle_key_down_file(void) {
                 } else {
                     snprintf(file_path, file_settings->file_name_max_length-1, "%s.wav", file_settings->file_name);
                 }
-                
                 if(file_editor_confirm_action) {
                     export_wav(file_path);
                     export_project = false;
@@ -584,7 +583,6 @@ static void handle_key_down_file(void) {
                         file_editor_existing_file = true;
                         file_editor_confirm_action = true;
                     } else {
-                        //file_editor_existing_file = false;
                         // just proceed.
                         export_wav(file_path);
                         export_project = false;
@@ -1207,10 +1205,10 @@ static void add_track_node_with_octave(int x, int y, bool editing, int value) {
                 if(follow) {
                     if(playing) {}
                     else {
-                        set_visual_cursor(0, 1, true);
+                        set_visual_cursor(0, step_size, true);
                     }
                 } else {
-                    set_visual_cursor(0, 1, true);
+                    set_visual_cursor(0, step_size, true);
                 }
             }
         }
@@ -1241,12 +1239,12 @@ static void set_visual_cursor(int diff_x, int diff_y, bool user) {
             }
         }
         
-        if(visual_cursor_y == visual_track_height) {
+        if(visual_cursor_y >= visual_track_height) {
             current_track = cSynthGetNextActiveTrack(current_track, synth, true);
-            visual_cursor_y = 0;
+            visual_cursor_y = visual_cursor_y - visual_track_height;
         }
         
-        if(visual_cursor_y == -1) {
+        if(visual_cursor_y < 0) {
             current_track = cSynthGetNextActiveTrack(current_track, synth, false);
             visual_cursor_y = visual_track_height-1;
         }
@@ -1504,32 +1502,33 @@ void handle_key_up(SDL_Keysym* keysym) {
     }
     
     redraw_screen = true;
-    /* keep this a while longer until it's confirmed it works.
-    switch( keysym->sym ) {
-        case SDLK_LGUI:
-            modifier = false;
-            break;
-        case SDLK_LCTRL:
-            modifier = false;
-            break;
-        case SDLK_LEFT:
-            pressed_left = false;
-            break;
-        case SDLK_RIGHT:
-            pressed_right = false;
-            break;
-        case SDLK_UP:
-            pressed_up = false;
-            break;
-        case SDLK_DOWN:
-            pressed_down = false;
-            break;
-        case SDLK_LSHIFT:
-            shift_down = false;
-            break;
-        
-    }*/
-    
+}
+
+static void move_patterns(int direction) {
+    int pattern_y = visual_pattern_offset+pattern_cursor_y;
+    for(int x = 0; x < synth->patterns_width; x++) {
+        int patterns[synth->patterns_height];
+        for(int i = 0; i < synth->patterns_height; i++) {
+            patterns[i] = synth->patterns[x][i];
+        }
+        if(direction == 1) {
+            for(int i = 1; i < synth->patterns_height; i++) {
+                if(i >= pattern_y-1) {
+                    synth->patterns[x][i] = patterns[i-1];
+                }
+            }
+            if(pattern_y-2 < synth->patterns_height) {
+                synth->patterns[x][pattern_y-2] = 0;
+            }
+        } else {
+            for(int i = 0; i < synth->patterns_height-1; i++) {
+                if(i >= pattern_y-1) {
+                    synth->patterns[x][i] = patterns[i+1];
+                }
+            }
+            synth->patterns[x][synth->patterns_height-1] = 0;
+        }
+    }
 }
 
 void handle_key_down(SDL_Keysym* keysym) {
@@ -2068,11 +2067,15 @@ void handle_key_down(SDL_Keysym* keysym) {
                         instrument_editor_effects_y = visual_instrument_effects-1;
                     }
                 }
-            } else if(modifier && pattern_editor) {
+            } else if(shift_down && pattern_editor) {
                 visual_pattern_offset -= 16;
                 if(visual_pattern_offset < 0){
                     visual_pattern_offset = 48;
                 }
+            } else if(modifier && pattern_editor) {
+                pattern_cursor_y -= 1;
+                check_pattern_cursor_bounds();
+                move_patterns(-1);
             } else {
                 if(pattern_editor) {
                     pattern_cursor_y -= 1;
@@ -2110,11 +2113,15 @@ void handle_key_down(SDL_Keysym* keysym) {
                         instrument_editor_effects_y = 0;
                     }
                 }
-            } else if(modifier && pattern_editor) {
+            } else if(shift_down && pattern_editor) {
                 visual_pattern_offset += 16;
                 if(visual_pattern_offset > 48){
                     visual_pattern_offset = 0;
                 }
+            } else if(modifier && pattern_editor) {
+                pattern_cursor_y += 1;
+                check_pattern_cursor_bounds();
+                move_patterns(1);
             } else {
                 if(pattern_editor) {
                     pattern_cursor_y += 1;
@@ -2276,7 +2283,33 @@ void handle_key_down(SDL_Keysym* keysym) {
         handle_param_value();
         return;
     } else {
-        handle_note_keys();
+        if(modifier) {
+            int current_step_size = step_size;
+            if(input->key_1) {
+                step_size = 1;
+            } else if(input->key_2) {
+                step_size = 2;
+            } else if(input->key_3) {
+                step_size = 3;
+            } else if(input->key_4) {
+                step_size = 4;
+            } else if(input->key_5) {
+                step_size = 5;
+            } else if(input->key_6) {
+                step_size = 6;
+            } else if(input->key_7) {
+                step_size = 7;
+            } else if(input->key_8) {
+                step_size = 8;
+            } else if(input->key_9) {
+                step_size = 9;
+            }
+            if(step_size != current_step_size) {
+                set_info_timer_with_int("stepsize", step_size);
+            }
+        } else {
+            handle_note_keys();
+        }
     }
 }
 
