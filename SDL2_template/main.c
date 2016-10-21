@@ -2173,10 +2173,10 @@ void handle_key_down(SDL_Keysym* keysym) {
                     if(follow) {
                         if(playing) {}
                         else {
-                            set_visual_cursor(0, 1, true);
+                            set_visual_cursor(0, step_size, true);
                         }
                     } else {
-                        set_visual_cursor(0, 1, true);
+                        set_visual_cursor(0, step_size, true);
                     }
                 }
             }
@@ -2262,6 +2262,30 @@ void handle_key_down(SDL_Keysym* keysym) {
         selection_enabled = true;
     }
     
+    if(!pattern_editor && !tempo_editor && !wavetable_editor && !instrument_editor && !visualiser && modifier) {
+        if(input->key_1) {
+            step_size = 1;
+        } else if(input->key_2) {
+            step_size = 2;
+        } else if(input->key_3) {
+            step_size = 3;
+        } else if(input->key_4) {
+            step_size = 4;
+        } else if(input->key_5) {
+            step_size = 5;
+        } else if(input->key_6) {
+            step_size = 6;
+        } else if(input->key_7) {
+            step_size = 7;
+        } else if(input->key_8) {
+            step_size = 8;
+        } else if(input->key_9) {
+            step_size = 9;
+        }
+        set_info_timer_with_int("stepsize", step_size);
+        return;
+    }
+    
     int x_count = visual_cursor_x%5;
     
     if(tempo_editor) {
@@ -2283,33 +2307,7 @@ void handle_key_down(SDL_Keysym* keysym) {
         handle_param_value();
         return;
     } else {
-        if(modifier) {
-            int current_step_size = step_size;
-            if(input->key_1) {
-                step_size = 1;
-            } else if(input->key_2) {
-                step_size = 2;
-            } else if(input->key_3) {
-                step_size = 3;
-            } else if(input->key_4) {
-                step_size = 4;
-            } else if(input->key_5) {
-                step_size = 5;
-            } else if(input->key_6) {
-                step_size = 6;
-            } else if(input->key_7) {
-                step_size = 7;
-            } else if(input->key_8) {
-                step_size = 8;
-            } else if(input->key_9) {
-                step_size = 9;
-            }
-            if(step_size != current_step_size) {
-                set_info_timer_with_int("stepsize", step_size);
-            }
-        } else {
-            handle_note_keys();
-        }
+        handle_note_keys();
     }
 }
 
