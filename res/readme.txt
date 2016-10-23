@@ -69,9 +69,10 @@ pattern view
 - m: mute track (or channel if cursor is at the top)
 - x: activate/inactivate track.
 - s: solo track (or channel if cursor is at the top)
-- modifier+up/down: paginate tracks (0-63).
+- shift+up/down: paginate tracks (0-63).
 - modifier+c/v: copy paste track data.
 - home/end: set cursor to top / bottom.
+- modifier+up/down: move rows below cursor.
 
 amp - master amplitude, used both for previewing and exporting.
 rows - number of active rows in patterns.
@@ -159,6 +160,11 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
+v1.1.0 - 2016-10-23 12.17
+- added functionality to move pattern rows with modifier+up/down.
+- paginating rows is now changed to shift+up/down.
+- added variable stepsize when adding and removing track items in trackview. Set with modifier+numeric.
+
 v1.0.0 - 2016-10-14 15.34
 - file ending changed to .snibb, change ending on old project files to be able to load them.
 - numpad plus and minus now works.

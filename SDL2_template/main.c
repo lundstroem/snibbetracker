@@ -72,7 +72,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker 1.0.0";
+static char *title = "snibbetracker 1.1.0";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -2263,26 +2263,38 @@ void handle_key_down(SDL_Keysym* keysym) {
     }
     
     if(!pattern_editor && !tempo_editor && !wavetable_editor && !instrument_editor && !visualiser && modifier) {
+        bool stepsize_set = false;
         if(input->key_1) {
             step_size = 1;
+            stepsize_set = true;
         } else if(input->key_2) {
             step_size = 2;
+            stepsize_set = true;
         } else if(input->key_3) {
             step_size = 3;
+            stepsize_set = true;
         } else if(input->key_4) {
             step_size = 4;
+            stepsize_set = true;
         } else if(input->key_5) {
             step_size = 5;
+            stepsize_set = true;
         } else if(input->key_6) {
             step_size = 6;
+            stepsize_set = true;
         } else if(input->key_7) {
             step_size = 7;
+            stepsize_set = true;
         } else if(input->key_8) {
             step_size = 8;
+            stepsize_set = true;
         } else if(input->key_9) {
             step_size = 9;
+            stepsize_set = true;
         }
-        set_info_timer_with_int("stepsize", step_size);
+        if(stepsize_set) {
+            set_info_timer_with_int("stepsize", step_size);
+        }
         return;
     }
     
@@ -5345,6 +5357,8 @@ static void render_help(void) {
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+plus/minus: transpose octave in selection.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+1-9: set stepsize.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
         #elif defined(platform_osx)
             cEngineRenderLabelWithParams(raster2d, "- cmd+left/right: change octave up/down.", inset_x+x+offset_x, y, color, bg_color);
             y++;
@@ -5355,6 +5369,8 @@ static void render_help(void) {
             cEngineRenderLabelWithParams(raster2d, "- cmd+f: toggle play cursor follow.", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+plus/minus: transpose octave in selection.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+1-9: set stepsize.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #endif
         cEngineRenderLabelWithParams(raster2d, "- plus/minus: transpose halfnote", inset_x+x+offset_x, y, color, bg_color);
@@ -5398,14 +5414,18 @@ static void render_help(void) {
         cEngineRenderLabelWithParams(raster2d, "- s: solo track (or channel if cursor is at the top).", inset_x+x+offset_x, y, color, bg_color);
         y++;
         #if defined(platform_windows)
-            cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: paginate tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- shift+up/down: paginate tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- ctrl+c/v: copy paste track data.", inset_x+x+offset_x, y, color, bg_color);
             y++;
+            cEngineRenderLabelWithParams(raster2d, "- ctrl+up/down: move pattern rows.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
         #elif defined(platform_osx)
-            cEngineRenderLabelWithParams(raster2d, "- cmd+up/down: cycle tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
+            cEngineRenderLabelWithParams(raster2d, "- shift+up/down: paginate tracks (0-63).", inset_x+x+offset_x, y, color, bg_color);
             y++;
             cEngineRenderLabelWithParams(raster2d, "- cmd+c/v: copy paste track data.", inset_x+x+offset_x, y, color, bg_color);
+            y++;
+            cEngineRenderLabelWithParams(raster2d, "- cmd+up/down: move pattern rows.", inset_x+x+offset_x, y, color, bg_color);
             y++;
         #endif
         cEngineRenderLabelWithParams(raster2d, "- home/end: set cursor to top / bottom.", inset_x+x+offset_x, y, color, bg_color);
@@ -5418,12 +5438,12 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "preview - 1 or 0. if notes are audiable when editing.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-        cEngineRenderLabelWithParams(raster2d, "tempo - open tempo editor.", inset_x+x+offset_x, y, color, bg_color);
-        y++;
-        cEngineRenderLabelWithParams(raster2d, "wavetable - open wavetable editor.", inset_x+x+offset_x, y, color, bg_color);
-        y++;
-        cEngineRenderLabelWithParams(raster2d, "cust wave - open custom wave editor.", inset_x+x+offset_x, y, color, bg_color);
-        y++;
+       // cEngineRenderLabelWithParams(raster2d, "tempo - open tempo editor.", inset_x+x+offset_x, y, color, bg_color);
+       // y++;
+       // cEngineRenderLabelWithParams(raster2d, "wavetable - open wavetable editor.", inset_x+x+offset_x, y, color, bg_color);
+       // y++;
+       // cEngineRenderLabelWithParams(raster2d, "cust wave - open custom wave editor.", inset_x+x+offset_x, y, color, bg_color);
+       // y++;
         cEngineRenderLabelWithParams(raster2d, "2 / 7", 1, 22, color, bg_color);
     }
     
@@ -5800,7 +5820,7 @@ static void render_credits(void) {
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "_etc_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   (C) Palestone Software 2015", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   (C) Palestone Software", int_x+inset_x, int_y+inset_y, color, bg_color);
     
     int hue_x = int_x;
     int hue_y = int_y;
