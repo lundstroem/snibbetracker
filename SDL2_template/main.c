@@ -5045,7 +5045,7 @@ int main(int argc, char* argv[]) {
     #endif
     // get path from SDL2
     if(path_defined == false) {
-        char *pref_path = SDL_GetPrefPath("Palestone Software", "snibbetracker");
+        char *pref_path = SDL_GetPrefPath("lundstroem", "snibbetracker");
         if (pref_path != NULL) {
             conf_default_dir = cAllocatorAlloc((1024 * sizeof(char*)), "conf default dir 2");
             snprintf(conf_default_dir, 1023, "%s", pref_path);
@@ -5820,7 +5820,7 @@ static void render_credits(void) {
     inset_y+=inc;
     cEngineRenderLabelByPixelPos(credits2d, "_etc_", int_x+inset_x, int_y+inset_y, color, bg_color);
     inset_y+=inc;
-    cEngineRenderLabelByPixelPos(credits2d, "   (C) Palestone Software", int_x+inset_x, int_y+inset_y, color, bg_color);
+    cEngineRenderLabelByPixelPos(credits2d, "   (C) lundstroem", int_x+inset_x, int_y+inset_y, color, bg_color);
     
     int hue_x = int_x;
     int hue_y = int_y;

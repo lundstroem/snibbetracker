@@ -7,7 +7,7 @@ snibbetracker is a fakebit tracker written in C using SDL2 that I began working 
 I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it
 can be useful for someone.
 No warranty either implicit or implied is included. Use at your own risk.
-(c) Palestone Software.
+(c) lundstroem.
 
 credits
 ----------------
@@ -28,8 +28,8 @@ contact/support
 If you encounter bugs or other issues, please let me know and if possible the steps to reproduce them.
 Feel free to contact if you have other feedback or questions, or if you've made a song
 you'd like to share.
-palestonesoftware@gmail.com
-http://www.palestonesoftware.com/snibbetracker.html
+h.lundstroem@gmail.com
+http://harrylundstrom.se/snibbetracker.html
 
 controls overview
 ----------------
@@ -169,7 +169,7 @@ v1.0.0 - 2016-10-14 15.34
 - file ending changed to .snibb, change ending on old project files to be able to load them.
 - numpad plus and minus now works.
 - added F1, F2 etc keys for fast switching of views.
-- working directory setting removed, SDL2 will provide a working dir depending on the platform. Default on macOS is /Users/username/Library/Application Support/Palestone Software/snibbetracker/ on Windows it can be overridden with creating a file named exe_dir_as_workspace.txt in the exe dir.
+- working directory setting removed, SDL2 will provide a working dir depending on the platform. Default on macOS is /Users/username/Library/Application Support/lundstroem/snibbetracker/ on Windows it can be overridden with creating a file named exe_dir_as_workspace.txt in the exe dir.
 - setting for passive render removed, will always use passive.
 - fixed bug where tempo would get misaligned when loading a project while playing back.
 - fixed alignment of first custom wave node.
