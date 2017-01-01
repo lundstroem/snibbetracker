@@ -1935,12 +1935,15 @@ void handle_key_down(SDL_Keysym* keysym) {
                 }
             }
         }
-        if(input->key_lgui) {
-            modifier = true;
-        }
-        if(input->key_lctrl) {
-            modifier = true;
-        }
+        #if defined(platform_osx)
+            if(input->key_lgui) {
+                modifier = true;
+            }
+        #elif defined(platform_windows)
+            if(input->key_lctrl) {
+                modifier = true;
+            }
+        #endif
         if(input->key_escape) {
             if(instrument_editor) {
                 instrument_editor = false;

@@ -449,9 +449,9 @@
 				GCC_WARN_PEDANTIC = NO;
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.palestonesoftware.snibbetracker.mac;
+				PRODUCT_BUNDLE_IDENTIFIER = com.harrylundstrom.snibbetracker;
 				PRODUCT_NAME = snibbetracker;
-				PROVISIONING_PROFILE = "dadcf81c-4a9f-4498-bb31-eab5cf74d670";
+				PROVISIONING_PROFILE = "2916dd01-98e5-4815-a829-1aee8083203f";
 				PROVISIONING_PROFILE_SPECIFIER = snibbetracker_mac_dev_profile;
 				WRAPPER_EXTENSION = app;
 			};
@@ -475,9 +475,9 @@
 				GCC_WARN_PEDANTIC = NO;
 				INFOPLIST_FILE = "SDL2_template/snibbetracker-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/../Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = com.palestonesoftware.snibbetracker.mac;
+				PRODUCT_BUNDLE_IDENTIFIER = com.harrylundstrom.snibbetracker;
 				PRODUCT_NAME = snibbetracker;
-				PROVISIONING_PROFILE = "68659e2b-67fa-400d-b508-4d51dbe478de";
+				PROVISIONING_PROFILE = "0fd81e7e-7104-4d42-a779-162489b185ed";
 				PROVISIONING_PROFILE_SPECIFIER = snibbetracker_mac_dist_profile;
 				WRAPPER_EXTENSION = app;
 			};

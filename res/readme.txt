@@ -1,4 +1,4 @@
-snibbetracker 1.0.0
+snibbetracker 1.1.0
 ==================
 
 introduction
@@ -48,6 +48,7 @@ track view
 - tab: go to pattern view.
 - modifier+left/right: change octave up/down.
 - modifier+up/down: move notes below cursor.
+- modifier+1-9: step size.
 - shift+arrow keys: make selection.
 - modifier+c/v/x: copy paste or cut note (or selection).
 - character keys: play notes or edit effects.
@@ -160,10 +161,11 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
-v1.1.0 - 2016-10-23 12.17
-- added functionality to move pattern rows with modifier+up/down.
-- paginating rows is now changed to shift+up/down.
-- added variable stepsize when adding and removing track items in trackview. Set with modifier+numeric.
+v1.1.0 - 2017-01-01 14.21
+- added functionality to move pattern rows in patternview with modifier+up/down.
+- changed pagination of pattern rows to shift+up/down.
+- added variable stepsize when adding or removing track items in trackview. Set with modifier+1-9.
+- save path folder changed from Palestone Software to lundstroem, need to move old projects to new dir.
 
 v1.0.0 - 2016-10-14 15.34
 - file ending changed to .snibb, change ending on old project files to be able to load them.
