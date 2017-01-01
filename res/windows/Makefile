@@ -1,5 +1,7 @@
+#usage mingw32-make clean, mingw32-make
+
 # Files to be compiled
-SRC = C:\Documents\cengine\CAllocator.c C:\Documents\cengine\CAnimation.c C:\Documents\cengine\CAnimationFrame.c C:\Documents\cengine\CButton.c C:\Documents\cengine\CEngine.c C:\Documents\cengine\CEntity.c C:\Documents\cengine\CInput.c C:\Documents\cengine\CLabel.c C:\Documents\cengine\CListQueue.c C:\Documents\cengine\CSynth.c C:\Documents\cengine\CTimer.c C:\Documents\cengine\CTouch.c C:\Documents\cengine\cJSON\cJSON.c C:\Documents\csynth\SDL2_template\dir_win.c C:\Documents\csynth\SDL2_template\main.c
+SRC = C:\Documents\cengine\CAllocator.c C:\Documents\cengine\CAnimation.c C:\Documents\cengine\CAnimationFrame.c C:\Documents\cengine\CButton.c C:\Documents\cengine\CStr.c C:\Documents\cengine\CEngine.c C:\Documents\cengine\CEntity.c C:\Documents\cengine\CInput.c C:\Documents\cengine\CLabel.c C:\Documents\cengine\CListQueue.c C:\Documents\cengine\CSynth.c C:\Documents\cengine\CTimer.c C:\Documents\cengine\CTouch.c C:\Documents\cengine\cJSON\cJSON.c C:\Documents\csynth\SDL2_template\dir_win.c C:\Documents\csynth\SDL2_template\main.c
 OBJ=$(SRC:.c=.o) # replaces the .c from SRC with .o
 
 # Compiler
@@ -8,12 +10,14 @@ CC = gcc
 RM=del
 
 # Include paths
-INCLUDE_PATHS = -IC:\Downloads\SDL2-devel-2.0.3-mingw\i686-w64-mingw32\include -IC:\Documents\cengine -IC:\Documents\cengine\cJSON -IC:\Documents\csynth\SDL2_template
+INCLUDE_PATHS = -IC:\Downloads\SDL2-devel-2.0.4-mingw\i686-w64-mingw32\include -IC:\Documents\cengine -IC:\Documents\cengine\cJSON -IC:\Documents\csynth\SDL2_template
+#INCLUDE_PATHS = -IC:\Downloads\SDL2-devel-2.0.3-mingw\i686-w64-mingw32\include -IC:\Documents\cengine -IC:\Documents\cengine\cJSON -IC:\Documents\csynth\SDL2_template
 #INCLUDE_PATHS = -IC:\Downloads\SDL2-devel-2.0.3-mingw\x86_64-w64-mingw32\include -IC:\Documents\cengine -IC:\Documents\cengine\cJSON -IC:\Documents\csynth\SDL2_template
 
 
 # Library paths
-LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.3-mingw\i686-w64-mingw32\lib
+LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.4-mingw\i686-w64-mingw32\lib
+#LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.3-mingw\i686-w64-mingw32\lib
 #LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.3-mingw\x86_64-w64-mingw32\lib
 
 # Compiler flags
@@ -22,7 +26,7 @@ COMPILER_FLAGS = -Wall -std=c99 -Wno-unused-function
 # Linker flags
 #LINKER_FLAGS = -static -lmingw32 -lSDL2main -lSDL2 -mwindows -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
 
-LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2
+LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -mwindows
 
 # Executable file
 EXE = snibbetracker.exe

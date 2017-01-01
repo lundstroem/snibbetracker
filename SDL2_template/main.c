@@ -59,7 +59,7 @@ codesign --force -s "Developer ID Application: Harry Lundstrom" /Library/Framewo
 static bool load_gfx = false; // used when loading in new GFX from file.
 //static unsigned int **sheet = NULL; // used when loading in new GFX from file.
 static const bool debuglog = false;
-static const bool errorlog = true;
+static const bool errorlog = false;
 static const int passive_render_delay_ms = 16;
 static const int active_render_delay_ms = 16;
 static const bool lock_device = false;
