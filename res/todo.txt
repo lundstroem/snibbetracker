@@ -1,0 +1,3 @@
+v.1.1.1
+- no dropdown of cursor when editing instrument fx
+- icon for win build

@@ -166,6 +166,8 @@ v1.1.0 - 2017-01-01 14.21
 - changed pagination of pattern rows to shift+up/down.
 - added variable stepsize when adding or removing track items in trackview. Set with modifier+1-9.
 - save path folder changed from Palestone Software to lundstroem, need to move old projects to new dir.
+- changed fullscreen mode to better conserve aspect ratio.
+- command prompt removed on Windows.
 
 v1.0.0 - 2016-10-14 15.34
 - file ending changed to .snibb, change ending on old project files to be able to load them.
