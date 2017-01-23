@@ -24,9 +24,9 @@ LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.4-mingw\i686-w64-mingw32\lib
 COMPILER_FLAGS = -Wall -std=c99 -Wno-unused-function
 
 # Linker flags
-#LINKER_FLAGS = -static -lmingw32 -lSDL2main -lSDL2 -mwindows -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
+LINKER_FLAGS = -static -lmingw32 -lSDL2main -lSDL2 -mwindows -lm -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -static-libgcc
 
-LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -mwindows
+#LINKER_FLAGS = -lmingw32 -lSDL2main -lSDL2 -mwindows
 
 # Executable file
 EXE = snibbetracker.exe
@@ -43,7 +43,7 @@ EXE = snibbetracker.exe
 all: $(EXE)      # all is dependent on $(EXE) to be complete
 
 $(EXE): $(OBJ)   # $(EXE) is dependent on all of the files in $(OBJ) to exist
-	$(CC) $(OBJ) $(LIBRARY_PATHS) $(LINKER_FLAGS) -o $@
+	$(CC) $(OBJ) my.res $(LIBRARY_PATHS) $(LINKER_FLAGS) -o $@
 
 .PHONY : clean   # .PHONY ignores files named clean
 clean:

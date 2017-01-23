@@ -164,6 +164,8 @@ changelog
 v1.1.1 - 2017-01-23 15.36
 - fixed bug where groove setting was wrong in exported wavs.
 - changed instrument effect inputs to not jump down to the next row.
+- added icon to Windows build.
+- statically linked SDL2 on Windows build (no need for the DLL).
 
 v1.1.0 - 2017-01-01 14.21
 - added functionality to move pattern rows in patternview with modifier+up/down.
