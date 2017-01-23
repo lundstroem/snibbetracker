@@ -1,4 +1,4 @@
-snibbetracker 1.1.0
+snibbetracker 1.1.1
 ==================
 
 introduction
@@ -6,7 +6,7 @@ introduction
 snibbetracker is a fakebit tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
 I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it
 can be useful for someone.
-No warranty either implicit or implied is included. Use at your own risk.
+No warranty either implicit or implied is included.
 (c) lundstroem.
 
 credits
@@ -161,6 +161,10 @@ Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all chan
 
 changelog
 ----------------
+v1.1.1 - 2017-01-23 15.36
+- fixed bug where groove setting was wrong in exported wavs.
+- changed instrument effect inputs to not jump down to the next row.
+
 v1.1.0 - 2017-01-01 14.21
 - added functionality to move pattern rows in patternview with modifier+up/down.
 - changed pagination of pattern rows to shift+up/down.

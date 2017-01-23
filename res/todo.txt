@@ -1,3 +1,6 @@
 v.1.1.1
 - no dropdown of cursor when editing instrument fx
+- fix bug with groove being inverted on wave export.
 - icon for win build
+- embed SDL2.dll in exe
+- check if in-app help matches the diffing+added controls in 1.1.0.

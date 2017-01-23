@@ -62,7 +62,6 @@ static const bool debuglog = false;
 static const bool errorlog = false;
 static const int passive_render_delay_ms = 16;
 static const int active_render_delay_ms = 16;
-static const bool lock_device = false;
 static bool log_file_enabled = false;
 static bool run_with_sdl = true;
 static bool redraw_screen = true;
@@ -72,7 +71,7 @@ static char *conf_default_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
-static char *title = "snibbetracker 1.1.0";
+static char *title = "snibbetracker 1.1.1";
 static struct CInput *input = NULL;
 static unsigned int *raster = NULL;
 static unsigned int **raster2d = NULL;
@@ -2144,10 +2143,6 @@ void handle_key_down(SDL_Keysym* keysym) {
             if(instrument_editor) {
                 if(instrument_editor_effects) {
                     instrument_effect_remove();
-                    instrument_editor_effects_y++;
-                    if(instrument_editor_effects_y >= visual_instrument_effects) {
-                        instrument_editor_effects_y = 0;
-                    }
                 }
             }
             else if(pattern_editor) {}
@@ -3219,11 +3214,6 @@ static void handle_instrument_effect_keys(void) {
         if(instrument_editor_effects_x == 2) {
             node->effect_param2 = cSynthGetCharFromParam(value);
             node->effect_param2_value = value;
-        }
-        
-        instrument_editor_effects_y++;
-        if(instrument_editor_effects_y >= visual_instrument_effects) {
-            instrument_editor_effects_y = 0;
         }
     }
 }
@@ -4598,10 +4588,6 @@ static void main_loop(void) {
         delay_ms = passive_render_delay_ms;
     }
     
-    if(lock_device) {
-        SDL_LockAudioDevice(AudioDevice);
-    }
-    
     check_sdl_events(event);
     cInputApplyPendingLocks(input);
     
@@ -4660,10 +4646,6 @@ static void main_loop(void) {
     SDL_RenderClear(renderer);
     SDL_RenderCopy(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
-    
-    if(lock_device) {
-        SDL_UnlockAudioDevice(AudioDevice);
-    }
     
     int dt = get_delta();
     last_dt = dt;
@@ -5139,6 +5121,7 @@ static void export_wav(char *filename) {
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
     cSynthResetTempoIndex(synth);
+    synth->tempo_skip_step = true;
     exporting = true;
     synth->looped = false;
     
@@ -5165,7 +5148,7 @@ static void export_wav(char *filename) {
     synth->current_track = starting_track;
     cSynthResetTrackProgress(synth, starting_track, 0);
     cSynthResetTempoIndex(synth);
-    
+    synth->tempo_skip_step = true;
     for(int v_i = 0; v_i < synth->max_voices; v_i++) {
         
         // TODO: has commented lines below any effect?
