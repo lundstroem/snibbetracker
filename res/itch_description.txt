@@ -1,7 +1,7 @@
 snibbetracker is a fakebit tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
 I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it	can be useful for someone.
 <br />
-No warranty either implicit or implied is included. Use at your own risk.
+No warranty either implicit or implied is included.
 <br />
 (c) lundstroem.
 <br /><br />
@@ -27,6 +27,12 @@ crabinfo<br />
 <br />
 changelog<br />
 ----------------<br />
+v1.1.1 - 2017-01-23 15.36<br />
+- fixed bug where groove setting was wrong in exported wavs.<br />
+- changed instrument effect inputs to not jump down to the next row.<br />
+- added icon to Windows build.<br />
+- statically linked SDL2 on Windows build (no need for the DLL).<br />
+<br />
 v1.1.0 - 2017-01-01 14.21<br />
 - added functionality to move pattern rows in patternview with modifier+up/down.<br />
 - changed pagination of pattern rows to shift+up/down.<br />

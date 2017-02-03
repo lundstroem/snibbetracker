@@ -1,0 +1,2 @@
+make icon with mingw32:
+windres my.rc -O coff -o my.res

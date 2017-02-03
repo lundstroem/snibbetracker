@@ -78,7 +78,7 @@ pattern view
 amp - master amplitude, used both for previewing and exporting.
 rows - number of active rows in patterns.
 arp - general arpeggio speed.
-preview - if notes are audiable when editing.
+preview - if notes are audible when editing.
 tempo - open tempo editor.
 visual - visualiser.
 credits - show credits.
@@ -101,7 +101,7 @@ custom wave
 
 wavetable view
 ----------------
-- x: activate/inactivate row. first row is always active. toggle loop active/inactive.
+- x: activate/inactivate row. First row is always active. Toggle loop active/inactive.
 - plus/minus: change speed on top row.
 - 1-F: change overall speed on top row, or speed per row.
 
@@ -151,7 +151,7 @@ effects
 7xx - detune (amount, amount) 88 is middle.
 8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth.
 9xx - set wavetable/waveform for current channel. param1: set wavetable lane 0-5 or param2: change waveform 0-5.
-Axx - (left amplitud, right amplitud) can be used for amplitude, pan och turning off a tone.
+Axx - (left amplitud, right amplitud) can be used for amplitude, pan and turning off a tone.
 Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
 Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
