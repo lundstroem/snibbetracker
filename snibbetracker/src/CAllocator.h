@@ -36,11 +36,4 @@ void *cAllocatorFree(void *ptr);
 void cAllocatorExpandTrackSize(void);
 void cAllocatorCheckDuplicates(void *pointer);
 
-// TODO testing, and adding factory methods for int arrays etc.
-struct CAllocatorArray *cAllocatorArrayNew(void);
-struct CAllocatorArray *cAllocator1dPointerArray(int x, size_t size);
-struct CAllocatorArray *cAllocator2dPointerArray(int x, int y, size_t size);
-struct CAllocatorArray *cAllocator3dPointerArray(int x, int y, int z, size_t size);
-void *cAllocatorFreeArray(struct CAllocatorArray *array);
-
 #endif

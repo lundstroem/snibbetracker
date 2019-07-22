@@ -35,7 +35,6 @@ void cAllocatorPrintAllocationCount(void) {
     
     if(debug_log) {
         printf("CAllocator alloc count:%d\n", alloc_count);
-        //printf("CAllocator null allocs:%d\n", null_allocs);
     }
 }
 
@@ -147,7 +146,6 @@ static bool cAllocatorRemoveTrackedAllocation(void *pointer) {
                     printf("cAllocator warning: trying to free deallocated pointer. name: %s size:%zu pointer:%p alloc_node:%p\n", alloc_ids[i]->name, alloc_ids[i]->size, alloc_ids[i]->pointer, alloc_ids[i]);
                     return false;
                 } else if(alloc_ids[i]->duplicate_address) {
-                    // printf("cAllocator warning: allocation set as duplicate\n");
                     // it has been replaced by another alloc. ignore it.
                 }
             }
@@ -192,161 +190,10 @@ void *cAllocatorFree(void *ptr) {
         }
     } else {
         if(debug_log) {
-            //printf("cAllocatorAlloc warning: pointer cannot be deallocated because it's NULL. \n");
+            printf("cAllocatorAlloc warning: pointer cannot be deallocated because it's NULL. \n");
         }
         null_allocs++;
     }
     return NULL;
 }
 
-struct CAllocatorArray *cAllocatorArrayNew(void) {
-    
-    struct CAllocatorArray *callocatorarray = cAllocatorAlloc(sizeof(struct CAllocatorArray), "CAllocatorArray");
-    callocatorarray->array1d = NULL;
-    callocatorarray->array2d = NULL;
-    callocatorarray->array3d = NULL;
-    callocatorarray->x = 0;
-    callocatorarray->y = 0;
-    callocatorarray->z = 0;
-    return callocatorarray;
-}
-
-struct CAllocatorArray *cAllocator1dPointerArray(int x, size_t size) {
-
-    struct CAllocatorArray *callocatorarray = cAllocatorArrayNew();
-    void **array = cAllocatorAlloc(x * size, "alloced array 1d 1");
-    if(array == NULL) {
-        fprintf(stderr, "sheet out of memory\n");
-    }
-    for(int a = 0; a < x; a++) {
-        if(array != NULL) {
-            array[a] = NULL;
-        }
-    }
-    callocatorarray->array1d = array;
-    return callocatorarray;
-}
-
-struct CAllocatorArray *cAllocator2dPointerArray(int x, int y, size_t size) {
-   
-    struct CAllocatorArray *callocatorarray = cAllocatorArrayNew();
-    void ***array = cAllocatorAlloc(x * size, "alloced array 1");
-    if(array == NULL) {
-        fprintf(stderr, "sheet out of memory\n");
-    }
-    for(int a = 0; a < x; a++) {
-        if(array != NULL) {
-            array[a] = cAllocatorAlloc(y * size, "alloced array 2" );
-            if(array[a] == NULL) {
-                fprintf(stderr, "alloced array, out of memory\n");
-            }
-        }
-    }
-    if(array != NULL) {
-        for(int a = 0; a < x; a++) {
-            for(int b = 0; b < y; b++) {
-                if(array[a] != NULL) {
-                    array[a][b] = NULL;
-                }
-            }
-        }
-    }
-    callocatorarray->array2d = array;
-    return callocatorarray;
-}
-
-struct CAllocatorArray *cAllocator3dPointerArray(int x, int y, int z, size_t size) {
-  
-    struct CAllocatorArray *callocatorarray = cAllocatorArrayNew();
-    void ****array = cAllocatorAlloc(x * size, "alloced array 3d 1");
-    if(array == NULL) {
-        fprintf(stderr, "sheet out of memory\n");
-    }
-    for(int a = 0; a < x; a++) {
-        if(array != NULL) {
-            array[a] = cAllocatorAlloc(y * size, "alloced array 3d 2" );
-            if(array[a] == NULL) {
-                fprintf(stderr, "alloced array, out of memory\n");
-            }
-        }
-    }
-    if(array != NULL) {
-        for(int a = 0; a < x; a++) {
-            for(int b = 0; b < y; b++) {
-                if(array[a] != NULL) {
-                    array[a][b] = cAllocatorAlloc(y * size, "alloced array 3d 3" );
-                    if(array[a][b] == NULL) {
-                        fprintf(stderr, "alloced array, out of memory\n");
-                    }
-                }
-            }
-        }
-    }
-    if(array != NULL) {
-        for(int a = 0; a < x; a++) {
-            for(int b = 0; b < y; b++) {
-                for(int c = 0; c < z; c++) {
-                    if(array[a] != NULL && array[a][b] != NULL) {
-                        array[a][b][c] = NULL;
-                    }
-                }
-            }
-        }
-    }
-    callocatorarray->array3d = array;
-    return callocatorarray;
-}
-
-void *cAllocatorFreeArray(struct CAllocatorArray *array) {
-    
-    if (array != NULL) {
-        if(array->array1d != NULL) {
-            for(int a = 0; a < array->x; a++) {
-                if (array->array1d[a] != NULL) {
-                    array->array1d[a] = cAllocatorFree(array->array1d[a]);
-                }
-                array->array1d = cAllocatorFree(array->array1d);
-            }
-        } else if(array->array2d != NULL) {
-            for(int a = 0; a < array->x; a++) {
-                for(int b = 0; b < array->y; b++) {
-                    if (array->array2d[a][b] != NULL) {
-                        array->array2d[a][b] = cAllocatorFree(array->array2d[a][b]);
-                    }
-                }
-            }
-            for(int a = 0; a < array->x; a++) {
-                if (array->array2d[a] != NULL) {
-                    array->array2d[a] = cAllocatorFree(array->array2d[a]);
-                }
-            }
-            array->array2d = cAllocatorFree(array->array2d);
-        } else if(array->array3d != NULL) {
-            for(int a = 0; a < array->x; a++) {
-                for(int b = 0; b < array->y; b++) {
-                    for(int c = 0; c < array->z; c++) {
-                        if (array->array3d[a][b][c] != NULL) {
-                            array->array3d[a][b][c] = cAllocatorFree(array->array3d[a][b][c]);
-                        }
-                    }
-                }
-                for(int a = 0; a < array->x; a++) {
-                    for(int b = 0; b < array->y; b++) {
-                        if (array->array3d[a][b] != NULL) {
-                           array->array3d[a][b] = cAllocatorFree(array->array3d[a][b]);
-                        }
-                    }
-                }
-                for(int a = 0; a < array->x; a++) {
-                    if (array->array3d[a] != NULL) {
-                        array->array3d[a] = cAllocatorFree(array->array3d[a]);
-                    }
-                }
-                cAllocatorFree(array->array3d);
-            }
-        }
-        cAllocatorFree(array);
-    }
-    
-    return NULL;
-}

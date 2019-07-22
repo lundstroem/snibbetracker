@@ -7,35 +7,55 @@
 //
 
 #include <stdbool.h>
-#include "CInput.h"
-#include "CLabel.h"
-#include "CButton.h"
-#include "CEntity.h"
+#include <stddef.h>
 #include "CInput.h"
 
 #ifndef cengine_CEngine_h
 #define cengine_CEngine_h
 
-struct CPoint {
+struct CTimer
+{
+    double amountToWait;
+    double initAmountToWait;
+    double currentWaitingTime;
+    bool isReady;
+};
+
+struct CTimer *cTimerNew(double wait_time);
+double cTimerTimeLeft(struct CTimer *t);
+void cTimerSetReady(struct CTimer *t);
+unsigned char cTimerIsReady(struct CTimer *t);
+void cTimerAdvance(double time, struct CTimer *t);
+void cTimerResetWithTime(double time, struct CTimer *t);
+void cTimerReset(struct CTimer *t);
+
+struct CLabel
+{
+    struct CStr *str;
+    int x_offset_max; // for scrolltext
     int x;
     int y;
+    bool scrolling;
 };
 
-struct CVec2 {
-    double x;
-    double y;
+struct CLabel *cLabelNew(struct CStr *cstr);
+void cLabelSetLabel(struct CLabel *l, struct CStr *cstr);
+void cLabelActivateScrolling(struct CLabel *l, int start_x);
+void cLabelCleanup(struct CLabel *l);
+
+struct CStr {
+    char *chars;
+    int size;
 };
 
-struct CSound {
-    int type;
-};
-
-
-struct CPoint *cNewPoint(int x, int y);
-struct CVec2 *cNewVec2(double x, double y);
-struct CSound *cSoundNew(int type);
-struct CListQueue *cEngineGetSfxQueue(void);
-void cEngineAddSfxToQueue(int type);
+void cStrTests(void);
+int cPrint(const char *fmt,...);
+void cStrResize(struct CStr *cstr, size_t size);
+struct CStr *cStrPrint(struct CStr *cstr, const char *fmt,...);
+struct CStr *cStrPrintWithSize(size_t size, struct CStr *cstr, const char *fmt,...);
+unsigned long cStrLength(struct CStr *cstr);
+char cStrCharAt(struct CStr *cstr, int pos);
+struct CStr *cStrCleanup(struct CStr *cstr);
 
 struct CEngineContext
 {
@@ -47,54 +67,33 @@ struct CEngineContext
     int max_touches;
     int level_width;
     int level_height;
-    int max_buttons;
     bool color_mode_rgba;
     bool color_mode_argb;
     unsigned int clear_color;
-    bool render_bounding_boxes;
     bool show_fps;
     bool ground_render_enabled;
     struct CInput *input;
-    struct CListQueue *sfx_queue;
     void (*cEngineInitHook)(struct CEngineContext *e);
-    void (*cEnginePreUpdateHook)(struct CInput *input, struct CButton **buttons, double dt);
+    void (*cEnginePreUpdateHook)(struct CInput *input, double dt);
     void (*cEngineUpdateHook)(double dt);
-    void (*cEnginePreEntityRenderHook)(double dt, unsigned int **raster);
     void (*cEngineRenderHook)(double dt, unsigned int **raster);
-    void (*cEngineEntityCollisionHook)(struct CEntity *a, struct CEntity *b);
     void (*cEngineEnvironmentCollisionHook)(void);
     void (*cEngineCleanupHook)(void);
-    void (*cEngineSpinnerButtonMovedCallback)(struct CButton *b, int index, int touch_x, int touch_y);
-    void (*cEngineSpinnerButtonEndedCallback)(struct CButton *b, int index, int touch_x, int touch_y, int ms_since_init);
-    void (*cEngineDragableButtonMovedCallback)(struct CButton *b, int index, int touch_x, int touch_y);
-    void (*cEngineDragableButtonEndedCallback)(struct CButton *b, int index, int touch_x, int touch_y, int ms_since_init);
 };
 
 void cEngineInit(struct CEngineContext *e);
 struct CEngineContext *cEngineContextNew(void);
-struct CAnimation*** cEngineGetLevel(void);
-struct CListQueue* cEngineGetEntityList(void);
 void cEngineLog(char *string);
 void cEngineWritePixelData(unsigned int* data);
-struct CEntity* cEngineAddEntity(int type, int tile_x, int tile_y);
 void cEngineUpdateCamera(int x, int y);
-void cEngineCenterCamera(struct CEntity *e);
-void cEngineEntityCollisionCallback(struct CEntity *a, struct CEntity *b);
-struct CButton* cEngineGetButton(int i);
 void cEngineCleanup(void);
 int cEngineGetCharPos(char c);
 char cEngineGetCharPosReverse(int c);
 void cEngineDrawArea(int x, int y, int w, int h, unsigned int color, unsigned int **raster2d);
-void cEngineWritePixels(unsigned int **raster, int x, int y, int w, int h, unsigned int c);
 void cEngineUpdateInput(double dt, unsigned int **raster);
 void cEngineGameloop(double dt, unsigned int **raster);
 void cEngineRenderLabelByPixelPos(unsigned int **raster, char *string, int s_x, int s_y, unsigned int color, unsigned int bg_color);
 void cEngineRenderLabelWithParams(unsigned int **raster, char *string, int s_x, int s_y, unsigned int color, unsigned int bg_color);
 void cEngineRenderLabel(unsigned int **raster, struct CLabel *l, unsigned int color, unsigned int bg_color);
-void cEngineRenderCollisionAreas(double dt, unsigned int **raster);
-void cEngineRenderEntitySprite(unsigned int **raster, int sprite_x, int sprite_y,
-                               int screen_x, int screen_y,
-                               int width, int height, bool camera_offset, unsigned char hit, unsigned int color, unsigned int bg_color, bool flipped_h, bool flipped_v);
-
 
 #endif

@@ -35,5 +35,4 @@ struct PeekDirResult {
     char *path;
 };
 
-
 #endif

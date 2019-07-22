@@ -8,7 +8,7 @@
 
 #include "CSynth.h"
 #include "CAllocator.h"
-#include "CStr.h"
+#include "CEngine.h"
 #include <math.h>
 #include <stdlib.h>
 #include <time.h>

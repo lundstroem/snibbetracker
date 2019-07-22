@@ -11,8 +11,7 @@
 #ifndef HelloSDL_CInputKeys_h
 #define HelloSDL_CInputKeys_h
 
-struct CInput
-{
+struct CInput {
 	bool mouse1;
 	bool mouse2;
     bool key_0;
@@ -227,9 +226,6 @@ struct CInput
     
     int mouse_x;
     int mouse_y;
-    struct CTouch **touches;
-    struct CTouch **ended_touches;
-    //int max_touches;
 };
 
 struct CInput *cInputNew(void);

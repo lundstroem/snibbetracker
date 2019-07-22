@@ -1,20 +1,9 @@
 
-/*
-codesign -f -s - LICENSE.webp.txt
-codesign -f -s - webp
-codesign --force -s "Developer ID Application: Harry Lundstrom" /Library/Frameworks/SDL2_image.framework/Versions/A/Frameworks/webp.framework
-*/
-
-//#include <SDL2_image/SDL_image.h>
-
-
 #include <stdbool.h>
 #include "CEngine.h"
 #include "CInput.h"
-#include "CTouch.h"
 #include "CSynth.h"
 #include "CAllocator.h"
-#include "CTimer.h"
 #include "chars_gfx.h"
 #include "cJSON.h"
 #include <stdio.h>
@@ -4017,8 +4006,6 @@ static void render_wavetable_editor(double dt) {
                     char c = cSynthGetCharFromParam((char)node_value);
                     snprintf(cval, 19, "%c", c);
                     cEngineRenderLabelWithParams(raster2d, cval, x*5+inset_x, y+inset_y, color, bg_color);
-                } else {
-                    //cEngineRenderLabelWithParams(raster2d, "-", x*5+inset_x+4, y+inset_y, color_inactive_text, bg_color);
                 }
             }
         }
@@ -4417,7 +4404,6 @@ static void setup_cengine(void) {
     c->max_touches = 8;
     c->level_width = 64;
     c->level_height = 64;
-    c->max_buttons = 10;
     c->color_mode_argb = true;
     c->color_mode_rgba = false;
     c->show_fps = false;

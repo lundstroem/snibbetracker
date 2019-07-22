@@ -227,8 +227,6 @@ struct CInput *cInputNew(void) {
     
     input->mouse_x = 0;
     input->mouse_y = 0;
-    input->touches = NULL;
-    input->ended_touches = NULL;
     
     return input;
 }
@@ -380,27 +378,7 @@ void cInputResetKeys(struct CInput *input) {
 
 void *cInputCleanup(struct CInput *input, int max_touches) {
     
-    int i;
-    if(input->touches != NULL) {
-        for(i = 0; i < max_touches; i++) {
-            if(input->touches != NULL) {
-                input->touches[i] = cAllocatorFree(input->touches[i]);
-            }
-        }
-        input->touches = cAllocatorFree(input->touches);
-    }
-    
-    if(input->ended_touches != NULL) {
-        for(i = 0; i < max_touches; i++) {
-            if(input->ended_touches != NULL) {
-                input->ended_touches[i] = cAllocatorFree(input->ended_touches[i]);
-            }
-        }
-        input->ended_touches = cAllocatorFree(input->ended_touches);
-    }
-    
     input = cAllocatorFree(input);
-    
     return input;
 }
 
