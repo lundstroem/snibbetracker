@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		035B60591AADA84700E41249 /* dir_posix.c in Sources */ = {isa = PBXBuildFile; fileRef = 035B60571AADA84700E41249 /* dir_posix.c */; };
-		0360E0941AA9A305006B4276 /* readme.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0360E0931AA9A305006B4276 /* readme.txt */; };
 		0388C9A322E61BBE008BED68 /* CInput.c in Sources */ = {isa = PBXBuildFile; fileRef = 0388C98422E61BBE008BED68 /* CInput.c */; };
 		0388C9A722E61BBE008BED68 /* LICENSE in Resources */ = {isa = PBXBuildFile; fileRef = 0388C98B22E61BBE008BED68 /* LICENSE */; };
 		0388C9A822E61BBE008BED68 /* test1 in Resources */ = {isa = PBXBuildFile; fileRef = 0388C98E22E61BBE008BED68 /* test1 */; };
@@ -59,7 +58,6 @@
 		035B60571AADA84700E41249 /* dir_posix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = dir_posix.c; sourceTree = "<group>"; };
 		035B60581AADA84700E41249 /* dir_posix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dir_posix.h; sourceTree = "<group>"; };
 		035B605A1AADAA3100E41249 /* file_settings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = file_settings.h; sourceTree = "<group>"; };
-		0360E0931AA9A305006B4276 /* readme.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = readme.txt; sourceTree = "<group>"; };
 		03758DED1A9C7451005882C2 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		0388C97822E61BBD008BED68 /* CSynth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSynth.h; sourceTree = "<group>"; };
 		0388C97E22E61BBD008BED68 /* CEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CEngine.h; sourceTree = "<group>"; };
@@ -232,7 +230,6 @@
 				03A431921DACE5670069859A /* demos */,
 				03BA8FB51AFB5C4F00F296DB /* config.txt */,
 				03BA8FB21AFB3AF800F296DB /* [IconName].iconset */,
-				0360E0931AA9A305006B4276 /* readme.txt */,
 			);
 			path = res;
 			sourceTree = "<group>";
@@ -301,7 +298,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				03A431A01DACE5670069859A /* kissemisse.snibb in Resources */,
-				0360E0941AA9A305006B4276 /* readme.txt in Resources */,
 				0388C9AC22E61BBE008BED68 /* test5 in Resources */,
 				03BA8FB31AFB3AF800F296DB /* [IconName].iconset in Resources */,
 				0388C9AB22E61BBE008BED68 /* test2 in Resources */,
