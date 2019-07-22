@@ -108,7 +108,6 @@
 		03C75C971A96370E00DA3DE7 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		03C811BE1C158756006CE873 /* CStr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = CStr.c; sourceTree = "<group>"; };
 		03C811BF1C158756006CE873 /* CStr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CStr.h; sourceTree = "<group>"; };
-		03D930E41AA48D33000251CC /* SDL2_image.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_image.framework; path = ../../../../../Library/Frameworks/SDL2_image.framework; sourceTree = "<group>"; };
 		03EB37231DB0FF720026857F /* projectcart.snibb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = projectcart.snibb; sourceTree = "<group>"; };
 		03F0ADDB1A80EE8500884785 /* cJSON.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = cJSON.c; sourceTree = "<group>"; };
 		03F0ADDC1A80EE8500884785 /* cJSON.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cJSON.h; sourceTree = "<group>"; };
@@ -166,7 +165,6 @@
 			isa = PBXGroup;
 			children = (
 				03D930E71AA491AC000251CC /* res */,
-				03D930E41AA48D33000251CC /* SDL2_image.framework */,
 				03420CCD1A077D3500B4EF5D /* cengine */,
 				0399B2F017F35C1D005ACCBE /* SDL2_template */,
 				0399B2E917F35C1D005ACCBE /* Frameworks */,
