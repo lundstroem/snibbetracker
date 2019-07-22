@@ -23,6 +23,23 @@ goto80
 lolloise
 crabinfo
 
+config
+----------------
+buffer setting:
+
+Use lower values to decrease latency, higher values
+to avoid stuttering if the buffering cannot keep up.
+Needs to be a power of two, for example:
+256, 512, 1024, 2048, 4096, 8192.
+
+"buffer_size":4096
+
+Path to working directory, needs to be full.
+OSX example: /Users/d/Documents/snibbetracker
+Windows example C:\\snibbetracker
+Make sure that the folder exists before using it and that is is 
+accessible by the program.
+
 contact/support
 ----------------
 If you encounter bugs or other issues, please let me know and if possible the steps to reproduce them.
