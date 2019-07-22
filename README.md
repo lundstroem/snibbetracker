@@ -28,24 +28,21 @@ SOFTWARE.
 introduction
 ----------------
 snibbetracker is a fakebit tracker written in C using SDL2 that I began working on in 2014 to learn DSP programming.
-I learned a lot on the way, and I would probably have made it different with the knowledge I have now, but perhaps it
-can be useful for someone.
-No warranty either implicit or implied is included.
-(c) lundstroem.
+As I do not have time to work on it anymore, I decided to release the source so that someone could take over if they wanted.
 
 credits
 ----------------
-lundstroem
-salkinitzor
-nordloef
-Linde
-sunfl0wr
-Rockard
-0c0
-OlofsonArcade
-goto80
-lolloise
-crabinfo
+- lundstroem
+- salkinitzor
+- nordloef
+- Linde
+- sunfl0wr
+- Rockard
+- 0c0
+- OlofsonArcade
+- goto80
+- lolloise
+- crabinfo
 
 config
 ----------------
@@ -97,9 +94,10 @@ track view
 - home/end: go to top / bottom.
 - plus/minus: transpose halfnote in selection.
 - modifier+plus/minus: transpose octave in selection.
+
 track format explanation:
-a = note, b = instrument number, ccc = effects. 6 supported channels.
-a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
+- a = note, b = instrument number, ccc = effects. 6 supported channels.
+- a b ccc | a b ccc | a b ccc | a b ccc | a b ccc | a b ccc
 
 pattern view
 ----------------
@@ -116,15 +114,15 @@ pattern view
 - home/end: set cursor to top / bottom.
 - modifier+up/down: move rows below cursor.
 
-amp - master amplitude, used both for previewing and exporting.
-rows - number of active rows in patterns.
-arp - general arpeggio speed.
-preview - if notes are audible when editing.
-tempo - open tempo editor.
-visual - visualiser.
-credits - show credits.
-wavetable - connect a channel to lane 0-5 to combine waves together at different speeds. (see effect 9).
-cust wave - create custom waveform for the "cust" wave type.
+- amp - master amplitude, used both for previewing and exporting.
+- rows - number of active rows in patterns.
+- arp - general arpeggio speed.
+- preview - if notes are audible when editing.
+- tempo - open tempo editor.
+- visual - visualiser.
+- credits - show credits.
+- wavetable - connect a channel to lane 0-5 to combine waves together at different speeds. (see effect 9).
+- cust wave - create custom waveform for the "cust" wave type.
 
 instrument view
 ----------------
@@ -182,23 +180,23 @@ load view
 
 effects
 ----------------
-0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
-1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
-2xx - delay (speed, feedback)
-3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
-4xx - vibrato (speed, depth).
-5xx - distortion (amp, amp).
-6xx - FM (depth, speed).
-7xx - detune (amount, amount) 88 is middle.
-8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth.
-9xx - set wavetable/waveform for current channel. param1: set wavetable lane 0-5 or param2: change waveform 0-5.
-Axx - (left amplitud, right amplitud) can be used for amplitude, pan and turning off a tone.
-Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
-Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
-Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
-Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all channels.
+- 0xx - arpeggio (second tone halfsteps, third tone halfsteps) change speed in settings:Arp xx.
+- 1xx - arpeggio speed (speed, speed) use one of the values or both multiplied.
+- 2xx - delay (speed, feedback)
+- 3xx - portamento (speed, speed) uses a single value if other is 0 or a multiplication of both. Sets the speed to when new notes will be reached.
+- 4xx - vibrato (speed, depth).
+- 5xx - distortion (amp, amp).
+- 6xx - FM (depth, speed).
+- 7xx - detune (amount, amount) 88 is middle.
+- 8xx - PWM (linear position/oscillation depth, oscillation speed) on squarewave. If param2 is present, param1 will be used for osc depth.
+- 9xx - set wavetable/waveform for current channel. param1: set wavetable lane 0-5 or param2: change waveform 0-5.
+- Axx - (left amplitud, right amplitud) can be used for amplitude, pan and turning off a tone.
+- Bxx - downsample sweep down (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+- Cxx - downsample sweep up (linear, sweep) Works best on noise channel. Choose either linear or sweep.
+- Dxx - ends pattern. D11 - jump to next pattern and reset tempo seq. D1x - reset tempo seq. D2x - switch tempo_seq column. x = tempo seq column (0-5).
+- Exx - pitch up (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
+- Fxx - pitch down (fast, slow) Works on non-noise channels. Both values can be combined to increase effect.
+- Gxx - bitcrush, params are multiplied to represent a bit depth. Affects all channels.
 
 changelog
 ----------------
