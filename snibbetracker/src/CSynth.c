@@ -14,400 +14,6 @@
 #include <time.h>
 #include "CNoiseTable.h"
 
-/*
- 
- valgrind:
- valgrind --track-origins=yes --dsymutil=yes snibbetracker.app/
- 
- build 21
- fixed:
- - show red lingering pixels in visualiser to show when it clips.
- - bug: reset does not reset wavetable.
- - create table for noise.
- - fixed preview of downsample sweep effect.
- - fixed bug where notes at the end of the song leak into the start when exporting wav.
- 
- 
- build 20
- - set default amp to 50% instead of 100%
- 
- build 19
- 
- - fixed reset of downsample.
- - added bitcrusher.
- bug where custom edit nodes cannot be moved to the right.
- 
- 
- 
- build 18
- 
- refactor input and make platform agnostic input mapping to easily port it to cocoa.
-
- (change activate button to shift? or some other.)
- 
- preview gets cut off on loopback
- 
- change activate button for rows to enter instead of a in pattern view.
- when entering tempo view with enter, the row at cursor will be selected/deselected.
- check if preview can be activated while playing back. (which channel should playback use?)
- crash with 60 million negative phase in noise table
- when deleting effect in instrument effetc, also remove params.
- make all FM chromatic.
- when previewing an instrument other than 0, the effects don't work?
- sometimes noise sounds different after each loopback
- portamento does not reset when stopping/playing etc.
- CR: värdet 311 är för högt. man vill kunna göra skitlångsamma glides ibland.
- CR: och 700 kommandot kanske också skulle ha lite större upplösning i mitten så att man kan göra pyttefina detuens.
- try to change sample rate
- move FM to 600
- delete commented code for linked dist etc.
- make wavetable lane change go from 0-5 instead of 6-B
- make 90 change to wavetable lane 0 on current voice.
- 
- 
- refactored input
- find all sources for undefined behavious
-    variable limit truncations
-    signed/unsigned interactions
-    casts
-    bounds check for arrays.
- update documentation and help.
- can you cut a pattern with cmd+x? nope.
- need confirmation before cmd+x (reset track)
- fix so that lines in adsr and custom wave cannot go outside of bounds visually.
- make button setting that forces a button to be lifted before it can be activated again.
- 
- 
- - removed portamento reset on loopback for smoother transition when previewing. Set effect 3 without
-    params to reset it manually.
- - changed activate button to x for wavetable, tempo and pattern editors.
- - fixed crash bug where sometimes noise phase would get a negative value.
- - preview in instrument view now works with the current instrument you are editing.
- - made FM more chromatic.
- - changed wavetable 900 to work like 90 to select wavetable lane 0 for current voice/channel. 9-0 to change waveform (param2).
- - lowered modifiers for effects 700 and 300.
- - removed linked dist.
- - fixed bug where exported wave header indicated wrong size.
- - fixed bug where detune would not reset.
- - fixed bug where previous arp setting would apply on loopback and initial setting would not trigger.
- - fixed bug where wavetable could not be set.
- 
- 
- 
- build 16
- - refactor input.
-    - think about how to make custom button mapping, prepare.
- - save/load custom table.
- - add speed "spd" to wavetable editor.
- - add shortcuts to wavetable/custom table on pattern view.
- - make so that waveforms can be set by 0-9 in wavetable.
- - think about how to replace 'a' to let adding 0-F in wavetable and tempo.
- 
- - change octave of notes in selection (or editing cursor) with +/-
- - wave table seq
-    clone tempo editor data structures
-    changes:width x2 for both representing wavetype 0-5 and speed 0-9
-    keep master speed like the bpm row in tempo edit.
-    add row for loop on/off
- 
- 
- struct CWavetableNode {
-    char value;
-    bool active;
-    int speed;
- };
- 
- 
- build 15
- 
- 
- cleaned up, concise:
- - tempo editor.
- - improved preview: amplitude ramp, sustain (with third envelope node > 0), instrument effects added to preview.
-    preview is disabled when playback is active.
- - shortcuts: ctrl (or cmd on OSX) + i for instruments, + t for tempo + p for visualiser. Exit views with escape.
- - editable color scheme.
- - delay effect: 2xx (speed, feedback).
- - in-editor help file.
- - working dir now defaults to username/Documents on OSX.
- - lots of tweaks.
- 
- //done
- - made tempo sequencer.
- - remade dist (5) so that the clamp is static and the params control amp into clamp. Now works with envelope.
- - remade linking to bypass all amp except effect (A) and envelope at the end, removed all restrictions
- regarding what linking that can be done, might be too extreme but we'll see..
- - added automatic beat graphics that indicates the number of halfbeats.
- - made backspace/delete zero out all possible fields where multiple ints can be entered.
- - removed swing, bpm.
- - make cursor jump down when adding beat in tempo view.
- - make end pattern/reset tempo D11.
- - show which tempo column is active.
- - working dir now defaults to user/Documents on OSX.
- - show files in target dir when saving loading. (no folder traversal). Shows current working dir path.
- - editable colorscheme in config.
- - shift selection stays when not wanted, after paste.
- - A does not reset, even on loopback. Set targets to 1, 1 on reset?
- - global debuglog flag.
- - fixed when quitting, a note is placed. with Q.
- - shortcut cmd+i for instruments.
- - shortcut cmd+t for tempo.
- - exit instruments with esc.
- - FM modifications.
- - save path display after save gets garbled letters. (maybe just rendered behind track?)
- - when loading proj in trackview, info text is behind bars.
- - update helpfile.
- - p:0 t:0 etc needs bg color.
- - error message when fail to open project
- - red text for filename?
- - come up with how to reset delay.
- - make so that all views can be switched between without effort. Need to determine which
-    views to switch off when changing etc, so to not keep a stack.
-    might be problem with going into instrument from patternview if stack is not kept for example,
-    so preserve state of trackview/patternview
- 
- - be able to switch to and from instrument, tempo, visualiser.
-  - make save, load, export views reachable everywhere.
-  - add color scheme for visualiser in config, or use already existing colors.
-  - remake logo with small characters instead.
-  - change octave in instrument with + -.
- - when deleting or adding instrument effetcs, move cursor down.
- - make so that the locking is disabled, and tone retriggered when a key other than the one held down is pressed.
- - make ability to preview notes available where applicable (which views), like visualiser.
- ----------not done:
-
-
-
-
- - make note preview work with current instrument effects and envelope etc.
-    - when in an instrument view, should the currently viewable instrument be previewed?
-    - should current instrument be changed when inside instrument view?
-    - be able to select an instrument as the current, and show it visually?
-    - preview should be able to sustain notes. (wait at the last envelope node before entering decay.)
- 
- - make correct ARGB in cengine render to be able to render with semi-alpha.
-
- - set info text about which view is entered, as to better learn the names of the views. (if not too spammy)
-
- - exit visualiser mode with escape, make so you cant toggle edit.
- 
- - add more color customize options.
-
- 
- - go through main.c and see if the separation of synth and UI is ok. Need to make sure that cengine core is as complete as possible and has a clear API.
-
- - add keyboard customizations.
- - find 0xdeadbead
- 
- - setting for exporting separate tracks.
- - setting for exporting mono.
-
- - make so that you can enter instruments with "e" as well?
- 
- - make new (reset current project).
-
-
- - reset project cmd+N. (confirmation?)
- 
- - make effect 5 less potent. Reach square in the middle and then onwards.
- - make so that pitch can work with noise and downsample slope with non-noise. Make a different set of modifiers
-    dependant on wave length.
- 
- - dist link 6 is too brutal, but what to do..
-    try to send then through dist aswell
- 
- - modify credits text.
- - tweak credits.
- - make so ESC can exit instrument and tempo.
-
- - go through debuglogs again.
- - go through help texts again. Switch out modifier for cmd/ctrl.
- - context aware help (modifier+h is used by osx to hide window..) Need to come up with button scheme..
- - lock playback setting (to avoid touching space while performing for example).
-
- - check slopes for very fast changes, might need to have dynamic speed for those?
-
-
- - preview stops working.
- - try a global dist clamp as well.
- - visualiser mode for changing the colors depending on beat, amp etc.
- - try a global dist clamp as well.
- 
- 
- for future:
- 
- - make tool for autogenerating C file with escaped json (pack all content into exe).
- - make graphics with petscii. Maybe 8x8 tiles. They can move pixelwise. Need to think about which resolution to pick.
- 
- 
- low latency audio effects.
- 1. create soundeffect in snibbetracker
- 2. store the text data (in code or on drive),
- 3. load on runtime,
- 4. export wav to buffer
- 5. call from SDL mixer as sound effect.
- 
- sfx mapping
- [name] [start row] [length in rows] [bpm] [tempo]
- 
-
- 
- 
- 
- 
- 
- 
- original values for reference (using chunk_size:64 samplerate:44100 interleaved:yes):
- phase += (0.001*wave_length)+speed;
- double d_depth = 0.000005 * depth;
- vibrato speed, depth 0-15
- voice->noteoff_slope_value -= bpm * 0.00005;
- voice->adsr_cursor += 0.00001;
- v->downsample_limit = (int)(v->downsample_sweep_speed * synth->sample_rate/4);
- v->downsample_limit = 1 * synth->sample_rate/4;
- v->downsample_sweep_start = v->downsample_limit/2;
- v->downsample_limit = (int)(v->downsample_sweep_speed * synth->sample_rate/4);
- v->downsample_limit = 1 * synth->sample_rate/4;
- v->downsample_count += v->downsample_sweep_slope*(f_sample_rate * 0.001);
- v->arpeggio_count += (f_sample_rate*0.000000001)*arpeggio_speed;
- double segment = (f_sample_rate*0.000000225)*(v->portamento_speed*v->portamento_speed);
- double sine_phase = ((double)synth->sine_wave_table[pwm_pos_int]+INT16_MAX) * 0.0156;
- 
- ---------
- 
- 
- 
-mac version:
-- amazing audio engine
-- separate input from logic
-- render graphics with cocoa openGL
-- native save/open file dialogs
-- properly sandboxed etc
- 
- 
-
-
- 
- build 10
- - check thread sync again and see if something can be done to speed it up. Maybe set toggle for sync if safe enough.
- - make fullscreen toggle.
- - select audio device from list of available devices.
- - make toggle for rendering of audio on main thread, and just letting the audio thread pick it up. Could maybe work in junction with another
- thread lock model.
- 
- build 9
- 
- // done
- - standardize and make modifiers relative to sample rate and number of chunks used for rendering (or just samples
- processed depending on sample rate and interleaved etc).
- - change "lowpass" to the correct term "downsampling" in documentation.
- - sample rate independence, switch to 22050 for reference.
- - make first param of PWM effect control modulation depth if the second param (speed) is present.
- - change instrument envelope default to one with fast attack.
- - export to wav. (max amp is left todo)
- - instrument node movement is really slow in non-active render mode. (needs to be updated by deltatime)
- - make the slow pitch bend 10 times slower.
- - When removing note with backspace, remove whole note including effects and instrument on backspace when cursor is on note or instrument.
- - make "move all notes in pattern-row below cursor up/down". Control suggestions: ctrl + arrowup arrowdown, ctrl + backspace for moving up
- the notes that are moved out of the pattern area gets deleted.
- - make copy/cut/paste in trackview. Control suggestion: Hold down shift, select area using arrow keys, press ctrl+c (or ctrl-x to cut), (selection disappears), move cursor into another place, ctrl+v to paste.
- - copy/paste pattern in patternview. Example: Move cursor to a row/column with pattern 0 and press ctrl + c, move cursor to a row/column with pattern 1, press ctrl+v. All notes and effects in pattern 0 is now cloned to pattern 1.
- - reset portamento etc on song loopback.
- - ability to type in BPM and arp speed etc for quicker changes. You can still using +/- like before.
- 
- 
- - remember the last filename you saved as (or loaded) when going in to
- the save/load screen.
- 
- - make safety thing so you don't accidentally save over an existing song, or load a new song when you have
- a currently unsaved one.
- 
- 
- - optimize: only render labels etc if something has updated. (some input happened or track advances etc)
-    when program is in the background, the update is no longer locked at 60fps and uses 95%cpu.
-    need to delay it if timedelta is < 16.
-    make it toggleable. active/passive rendering.
-    Audio thread does not get enough priority with 16ms frame time. (need to bump it to 32). This means that games
-    cannot run at 60fps currently.
-    Would it help to render the audio in the main thread and just let the audioThread copy the buffer?
- 
- - still some problem with waveform names showing up in trackview.
-
- - check if volume effect has any clip/noise etc that needs to be smoothed.
- 
- - some wierd notes showing up when exiting.
-
- - make voice preview togglable.
-
- - make setting for master amp. (render red label if amp clips)
- 
- - make sample accurate export? Not just chunk accurate.
- 
-
-  
- bugs
- done:
- 
- build 11
- - added effect table to instrument editor. These effects (pre-applied effects) will always be applied for the instrument (if not overridden with the same effect in the trackview). All effects will now be turned off after each row (and not as before by effect changes).
- - removed effect 9 (stacking) due to the introduction of instrument effects.
- - fixed bug where tone at the start of pattern disappears when moving a section of notes upwards.
- - instrument numbers on deleted notes get saved to file.
- - fixed bug where cursor does not go down when deleting note while playing.
- - fixed bug where export ignores config working dir.
- - added fullscreen setting to config
- - fixed bug where addnote skips rows when adding.
- - added deletekey, same use as backspace.
- - showing r:0 for example to show which row you are on.
- - added beat option for highlighting row intervals.
- - home/end keys get to top/bottom rows and cycle through instruments.
- - save/load preset effects in json.
- - controls for toggling adsr/effects in instrument (left shift).
- - clamp/dist effect - one linked / one channel wise.
- - added link effect (for pre-mixdown of channels).
- - fixed wrong instrument number when adding notes (unconfirmed).
- - fix bug where volume does not reset when removing A effect.
- - fixed bug where export wav buffer was not zeroed before use.
- - only play from track in pattern view if cursor is < 16 etc otherwise from track 0.
- - scroll for nodes in envelope.
-
- 
- 
- 
- build 12
- 
- - fixed effects so that they are not reset by the next row if there is no new note.
- - made FM for other waveforms other than square for effect 8. (depth, speed).
- - made effect for changing waveform for channel (9). (channel, wavetype)
- - copy/paste instruments in pattern editor.
- - adjusted slow pitch shift param to be a bit faster.
- - decreased detune modifier.
- 
- 
- 
- build 13
- 
- - fixed bug where active_tracks was not saved properly.
- - default BPM is now 120
- - fixed FM to work better.
- - fixed bug where only a part of the song would be rendered at export.
- - added preview 0 1 to prefs. (add "preview":false to config if you want to disable preview from start).
- - disable preview on play.
- - removed lock from audiothread.
- - moved mixing functions from client to engine code.
- - fixed bug where audio effect A clipped on loopback, added ramp.
- 
- 
- 
- build 14
- - fixed resetting bugs of voices and instrument effects.
- 
- 
- 
- 
- */
-
-
 const int build_number = 24;
 const int file_version = 4;
 const double ChromaticRatio = 1.059463094359295264562;
@@ -455,8 +61,6 @@ struct CSynthContext *cSynthContextNew() {
     s->str_title = NULL;
     s->str_author = NULL;
     s->str_info = NULL;
-    //s->sample_rate = 11025;
-    //s->sample_rate = 22050;
     s->sample_rate = 44100;
     s->frame_rate = 60;
     s->chunk_size = 0;
@@ -560,7 +164,6 @@ cJSON* cSynthSaveProject(struct CSynthContext *synth) {
     char *node_author = NULL;
     char *node_title = NULL;
     char *node_info = NULL;
-    //char *node_bpm = NULL;
     char *node_master_amp_percent = NULL;
     char *node_solo_voice = NULL;
     char *node_solo_track = NULL;
@@ -755,7 +358,6 @@ cJSON* cSynthSaveProject(struct CSynthContext *synth) {
         }
     }
 
-    
     // new save
     int size = synth->patterns_and_voices_width*synth->patterns_and_voices_height;
     int int_array[size];
@@ -790,7 +392,6 @@ cJSON* cSynthSaveProject(struct CSynthContext *synth) {
     int int_array_tracks[64];
     for(i = 0; i < synth->patterns_height; i++) {
         int_array_tracks[i] = synth->active_tracks[i];
-        //printf("active_tracks[%d] = %d s_a:%d\n", i, synth->active_tracks[i], int_array_tracks[i]);
     }
     json_int_array = cJSON_CreateIntArray(int_array_tracks, size);
     cJSON_AddItemToObject(root, node_active_tracks, json_int_array);
@@ -804,7 +405,6 @@ cJSON* cSynthSaveProject(struct CSynthContext *synth) {
     json_int_array = cJSON_CreateIntArray(int_array_voices, size);
     cJSON_AddItemToObject(root, node_muted_voices, json_int_array);
  
-    
     /* loop through all instruments, add to array. */
     array = cJSON_CreateArray();
     cJSON_AddItemToObject(root, node_instruments_adsr, array);
@@ -832,7 +432,6 @@ cJSON* cSynthSaveProject(struct CSynthContext *synth) {
         cJSON_AddItemToArray(instrument, adsr_node);
     }
     cJSON_AddItemToObject(custom_table_node, node_custom_instrument, instrument);
-    
     
     /* save tempo */
     array = cJSON_CreateArray();
@@ -893,7 +492,6 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
     cJSON *array = NULL;
     cJSON *node = NULL;
     cJSON *instrument = NULL;
-    //char *node_bpm = NULL;
     char *node_author = NULL;
     char *node_title = NULL;
     char *node_info = NULL;
@@ -942,15 +540,12 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
     char *node_custom_instrument = NULL;
     
     char *node_file_version = "file_version";
-    /*char *node_build_number = "build";*/
     int i, s_x, s_y, nodes_size, pattern_count;
-    //int file_version = 0;
     
     cJSON *root = cJSON_Parse(json);
     
     if(root == NULL) { cSynthLoadFailed("root missing", root); return 0; }
     
-    //node_bpm = "bpm";
     node_author = "author";
     node_title = "title";
     node_info = "info";
@@ -1000,7 +595,6 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
     
     object = cJSON_GetObjectItem(root, node_file_version);
     if(object == NULL) { cSynthLoadFailed("file version missing", root); return 0; }
-    //file_version = object->valueint;
     
     object = cJSON_GetObjectItem(root, node_author);
     if(object != NULL) {
@@ -1016,20 +610,17 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
     }
     
     object = cJSON_GetObjectItem(root, node_master_amp_percent);
-    //if(object == NULL) { cSynthLoadFailed("master amp missing", root); return 0; }
     if(object != NULL) {
         synth->master_amp_percent = object->valueint;
         synth->master_amp = synth->master_amp_percent * 0.01;
     }
     
     object = cJSON_GetObjectItem(root, node_solo_voice);
-    //if(object == NULL) { cSynthLoadFailed("file version missing", root); return 0; }
     if(object != NULL) {
         synth->solo_voice = object->valueint;
     }
     
     object = cJSON_GetObjectItem(root, node_solo_track);
-    //if(object == NULL) { cSynthLoadFailed("file version missing", root); return 0; }
     if(object != NULL) {
         synth->solo_track = object->valueint;
     }
@@ -1043,17 +634,17 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
     synth->arpeggio_speed = object->valueint;
 	
     object = cJSON_GetObjectItem(root, node_track_highlight_interval);
-    if(object != NULL) { //cSynthLoadFailed("track highlight interval missing", root); return 0; }
+    if(object != NULL) {
         synth->track_highlight_interval = object->valueint;
     }
     
     object = cJSON_GetObjectItem(root, node_tempo_active_column);
-    if(object != NULL) { //cSynthLoadFailed("track highlight interval missing", root); return 0; }
+    if(object != NULL) {
         synth->current_tempo_column = object->valueint;
     }
     
     object = cJSON_GetObjectItem(root, node_custom_table);
-    if(object != NULL) { //cSynthLoadFailed("track highlight interval missing", root); return 0; }
+    if(object != NULL) {
         array = cJSON_GetObjectItem(object, node_custom_instrument);
         if(array != NULL) {
             /* add the 5 nodes to array. */
@@ -1153,7 +744,6 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
         synth->track[value_node_pattern][value_node_column][value_node_row] = track_node;
     }
     
-    
     /* instrument effects */
     for(s_x = 0; s_x < synth->max_instrument_effects; s_x++) {
         for(s_y = 0; s_y < synth->max_instrument_effects; s_y++) {
@@ -1223,7 +813,6 @@ int cSynthLoadProject(struct CSynthContext *synth, const char* json) {
         synth->instrument_effects[value_instrument_link][value_node_row] = track_node;
     }
 
-    
     array = cJSON_GetObjectItem(root, node_patterns_and_voices);
     pattern_count = 0;
     /* loop through all patterns and voices */
@@ -1762,7 +1351,6 @@ void cSynthCleanup(struct CSynthContext *synth) {
         }
         synth->wavetable_map = cAllocatorFree(synth->wavetable_map);
 
-        
         /* tables */
         synth->sine_wave_table = cAllocatorFree(synth->sine_wave_table);
         synth->sawtooth_wave_table = cAllocatorFree(synth->sawtooth_wave_table);
@@ -2295,7 +1883,6 @@ void cSynthTurnOffSustain(struct CSynthContext *synth) {
 
 void cSynthAddTrackNode(struct CSynthContext *synth, int instrument_nr, int current_track, int x, int y, bool editing, bool preview, int tone, bool playing) {
     
-    
     if(x > -1 && x < synth->track_width
        && y > -1 && y < synth->track_height) {
         
@@ -2322,7 +1909,6 @@ void cSynthAddTrackNode(struct CSynthContext *synth, int instrument_nr, int curr
                 synth->track[pattern][x][y] = t;
             }
             
-            //printf("add note pattern:%d x:%d y:%d ins:%d\n", pattern, x, y, t->instrument_nr);
         }
         
         if(preview && synth->preview_enabled /*&& !playing*/ && synth->sustain_active && !synth->preview_started) {
@@ -2352,7 +1938,6 @@ void cSynthAddTrackNode(struct CSynthContext *synth, int instrument_nr, int curr
                         pre_effect_node->tone_active = true;
                         pre_effect_node->instrument = instrument;
                         pre_effect_node->instrument_nr = instrument->instrument_number;
-                        //printf("ins:%d setting effect:%d\n", t->instrument_nr, pre_effect_node->effect_value);
                         cSynthVoiceSetEffect(synth, synth->voices[x_node], pre_effect_node, synth->voices[x_node]->last_preview_tone);
                     }
                 }
@@ -2415,7 +2000,6 @@ int cSynthGetNextActiveTrack(int current_track, struct CSynthContext *synth, boo
             if(i > current_track && synth->active_tracks[i] == 1) {
                 next_track_set = true;
                 next_track = i;
-                //printf("1 next track:%d\n", next_track);
                 break;
             }
         }
@@ -2425,7 +2009,6 @@ int cSynthGetNextActiveTrack(int current_track, struct CSynthContext *synth, boo
                 if(current_track >= i && synth->active_tracks[i] == 1) {
                     next_track_set = true;
                     next_track = i;
-                    //printf("2 next track:%d\n", next_track);
                     break;
                 }
             }
@@ -2685,9 +2268,6 @@ void cSynthAdvanceTrack(struct CSynthContext *synth, long samples) {
             
             previous_tone = v->previous_tone;
             
-            
-            
-            
             if(t != NULL) {
                 
                 if(t->effect_param1_value > -1) {
@@ -2718,7 +2298,6 @@ void cSynthAdvanceTrack(struct CSynthContext *synth, long samples) {
                                 pre_effect_node->tone_active = t->tone_active;
                                 pre_effect_node->instrument = t->instrument;
                                 pre_effect_node->instrument_nr = t->instrument_nr;
-                                //printf("ins:%d setting effect:%d\n", t->instrument_nr, pre_effect_node->effect_value);
                                 cSynthVoiceSetEffect(synth, v, pre_effect_node, previous_tone);
                             }
                         }
@@ -2839,7 +2418,6 @@ static void cSynthVoiceSetEffect(struct CSynthContext *synth, struct CVoice *v, 
                 v->arpeggio_tone_0 = v->last_valid_tone;
                 v->arpeggio_tone_1 = v->last_arpeggio_effect1+v->last_valid_tone;
                 v->arpeggio_tone_2 = v->last_arpeggio_effect2+v->last_valid_tone;
-                //printf("== arp active tone:%d\n", v->last_valid_tone);
             } else if(v->tone > -1){
                 v->arpeggio_tone_0 = v->tone;
                 v->arpeggio_tone_1 = v->last_arpeggio_effect1+v->tone;
@@ -2848,11 +2426,8 @@ static void cSynthVoiceSetEffect(struct CSynthContext *synth, struct CVoice *v, 
                 v->arpeggio_tone_0 = previous_tone;
                 v->arpeggio_tone_1 = v->last_arpeggio_effect1+previous_tone;
                 v->arpeggio_tone_2 = v->last_arpeggio_effect2+previous_tone;
-                //printf("== arp previous tone:%d\n", previous_tone);
             } else {
                 /* we don't have a tone to make the arp of. Cancel. */
-                //printf("== dont have a tone to make arp of. tone:%d prev_tone:%d\n", t->tone, previous_tone);
-                
             }
         } else {
             v->arpeggio_active = false;
@@ -2920,7 +2495,6 @@ static void cSynthVoiceSetEffect(struct CSynthContext *synth, struct CVoice *v, 
                     v->portamento_speed = v->last_portamento_effect1;
                 }
             } else if(v->last_portamento_effect1 == -1 && v->last_portamento_effect2 == -1) {
-                //printf("portamento_active = false\n");
                 v->portamento_active = false;
             }
         }
@@ -3492,7 +3066,6 @@ void cSynthVoiceApplyArpeggio(struct CSynthContext *synth, struct CVoice *v) {
     }
 }
 
-
 void cSynthVoiceApplyPortamento(struct CSynthContext *synth, struct CVoice *v) {
    
     double segment = synth->mod_portamento_speed * (v->portamento_speed * v->portamento_speed);
@@ -3514,24 +3087,10 @@ void cSynthVoiceApplyPortamento(struct CSynthContext *synth, struct CVoice *v) {
 
 static void cSynthUpdateWavetable(struct CSynthContext *synth, struct CVoice *v) {
     /*
-     each voice has a wavetable_count which is the cursor for a lane in the wavetable_map.
-     this effect will change the waveform of the channel.
+     Each voice has a wavetable_count which is the cursor for a lane in the wavetable_map.
+     This effect will change the waveform of the channel.
      When the effect is reset, the channel should be reset to its original waveform.
      Also for each noteon, the wavetable_count should be set to 0.
-     
-     TODO: make so that y == 2 cannot be set inactive.
-            
-            octave up/down for note in selection or marker.
-     
-            check so that no button inputs can ruin stuff outside while inside wavetable_editor
-            save/load wavetable data.
-            reset to original waveform after wavetable is done?
-            hide row values for now. (might not be needed?) just set "-".
-            set so that 0-5 lane chooser uses 1 step between, so that correct lane is selected.
-            add wavetable shortcut to patterns.
-            change shortcut from w to r
-            
-            if value is 0, use the speed of the voice frequency.
      */
 
     double speed_mod = 0.001;
@@ -3574,17 +3133,6 @@ static void cSynthUpdateWavetable(struct CSynthContext *synth, struct CVoice *v)
                 v->wavetable_cursor = wavetable_cursor;
                 cursor_set = true;
             }
-            /*
-            if(!cursor_set) {
-                for (int i = 2; i < synth->wavetable_height; i++) {
-                    struct CWavetableNode *w_new_node = synth->wavetable_map[wavetable_lane][i];
-                    if (w_new_node->active) {
-                        new_wavetable_cursor = i;
-                        cursor_set = true;
-                        break;
-                    }
-                }
-            }*/
         }
         
         if(cursor_set) {
@@ -3630,14 +3178,9 @@ void cSynthResetOnLoopBack(struct CSynthContext *synth) {
     for (int i = 0; i < synth->track_width; i++) {
         struct CVoice *v = synth->voices[i];
         
-        //cSynthResetPortamento(v);
-        
         // tones
         v->last_valid_tone = -1;
         v->previous_tone = -1;
-       // v->tone = -1; // TODO cannot reset tone when previewing or it will be cut off. Need it for proper portamento reset.
-        // when setting tone -1 every note that passes into the start of the song gets cut off in similar way.
-        // portamento needs a different reset system or maybe just reset on playback/stop?
         
         // arpeggio
         v->arpeggio_active = false;
@@ -3697,7 +3240,6 @@ void cSynthResetAllEffects(struct CVoice *v) {
     v->previous_effect = -1;
     v->sustain_active = false;
     v->pwm_active = false;
-    //v->pwm_pos = 0; don't reset cycle.
     v->pwm_static_pos = 0;
     v->pwm_speed = 0;
     
@@ -3846,7 +3388,6 @@ static void cSynthResetVoice(struct CSynthContext *synth, int16_t *waveform, str
         v->waveform = v->wavetable_previous_table;
     }
     v->wavetable_previous_table = NULL;
-    
     
     // avoid clicks/pops when cutting off note.
     v->noteoff_slope = 0;
@@ -4154,9 +3695,6 @@ void cSynthBuildTriangleWave(int16_t *data, int wave_length) {
 void cSynthBuildNoise(int16_t *data, int wave_length) {
     
     for (int i = 0; i < wave_length; i++) {
-        //int16_t sample = (rand() % INT16_MAX * 2) - INT16_MAX;
-        //printf("%d,", sample);
-        //data[i] = sample;
         data[i] = static_noise_table[i];
     }
 }

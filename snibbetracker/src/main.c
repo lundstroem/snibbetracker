@@ -55,9 +55,6 @@ codesign --force -s "Developer ID Application: Harry Lundstrom" /Library/Framewo
 // POSIX
 #endif
 
-
-static bool load_gfx = false; // used when loading in new GFX from file.
-//static unsigned int **sheet = NULL; // used when loading in new GFX from file.
 static const bool debuglog = false;
 static const bool errorlog = false;
 static const int passive_render_delay_ms = 16;
@@ -195,7 +192,7 @@ static int credits_color = 0xFFCCCCCC;
 static int credits_bg_color = 0xFF000000;
 static int credits_brush_color = 0xFF000000;
 static void resetColorValues();
-static void TtransformHSV(float H, float S, float V);
+static void transformHSV(float H, float S, float V);
 static void renderPixels(unsigned int **data, int start_x, int start_y, int w, int h, float rotation);
 
 #define MAX_TOUCHES 8
@@ -1285,84 +1282,6 @@ static void set_visual_cursor(int diff_x, int diff_y, bool user) {
     }
 }
 
-
-// move across the whole 16 tracks. Keep this commented for now.
-//static void setVisualCursor(int diff_x, int diff_y, bool user) {
-//    
-//    visual_cursor_x += diff_x;
-//    visual_cursor_y += diff_y;
-//    if(user) {
-//        if(visual_cursor_x == visual_track_width) {
-//            visual_cursor_x = 0;
-//        }
-//        
-//        if(visual_cursor_x == -1) {
-//            visual_cursor_x = visual_track_width-1;
-//        }
-//        
-//        if(visual_cursor_y == visual_track_height) {
-//            
-//            if(current_track < 15) {
-//                current_track++;
-//            } else {
-//                //rewind
-//                current_track = 0;
-//            }
-//            
-//            visual_cursor_y = 0;
-//        }
-//        
-//        if(visual_cursor_y == -1) {
-//            
-//            if(current_track > 0) {
-//                current_track--;
-//            } else {
-//                //move to last pattern
-//                current_track = 15;
-//            }
-//            
-//            visual_cursor_y = visual_track_height-1;
-//        }
-//        
-//    } else {
-//        
-//        if(playing && follow) {
-//            if(visual_cursor_x == visual_track_width) {
-//                visual_cursor_x = 0;
-//            }
-//            
-//            if(visual_cursor_x == -1) {
-//                visual_cursor_x = visual_track_width-1;
-//            }
-//            
-//            if(visual_cursor_y == visual_track_height) {
-//                
-//                if(synth->current_track < 15) {
-//                    synth->current_track++;
-//                } else {
-//                    //rewind
-//                    synth->current_track = 0;
-//                }
-//                
-//                visual_cursor_y = 0;
-//            }
-//            
-//            if(visual_cursor_y == -1) {
-//                
-//                if(synth->current_track > 0) {
-//                    synth->current_track--;
-//                } else {
-//                    //move to last pattern
-//                    synth->current_track = 15;
-//                }
-//                
-//                visual_cursor_y = visual_track_height-1;
-//            }
-//            current_track = synth->current_track;
-//        }
-//    }
-//}
-
 static void check_pattern_cursor_bounds(void) {
     
     if(pattern_cursor_x == synth->patterns_and_voices_width) {
@@ -1412,9 +1331,6 @@ static void toggle_playback(void) {
         // note off to all voices when stopping playing.
         for(int v_i = 0; v_i < synth->max_voices; v_i++) {
             synth->voices[v_i]->note_on = false;
-            // TODO: has commented lines below any effect?
-            //cSynthResetPortamento(synth->voices[v_i]);
-            //cSynthResetAllEffects(synth->voices[v_i]);
         }
         cSynthResetOnLoopBack(synth);
         playing = false;
@@ -3235,9 +3151,6 @@ static void check_sdl_events(SDL_Event event) {
     }
 }
 
-
-
-
 static void log_wave_data(float *floatStream, Uint32 floatStreamLength, Uint32 increment) {
     
     printf("\n\nwaveform data:\n\n");
@@ -3370,10 +3283,7 @@ static void change_param(bool plus) {
     if(y == 0) {
         change_waveform(plus);
     } else if(y == 17 || y == 18) {
-        // instruments
-        if(y == 18) {
-            //ins_nr += 6;
-        }
+        // nothing
     } else if(y == 20 && x == 1) {
         //master amp
         int amp = synth->master_amp_percent;
@@ -3397,9 +3307,9 @@ static void change_param(bool plus) {
             synth->preview_enabled = true;
         }
     } else if(y == 19 && x == 1) {
-       
+        // nothing
     } else if(y == 19 && x == 2) {
-    
+        // nothing
     }
     else if(y == 20 && x == 2) {
         // active rows for all patterns
@@ -3430,8 +3340,9 @@ static void change_param(bool plus) {
             }
         }
     } else if(y == 20 && x == 4) {
+        // nothing
     } else if(y == 20) {
-        //nothing
+        // nothing
     } else {
         // pattern nr.
         int pattern = synth->patterns[pattern_cursor_x][pattern_cursor_y-1+visual_pattern_offset];
@@ -4121,7 +4032,6 @@ static void render_wavetable_editor(double dt) {
     }
 }
 
-
 static void render_track(double dt) {
     
     if(help) {
@@ -4279,7 +4189,6 @@ static void render_track(double dt) {
                 }
             }
             
-            
             int pos_y = inset_y+y-track_progress_int;
             
             if(x == 0 || x == 5 || x == 10 || x == 15 || x == 20 || x == 25) {
@@ -4345,8 +4254,6 @@ static void render_track(double dt) {
         cEngineRenderLabelWithParams(raster2d, cval, 50, 23, color_text, color_text_bg);
     }
 }
-
-
 
 static void setup_sdl(void) {
     
@@ -4422,26 +4329,10 @@ static void setup_synth(void) {
 
 static void setup_texture(void) {
     
-    // load char gfx from png and store in source. Remove this step before release to get rid of depencency.
-    SDL_Surface * image = NULL;
-    if(load_gfx) {
-        /*
-         char * filename = "groundtiles.png";
-         SDL_Surface * image = IMG_Load(filename);
-         raw_sheet = image->pixels;
-         printf("\n unsigned int chars_gfx[16384] = {");
-         // print label gfx to store in code instead.
-         for (int i = 0; i< 16384; i++) {
-         printf("%d,", raw_sheet[i]);
-         }
-         printf("};\n");
-         */
-    } else {
-        // contains an integer for every color/pixel on the sheet.
-        raw_sheet = cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
-        for(int r = 0; r < sheet_width*sheet_height; r++) {
-            raw_sheet[r] = 0;
-        }
+    // contains an integer for every color/pixel on the sheet.
+    raw_sheet = cAllocatorAlloc((sheet_width*sheet_height) * sizeof(unsigned int), "main.c raw_sheet 1");
+    for(int r = 0; r < sheet_width*sheet_height; r++) {
+        raw_sheet[r] = 0;
     }
     
     // load gfx from source.
@@ -4450,13 +4341,7 @@ static void setup_texture(void) {
     }
     cEngineWritePixelData(raw_sheet);
     
-    if(load_gfx) {
-        if(image != NULL) {
-            SDL_FreeSurface(image);
-        }
-    } else {
-        raw_sheet = cAllocatorFree(raw_sheet);
-    }
+    raw_sheet = cAllocatorFree(raw_sheet);
 }
 
 static void destroy_sdl(void) {
@@ -4567,10 +4452,6 @@ static int get_delta(void) {
         if(delta <= 0) {
             delta = 1;
         }
-        //double fps = 1000/delta;
-        if(fps_print_interval >= print_interval_limit) {
-            //printf("fps:%f delta_time:%d\n", fps, delta);
-        }
     }
     
     if(fps_print_interval >= print_interval_limit) {
@@ -4651,14 +4532,7 @@ static void main_loop(void) {
     last_dt = dt;
     int wait_time = delay_ms-dt;
     if(dt < 10) {
-        if(fps_print_interval >= print_interval_limit) {
-            //printf("dt:%d additional wait_time:%d\n", dt, wait_time);
-        }
         SDL_Delay(wait_time);
-    } else {
-        if(fps_print_interval >= print_interval_limit) {
-            //printf("frame time:%d\n", dt);
-        }
     }
 }
 
@@ -4774,8 +4648,6 @@ static unsigned int get_color_from_json_config(cJSON *color_obj) {
         int g = rgb_obj->valueint;
         rgb_obj = cJSON_GetObjectItem(color_obj, "b");
         int b = rgb_obj->valueint;
-        
-        // 255 255 255 makes it transparent for some reason..
         
         if(r > 254) {
             r = 254;
@@ -4954,7 +4826,6 @@ static bool parse_config(char *json) {
         object = cJSON_GetObjectItem(root, param_color_selection_text);
         if(object != NULL) { color_selection_text = get_color_from_json_config(object); }
         
-        
         object = cJSON_GetObjectItem(root, param_color_bg);
         if(object != NULL) { color_bg = get_color_from_json_config(object); }
         
@@ -5000,7 +4871,6 @@ static bool parse_config(char *json) {
     }
     return false;
 }
-
 
 static void st_pause(void) {
     
@@ -5055,7 +4925,6 @@ int main(int argc, char* argv[]) {
         //linux
     #endif
     
-    
     init_data();
     st_log("init data successful.");
     
@@ -5082,8 +4951,6 @@ int main(int argc, char* argv[]) {
                 main_loop();
             }
         }
-    } else {
-        //sleep(5);
     }
 
     cleanup_synth();
@@ -5136,12 +5003,10 @@ static void export_wav(char *filename) {
         long end = (i*chunk_size) + chunk_size;
         cSynthRenderAudio(synth, NULL, begin, end, chunk_size, playing, exporting);
         if(synth->looped) {
-            //printf("synth->looped is now true! breaking.\n");
             synth->looped = false;
             break;
         }
         buffer_size += chunk_size*2;
-        //printf("buffer_size:%lu\n", buffer_size);
     }
     
     if(debuglog) { printf("export buffer size:%ld\n", buffer_size); }
@@ -5149,12 +5014,6 @@ static void export_wav(char *filename) {
     cSynthResetTrackProgress(synth, starting_track, 0);
     cSynthResetTempoIndex(synth);
     synth->tempo_skip_step = true;
-    for(int v_i = 0; v_i < synth->max_voices; v_i++) {
-        
-        // TODO: has commented lines below any effect?
-        //cSynthResetPortamento(synth->voices[v_i]);
-        //cSynthResetAllEffects(synth->voices[v_i]);
-    }
     
     cSynthResetOnLoopBack(synth);
     exporting = true;
@@ -5224,11 +5083,8 @@ static void write_wav(char *filename, unsigned long num_samples, short int *data
     wav_file = fopen(filename, "wb");
     if(wav_file != NULL) {
         
-        //assert(wav_file);   /* make sure it opened */
-        
         /* write RIFF header */
         fwrite("RIFF", 1, 4, wav_file);
-        //write_little_endian((unsigned int)(36 + bytes_per_sample * num_samples * num_channels), 4, wav_file);
         write_little_endian((unsigned int)(36 + num_samples), 4, wav_file);
         
         fwrite("WAVE", 1, 4, wav_file);
@@ -5424,12 +5280,6 @@ static void render_help(void) {
         y++;
         cEngineRenderLabelWithParams(raster2d, "preview - 1 or 0. if notes are audiable when editing.", inset_x+x+offset_x, y, color, bg_color);
         y++;
-       // cEngineRenderLabelWithParams(raster2d, "tempo - open tempo editor.", inset_x+x+offset_x, y, color, bg_color);
-       // y++;
-       // cEngineRenderLabelWithParams(raster2d, "wavetable - open wavetable editor.", inset_x+x+offset_x, y, color, bg_color);
-       // y++;
-       // cEngineRenderLabelWithParams(raster2d, "cust wave - open custom wave editor.", inset_x+x+offset_x, y, color, bg_color);
-       // y++;
         cEngineRenderLabelWithParams(raster2d, "2 / 7", 1, 22, color, bg_color);
     }
     
@@ -5858,7 +5708,7 @@ static void resetColorValues(void) {
     c_new_hue_b = 0;
 }
 
-static void TtransformHSV(float H, float S, float V) {
+static void transformHSV(float H, float S, float V) {
     
     float VSU = 0.1f;
     float VSW = 0.1f;
@@ -5909,7 +5759,7 @@ static void renderPixels(unsigned int **data, int start_x, int start_y, int w, i
                 c_hue_r = rscale;
                 c_hue_g = gscale;
                 c_hue_b = bscale;
-                TtransformHSV(rotation, 1.0f, 0.99f);
+                transformHSV(rotation, 1.0f, 0.99f);
                 c_new_hue_r = (float)(c_new_hue_r*255.0);
                 c_new_hue_g = (float)(c_new_hue_g*255.0);
                 c_new_hue_b = (float)(c_new_hue_b*255.0);
