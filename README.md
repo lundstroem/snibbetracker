@@ -61,14 +61,6 @@ Windows example C:\\snibbetracker
 Make sure that the folder exists before using it and that is is 
 accessible by the program.
 
-contact/support
-----------------
-If you encounter bugs or other issues, please let me know and if possible the steps to reproduce them.
-Feel free to contact if you have other feedback or questions, or if you've made a song
-you'd like to share.
-h.lundstroem@gmail.com
-http://harrylundstrom.se/snibbetracker.html
-
 controls overview
 ----------------
 - modfier key is cmd on OSX and ctrl on win.
