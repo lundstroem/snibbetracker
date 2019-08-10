@@ -83,6 +83,7 @@ static bool redraw_screen = true;
 static bool passive_rendering = true;
 static bool preview_enabled = true;
 static char *conf_default_dir = NULL;
+static char *base_dir = NULL;
 static int current_pattern = 0;
 static int current_track = 0;
 static int quit = 0;
@@ -4598,7 +4599,7 @@ static void copy_project_win_lin(const char *name) {
     #if defined(platform_windows)
     snprintf(read_path, 1023, "%s%s", "demos\\", name);
     #else
-    snprintf(read_path, 1023, "%s/../share/lundstroem/snibbetracker/demos/%s", SDL_GetBasePath(), name);
+    snprintf(read_path, 1023, "%s/../share/lundstroem/snibbetracker/demos/%s", base_dir, name);
     #endif
 	char *write_path = cAllocatorAlloc((1024 * sizeof(char*)), "win path 2");
     snprintf(write_path, 1023, "%s%s", conf_default_dir, name);
@@ -4928,6 +4929,12 @@ int main(int argc, char* argv[]) {
         } else {
             if(debuglog) { printf("SDL_GetPrefPath returned NULL\n"); }
         }
+    }
+	
+    base_dir = SDL_GetBasePath();
+    if (base_dir == NULL) {
+        if(debuglog) { printf("SDL_GetBasePath returned NULL\n"); }
+        return 1;
     }
     
     #if defined(platform_windows)||defined(platform_linux)
