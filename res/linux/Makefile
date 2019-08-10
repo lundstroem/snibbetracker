@@ -19,10 +19,10 @@ INCLUDE_PATHS = -I../../snibbetracker/src/cJSON
 # LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.4-mingw\i686-w64-mingw32\lib
 
 # Compiler flags
-COMPILER_FLAGS = -Wall -std=gnu99 -lasound -Wno-unused-function
+COMPILER_FLAGS = -Wall -std=gnu99 -lasound -Wno-unused-function $(CFLAGS)
 
 # Linker flags
-LINKER_FLAGS = -lSDL2main -lSDL2 -lm
+LINKER_FLAGS = -lSDL2main -lSDL2 -lm $(LDFLAGS)
 
 # Executable file
 EXE = snibbetracker
