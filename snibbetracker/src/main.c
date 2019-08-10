@@ -60,13 +60,13 @@
     #define platform_osx
     #include "dir_posix.h"
     #include "osx_settings.h"
+#endif
+#elif __linux
+// linux
     #define TARGET_OS_LINUX 1
     // define something for Linux
     #define platform_linux
     #include "dir_posix.h"
-#endif
-#elif __linux
-// linux
 #elif __unix // all unices not caught above
 // Unix
 #elif __posix
@@ -717,7 +717,7 @@ static void exit_file_editor(void) {
 
 
 static int getDirectoryList(char *dir_string) {
-#if defined(platform_osx)
+#if defined(platform_osx)||defined(platform_linux)
     return getDirectoryListPosix(dir_string, file_settings);
 #elif defined(platform_windows)
     return getDirectoryListWin(dir_string, file_settings);

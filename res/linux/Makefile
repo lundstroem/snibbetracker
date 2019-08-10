@@ -15,7 +15,7 @@ INCLUDE_PATHS = -I../../snibbetracker/src/cJSON
 # LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.4-mingw\i686-w64-mingw32\lib
 
 # Compiler flags
-COMPILER_FLAGS = -Wall -std=gnu99 -lasound -Dplatform_linux -Wno-unused-function
+COMPILER_FLAGS = -Wall -std=gnu99 -lasound -Wno-unused-function
 
 # Linker flags
 LINKER_FLAGS = -lSDL2main -lSDL2 -lm -static-libgcc
