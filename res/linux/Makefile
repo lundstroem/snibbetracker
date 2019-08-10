@@ -22,7 +22,7 @@ INCLUDE_PATHS = -I../../snibbetracker/src/cJSON
 COMPILER_FLAGS = -Wall -std=gnu99 -lasound -Wno-unused-function
 
 # Linker flags
-LINKER_FLAGS = -lSDL2main -lSDL2 -lm -static-libgcc
+LINKER_FLAGS = -lSDL2main -lSDL2 -lm
 
 # Executable file
 EXE = snibbetracker
