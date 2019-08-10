@@ -1,0 +1,48 @@
+
+# Files to be compiled
+SRC = ../../snibbetracker/src/CAllocator.c ../../snibbetracker/src/CEngine.c ../../snibbetracker/src/CInput.c ../../snibbetracker/src/CSynth.c ../../snibbetracker/src/cJSON/cJSON.c ../../snibbetracker/src/dir_posix.c ../../snibbetracker/src/main.c
+OBJ = $(SRC:.c=.o) # replaces the .c from SRC with .o
+
+# Compiler
+CC = gcc
+
+RM = rm
+
+# Include paths
+INCLUDE_PATHS = -I../../snibbetracker/src/cJSON
+
+# Library paths
+# LIBRARY_PATHS = -LC:\Downloads\SDL2-devel-2.0.4-mingw\i686-w64-mingw32\lib
+
+# Compiler flags
+COMPILER_FLAGS = -Wall -std=gnu99 -lasound -Dplatform_linux -Wno-unused-function
+
+# Linker flags
+LINKER_FLAGS = -lSDL2main -lSDL2 -lm -static-libgcc
+
+# Executable file
+EXE = snibbetracker
+
+# Compile command
+#all: 
+#	$(SRC) 
+#	$(CC) $(SRC) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(EXE)
+
+%.o: %.c         # combined w/ next line will compile recently changed .c files
+	$(CC) $(COMPILER_FLAGS) $(INCLUDE_PATHS) -o $@ -c $<
+	
+.PHONY : all     # .PHONY ignores files named all
+all: $(EXE)      # all is dependent on $(EXE) to be complete
+
+.PHONY : install
+install: all
+	@install -TDvsm755 ./snibbetracker "$${XDG_DATA_HOME:-$$HOME/.local/share}/../bin/snibbetracker"
+	@mkdir -p "$${XDG_DATA_HOME:-$$HOME/.local/share}/lundstroem/snibbetracker"
+	@cp -v ../demos/*.snibb "$${XDG_DATA_HOME:-$$HOME/.local/share}/lundstroem/snibbetracker"
+
+$(EXE): $(OBJ)   # $(EXE) is dependent on all of the files in $(OBJ) to exist
+	$(CC) $(OBJ) $(LINKER_FLAGS) -o $@
+
+.PHONY : clean   # .PHONY ignores files named clean
+clean:
+	-$(RM) $(OBJ) $(EXE)

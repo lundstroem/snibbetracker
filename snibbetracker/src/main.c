@@ -60,6 +60,10 @@
     #define platform_osx
     #include "dir_posix.h"
     #include "osx_settings.h"
+    #define TARGET_OS_LINUX 1
+    // define something for Linux
+    #define platform_linux
+    #include "dir_posix.h"
 #endif
 #elif __linux
 // linux
@@ -1408,7 +1412,7 @@ void handle_key_up(SDL_Keysym* keysym) {
         if(!input->key_lock_lgui) {
             modifier = false;
         }
-    #elif defined(platform_windows)
+    #elif defined(platform_windows)||defined(platform_linux)
         if(!input->key_lock_lctrl) {
             modifier = false;
         }
@@ -1868,7 +1872,7 @@ void handle_key_down(SDL_Keysym* keysym) {
             if(input->key_lgui) {
                 modifier = true;
             }
-        #elif defined(platform_windows)
+        #elif defined(platform_windows)||defined(platform_linux)
             if(input->key_lctrl) {
                 modifier = true;
             }
@@ -2534,6 +2538,7 @@ static void sdl_key_mapping(SDL_Keysym* keysym, bool down) {
         case SDLK_F12: input->key_f12 = down; break;
             
     }
+
 }
 
 static void handle_reset_confirmation_keys(void) {
