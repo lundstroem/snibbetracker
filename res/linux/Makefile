@@ -5,11 +5,12 @@ PREFIX ?= /usr/local
 # Files to be compiled
 SRC = ../../snibbetracker/src/CAllocator.c ../../snibbetracker/src/CEngine.c ../../snibbetracker/src/CInput.c ../../snibbetracker/src/CSynth.c ../../snibbetracker/src/cJSON/cJSON.c ../../snibbetracker/src/dir_posix.c ../../snibbetracker/src/main.c
 OBJ = $(SRC:.c=.o) # replaces the .c from SRC with .o
+DEP = $(SRC:.c=.d)
 
 # Compiler
 CC = gcc
 
-RM = rm
+RM = rm -f
 
 # Include paths
 INCLUDE_PATHS = -I../../snibbetracker/src/cJSON
@@ -27,13 +28,13 @@ LINKER_FLAGS = -lSDL2main -lSDL2 -lm -static-libgcc
 EXE = snibbetracker
 
 # Compile command
-#all: 
-#	$(SRC) 
+#all:
+#	$(SRC)
 #	$(CC) $(SRC) $(INCLUDE_PATHS) $(LIBRARY_PATHS) $(COMPILER_FLAGS) $(LINKER_FLAGS) -o $(EXE)
 
 %.o: %.c         # combined w/ next line will compile recently changed .c files
-	$(CC) $(COMPILER_FLAGS) $(INCLUDE_PATHS) -o $@ -c $<
-	
+	$(CC) -MD -MP $(COMPILER_FLAGS) $(INCLUDE_PATHS) -o $@ -c $<
+
 .PHONY : all     # .PHONY ignores files named all
 all: $(EXE)      # all is dependent on $(EXE) to be complete
 
@@ -47,4 +48,6 @@ $(EXE): $(OBJ)   # $(EXE) is dependent on all of the files in $(OBJ) to exist
 
 .PHONY : clean   # .PHONY ignores files named clean
 clean:
-	-$(RM) $(OBJ) $(EXE)
+	-$(RM) $(OBJ) $(DEP) $(EXE)
+
+-include $(DEP)
