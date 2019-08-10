@@ -365,7 +365,7 @@ static void cleanup_synth(void);
 static void main_loop(void);
 static void debug_log(char *str);
 static int get_buffer_size_from_index(int i);
-static void copy_project_win(const char *name);
+static void copy_project_win_lin(const char *name);
 static void load_config(void);
 static bool parse_config(char *json);
 static void st_log(char *message);
@@ -4593,9 +4593,13 @@ static int get_buffer_size_from_index(int i) {
 
 }
 
-static void copy_project_win(const char *name) {
+static void copy_project_win_lin(const char *name) {
     char *read_path = cAllocatorAlloc((1024 * sizeof(char*)), "win path 1");
+    #if defined(platform_windows)
     snprintf(read_path, 1023, "%s%s", "demos\\", name);
+    #else
+    snprintf(read_path, 1023, "%s/../share/lundstroem/snibbetracker/demos/%s", SDL_GetBasePath(), name);
+    #endif
 	char *write_path = cAllocatorAlloc((1024 * sizeof(char*)), "win path 2");
     snprintf(write_path, 1023, "%s%s", conf_default_dir, name);
     char *b = load_file(read_path);
@@ -4637,15 +4641,15 @@ static void load_config(void) {
         if(b != NULL) {
             success = parse_config(b);
             cAllocatorFree(b);
-            copy_project_win("catslayer.snibb");
-            copy_project_win("dunsa2.snibb");
-            copy_project_win("fiskbolja.snibb");
-            copy_project_win("horizon.snibb");
-            copy_project_win("kissemisse.snibb");
-            copy_project_win("korvhastig.snibb");
-            copy_project_win("websnacks.snibb");
-            copy_project_win("wrestchest.snibb");
-			copy_project_win("projectcart.snibb");
+            copy_project_win_lin("catslayer.snibb");
+            copy_project_win_lin("dunsa2.snibb");
+            copy_project_win_lin("fiskbolja.snibb");
+            copy_project_win_lin("horizon.snibb");
+            copy_project_win_lin("kissemisse.snibb");
+            copy_project_win_lin("korvhastig.snibb");
+            copy_project_win_lin("websnacks.snibb");
+            copy_project_win_lin("wrestchest.snibb");
+            copy_project_win_lin("projectcart.snibb");
         } else {
             if(debuglog) { printf("could not find config file after writing. path:%s\n", path); }
         }
@@ -4926,7 +4930,7 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    #if defined(platform_windows)
+    #if defined(platform_windows)||defined(platform_linux)
         load_config();
         st_log("started executing.");
     #elif defined(platform_osx)

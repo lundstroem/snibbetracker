@@ -1,4 +1,7 @@
 
+# Install destination
+PREFIX ?= /usr/local
+
 # Files to be compiled
 SRC = ../../snibbetracker/src/CAllocator.c ../../snibbetracker/src/CEngine.c ../../snibbetracker/src/CInput.c ../../snibbetracker/src/CSynth.c ../../snibbetracker/src/cJSON/cJSON.c ../../snibbetracker/src/dir_posix.c ../../snibbetracker/src/main.c
 OBJ = $(SRC:.c=.o) # replaces the .c from SRC with .o
@@ -36,9 +39,8 @@ all: $(EXE)      # all is dependent on $(EXE) to be complete
 
 .PHONY : install
 install: all
-	@install -TDvsm755 ./snibbetracker "$${XDG_DATA_HOME:-$$HOME/.local/share}/../bin/snibbetracker"
-	@mkdir -p "$${XDG_DATA_HOME:-$$HOME/.local/share}/lundstroem/snibbetracker"
-	@cp -v ../demos/*.snibb "$${XDG_DATA_HOME:-$$HOME/.local/share}/lundstroem/snibbetracker"
+	install -D -m755 snibbetracker $(DESTDIR)$(PREFIX)/bin/snibbetracker
+	install -D ../demos/*.snibb -t $(DESTDIR)$(PREFIX)/share/lundstroem/snibbetracker/demos/
 
 $(EXE): $(OBJ)   # $(EXE) is dependent on all of the files in $(OBJ) to exist
 	$(CC) $(OBJ) $(LINKER_FLAGS) -o $@
