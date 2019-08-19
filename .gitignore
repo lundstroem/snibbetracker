@@ -9,6 +9,12 @@
 *.swp
 *~.nib
 
+# gcc
+*.d
+
+# linux
+res/linux/snibbetracker
+
 # mingw
 *.o
 

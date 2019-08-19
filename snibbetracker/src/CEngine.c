@@ -161,10 +161,9 @@ struct CStr *cStrPrintWithSize(size_t size, struct CStr *cstr, const char *fmt,.
     if (cstr != NULL) {
         if (cstr->chars != NULL) {
             size_t count = cstr->size;
-            size_t ret;
             va_list ap;
             va_start(ap, fmt);
-            ret = vsnprintf(cstr->chars, count, fmt, ap);
+            vsnprintf(cstr->chars, count, fmt, ap);
             va_end(ap);
         }
     }
@@ -184,10 +183,9 @@ struct CStr *cStrPrint(struct CStr *cstr, const char *fmt,...) {
     if (cstr != NULL) {
         if (cstr->chars != NULL) {
             size_t count = cstr->size;
-            size_t ret;
             va_list ap;
             va_start(ap, fmt);
-            ret = vsnprintf(cstr->chars, count, fmt, ap);
+            vsnprintf(cstr->chars, count, fmt, ap);
             va_end(ap);
         }
     }
@@ -425,6 +423,7 @@ static void cEngineRenderSprite(unsigned int **raster, int sprite_x, int sprite_
         alpha = (color >> (8*3)) & 0xff;
         bg_alpha = (bg_color >> (8*3)) & 0xff;
     }
+    (void)alpha; // unused
     
     screen_x *= width;
     screen_y *= height;
